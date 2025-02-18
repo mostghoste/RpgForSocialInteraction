@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres
+    container_name: rpg_db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: rpgdb
+      POSTGRES_USER: rpguser
+      POSTGRES_PASSWORD: rpgpass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - rpg_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: rpg_redis
+    networks:
+      - rpg_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rpg_backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    env_file:
+      - .env
+    environment:
+      DB_NAME: rpgdb
+      DB_USER: rpguser
+      DB_PASSWORD: rpgpass
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379
+    networks:
+      - rpg_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: rpg_frontend
+    ports:
+      - "3000:80" # 80 in container -> 3000 on host
+    depends_on:
+      - backend
+    networks:
+      - rpg_net
+
+networks:
+  rpg_net:
+
+volumes:
+  postgres_data:
