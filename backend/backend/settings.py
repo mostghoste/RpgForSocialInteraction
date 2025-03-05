@@ -19,6 +19,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
+# TODO: Add key to .env and configure for production
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-6_53z8qq@47jp9mr)%jy*@a$ly3xx*p_(k(-f+5ilb)y*%1a4i'
 
@@ -67,7 +68,18 @@ TEMPLATES = [
         },
     },
 ]
+
 ASGI_APPLICATION = 'backend.asgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("redis", 6379)],
+        },
+    },
+}
+
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
