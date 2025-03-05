@@ -1,8 +1,8 @@
 # What is this?
-This is "RpgForSocialInteraction", a game developed as part of my bachelor's thesis. In essence, it is a fun role-playing game with a bit of social deduction meant to bring people closer together.
+This is "RpgForSocialInteraction", a webapp developed as part of my bachelor's thesis. In essence, it is a fun role-playing game with a bit of social deduction meant to bring people closer together.
 
 # How do i run this?
-- `git pull https://github.com/mostghoste/RpgForSocialInteraction`
+- `git clone https://github.com/mostghoste/RpgForSocialInteraction`
 - `docker compose up`
 
 # Short Description of the Stack:
