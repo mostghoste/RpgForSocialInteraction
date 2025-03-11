@@ -8,7 +8,7 @@
 	{@render children()}
 </div>
 <!-- Notification -->
-<section
+<!-- <section
 	class="absolute top-0 flex h-fit w-full flex-col items-center bg-[#8B3399] p-2 text-center text-white"
 >
 	<p class="text-[32px]">1 min 03 s</p>
@@ -23,4 +23,4 @@
 			<p class="text-[16px] font-semibold">Karalius Lodorius IV</p>
 		</div>
 	</div>
-</section>
+</section> -->
