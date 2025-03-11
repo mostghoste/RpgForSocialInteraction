@@ -2,8 +2,9 @@
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from .models import GameSession
 
-def broadcast_lobby_update(session):
+def broadcast_lobby_update(session: GameSession):
     channel_layer = get_channel_layer()
     group_name = f'lobby_{session.code}'
     players = list(session.participants.values_list('user__username', flat=True))
