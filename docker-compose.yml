@@ -53,6 +53,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: "http://localhost:8000"
     container_name: rpg_frontend
     ports:
       - "3000:80" # 80 in container -> 3000 on host
@@ -60,8 +62,6 @@ services:
       - backend
     networks:
       - rpg_net
-    environment:
-      VITE_API_BASE_URL: "http://localhost:8000" # VITE_ prefix exposes variable to client side
 
 networks:
   rpg_net:

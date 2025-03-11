@@ -18,7 +18,7 @@ def create_room(request):
     attempts = 0
     while True:
         code = generate_room_code()
-        if not GameSession.objectss.filter(code=code).exists():
+        if not GameSession.objects.filter(code=code).exists():
             break
         attempts += 1
         if attempts >= 100:
