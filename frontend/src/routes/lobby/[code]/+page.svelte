@@ -7,7 +7,7 @@
 	let code;
 	$: code = $page.params.code; // Extract from route param
 
-	let players = [];
+	$: players = [];
 	let errorMessage = '';
 
 	let socket;

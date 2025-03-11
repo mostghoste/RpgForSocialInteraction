@@ -58,7 +58,8 @@ class Participant(models.Model):
         unique_together = ('user', 'game_session')
 
     def __str__(self):
-        return f"{self.user.username} in session {self.game_session.code}"
+        username = self.user.username if self.user else "Guest"
+        return f"{username} in session {self.game_session.code}"
 
 class Question(models.Model):
     text = models.TextField()
