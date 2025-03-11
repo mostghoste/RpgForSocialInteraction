@@ -1,6 +1,6 @@
 # game/api_views.py
 
-import random, string
+import random, string, uuid
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -41,27 +41,74 @@ def create_room(request):
 @permission_classes([AllowAny])
 def join_room(request):
     code = request.data.get('code', '').strip()
+    # Check if code was provided
     if not code:
         return Response({'error': 'Prašome įrašyti kambario kodą!'}, status=400)
+    # Check if the room exists
     try:
         session = GameSession.objects.get(code=code)
     except GameSession.DoesNotExist:
         return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
-    
+    # Check if the game is still joinable
+    if session.status != 'pending':
+        return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
+
+    # Assign random UUID's to guest users
     user = request.user if request.user.is_authenticated else None
-    # Create a participant record. For guests, you might store a temporary name.
-    Participant.objects.create(user=user, game_session=session)
-    # Return the updated lobby state.
-    players = list(session.participants.values_list('user__username', flat=True))
-    # Replace any None (for guests) with "Guest"
-    players = [p if p is not None else "Guest" for p in players]
+    guest_identifier = None
+    if not user:
+        # Use the session to store a persistent guest identifier
+        guest_identifier = request.session.get('guest_identifier')
+        if not guest_identifier:
+            guest_identifier = str(uuid.uuid4())
+            request.session['guest_identifier'] = guest_identifier
+
+    participant, created = Participant.objects.get_or_create(
+        user=user,
+        game_session=session,
+        defaults={'guest_identifier': guest_identifier}
+    )
+
+    # Broadcast updated lobby state
+    from .utils import broadcast_lobby_update
+    broadcast_lobby_update(session)
+
+    players = []
+    for part in session.participants.all():
+        if part.user:
+            players.append(part.user.username)
+        else:
+            # If guest_identifier exists, use a short version; else, use "Guest"
+            players.append(f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
+    
     return Response({
         'code': session.code,
         'status': session.status,
         'round_length': session.round_length,
         'round_count': session.round_count,
         'players': players,
+        'participant_id': participant.id
     })
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def leave_room(request):
+    code = request.data.get('code', '').strip()
+    if not code:
+        return Response({'error': 'Kambario kodas privalomas.'}, status=400)
+    try:
+        session = GameSession.objects.get(code=code)
+    except GameSession.DoesNotExist:
+        return Response({'error': 'Toks kambarys nebuvo rastas.'}, status=404)
+    
+    user = request.user if request.user.is_authenticated else None
+    # Remove the participant record (if it exists)
+    Participant.objects.filter(user=user, game_session=session).delete()
+    
+    from .utils import broadcast_lobby_update
+    broadcast_lobby_update(session)
+    
+    return Response({'message': 'Išėjote iš kambario.'})
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

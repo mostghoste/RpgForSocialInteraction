@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+
 class Character(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True)
@@ -43,6 +44,7 @@ class GameSession(models.Model):
 class Participant(models.Model):
     # if the user is deleted, keep their participant record.
     user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='participants', null=True)
+    guest_identifier = models.CharField(max_length=36, null=True, blank=True)
     # if the session is deleted, remove all its participants.
     game_session = models.ForeignKey(
         GameSession, on_delete=models.CASCADE, related_name='participants'
@@ -53,12 +55,31 @@ class Participant(models.Model):
     )
     points = models.IntegerField(default=0)
     joined_at = models.DateTimeField(auto_now_add=True)
+    last_seen = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'game_session')
+        constraints = [
+            # For authenticated users, ensure a user can join a session only once.
+            models.UniqueConstraint(
+                fields=['user', 'game_session'],
+                condition=models.Q(user__isnull=False),
+                name='unique_user_session'
+            ),
+            # For guest users, use guest_identifier to ensure uniqueness within a session.
+            models.UniqueConstraint(
+                fields=['guest_identifier', 'game_session'],
+                condition=models.Q(user__isnull=True),
+                name='unique_guest_session'
+            )
+        ]
 
     def __str__(self):
-        username = self.user.username if self.user else "Guest"
+        if self.user:
+            username = self.user.username
+        elif self.guest_identifier:
+            username = f"Guest {self.guest_identifier[:8]}"
+        else:
+            username = "Guest"
         return f"{username} in session {self.game_session.code}"
 
 class Question(models.Model):
