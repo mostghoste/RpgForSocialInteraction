@@ -62,3 +62,27 @@ def join_room(request):
         'round_count': session.round_count,
         'players': players,
     })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def lobby_state(request):
+    code = request.query_params.get('code', '').strip()
+    if not code:
+        return Response({'error': 'Kambario kodas privalomas.'}, status=400)
+    try:
+        session = GameSession.objects.get(code=code)
+    except GameSession.DoesNotExist:
+        return Response({'error': 'Toks kambarys nebuvo rastas.'}, status=404)
+    
+    # Build the lobby state. Adjust logic if you need more checks.
+    players_qs = session.participants.values_list('user__username', flat=True)
+    players = [username if username is not None else "Guest" for username in players_qs]
+    
+    data = {
+        'code': session.code,
+        'status': session.status,
+        'round_length': session.round_length,
+        'round_count': session.round_count,
+        'players': players,
+    }
+    return Response(data)
