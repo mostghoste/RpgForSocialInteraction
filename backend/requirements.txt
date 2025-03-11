@@ -8,3 +8,4 @@ daphne>=4.0
 Pillow
 psycopg2-binary
 whitenoise
+djangorestframework
