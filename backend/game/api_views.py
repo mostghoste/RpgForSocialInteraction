@@ -26,15 +26,16 @@ def create_room(request):
 
     # Create a new game session with default settings.
     session = GameSession.objects.create(code=code, host=user)
-    # Add the creator as a participant.
-    Participant.objects.create(user=user, game_session=session)
+    # Only add the creator as a participant if authenticated.
+    if user:
+        Participant.objects.create(user=user, game_session=session)
     # Return room details.
     return Response({
         'code': session.code,
         'status': session.status,
         'round_length': session.round_length,
         'round_count': session.round_count,
-        'players': [user.username] if user else ["Guest"],
+        'players': [user.username] if user else [],
     })
 
 @api_view(['POST'])
@@ -54,7 +55,7 @@ def join_room(request):
     guest_username = request.data.get('guest_username', '').strip() or None
 
     if not user:
-        # Always create a new Participant for unauthenticated users.
+        # For unauthenticated users, always create a new Participant.
         participant = Participant.objects.create(
             user=None,
             game_session=session,
@@ -62,16 +63,17 @@ def join_room(request):
             guest_name=guest_username
         )
     else:
+        # For authenticated users, use get_or_create to prevent duplicate joins.
         participant, created = Participant.objects.get_or_create(
             user=user,
             game_session=session,
             defaults={'guest_name': guest_username}
         )
-        # Optionally update guest_name if provided
         if guest_username and not created:
             participant.guest_name = guest_username
             participant.save()
 
+    # Broadcast updated lobby state.
     from .utils import broadcast_lobby_update
     broadcast_lobby_update(session)
 
@@ -81,7 +83,8 @@ def join_room(request):
             players.append(part.user.username)
         else:
             players.append(
-                part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
+                part.guest_name if part.guest_name 
+                else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
             )
 
     return Response({
