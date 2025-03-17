@@ -1,10 +1,12 @@
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 	// Data coming from the server load function.
-	// It will either have { lobbyState, needsUsername: false } or { roomCode, needsUsername: true }
+	// It will either have { lobbyState, needsUsername: false } (for authed users)
+	// or { roomCode, needsUsername: true } (for unauthenticated users).
 	export let data;
 	let needsUsername = data.needsUsername;
 	let code = needsUsername ? data.roomCode : data.lobbyState.code;
@@ -14,22 +16,23 @@
 
 	// For storing the participant id (if available)
 	let participantId = lobbyState?.participant_id;
-	if (participantId) {
-		localStorage.setItem('participantId', participantId);
-	} else {
-		participantId = localStorage.getItem('participantId');
+	if (browser) {
+		if (participantId) {
+			localStorage.setItem('participantId', participantId);
+		} else {
+			participantId = localStorage.getItem('participantId');
+		}
 	}
 
-	// Variables for guest username input
+	// Variable for guest username input (for unauthenticated users)
 	let guestUsername = '';
 
 	let socket;
 	let heartbeatInterval;
 
-	// Function to connect the websocket to the lobby.
+	// Function to connect the WebSocket to the lobby.
 	function connectWebSocket() {
 		let baseUrl = API_URL || 'http://localhost:8000';
-		// Convert http(s) to ws(s)
 		if (baseUrl.startsWith('https://')) {
 			baseUrl = baseUrl.replace('https://', 'wss://');
 		} else if (baseUrl.startsWith('http://')) {
@@ -73,8 +76,6 @@
 			return;
 		}
 		errorMessage = '';
-		// Optionally, store the username in a cookie so subsequent requests include it.
-		document.cookie = `guest_username=${encodeURIComponent(guestUsername)}; path=/`;
 		try {
 			const res = await fetch(`${API_URL}/api/join_room/`, {
 				method: 'POST',
@@ -91,12 +92,12 @@
 			lobbyState = data;
 			players = lobbyState.players || [];
 			participantId = lobbyState.participant_id;
-			if (participantId) {
+			if (browser && participantId) {
 				localStorage.setItem('participantId', participantId);
 			}
-			// Now that the user has provided a username, hide the username form.
+			// Hide the username input form.
 			needsUsername = false;
-			// Establish the websocket connection.
+			// Establish the WebSocket connection.
 			connectWebSocket();
 		} catch (err) {
 			console.error(err);
@@ -112,8 +113,8 @@
 		goto('/');
 	}
 
-	// If the user is already joined (i.e. needsUsername is false), connect the websocket.
 	onMount(() => {
+		// If the user is already joined (i.e. needsUsername is false), connect the WebSocket.
 		if (!needsUsername) {
 			connectWebSocket();
 		}
@@ -126,16 +127,16 @@
 </script>
 
 {#if needsUsername}
-	<!-- If guest username is needed, show a username input form -->
+	<!-- Show username input form for unauthenticated users -->
 	<h2>Kambario kodas: {code}</h2>
-	<p>Prašome įvesti vartotojo vardą, kad prisijungtumėte prie kambario</p>
+	<p>Prašome įvesti vartotojo vardą, kad prisijungtumėte prie kambario.</p>
 	<input class="border" type="text" bind:value={guestUsername} placeholder="Vartotojo vardas" />
 	<button class="border" on:click={submitGuestUsername}>Prisijungti</button>
 	{#if errorMessage}
 		<p class="error">{errorMessage}</p>
 	{/if}
 {:else}
-	<!-- Otherwise, show the lobby view -->
+	<!-- Show lobby view -->
 	<h2>Kambario kodas: {code}</h2>
 	<p>Žaidėjai kambaryje:</p>
 	<ul>
