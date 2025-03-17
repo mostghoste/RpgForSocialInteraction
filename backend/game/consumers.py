@@ -54,10 +54,17 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         except GameSession.DoesNotExist:
             await self.close()
             return
-        players_qs = await sync_to_async(list)(
-            session.participants.values_list('user__username', flat=True)
-        )
-        players = [p if p is not None else "Guest" for p in players_qs]
+        # Iterate over all participants and build the players list
+        participants = await sync_to_async(list)(session.participants.all())
+        players = []
+        for part in participants:
+            if part.user:
+                players.append(part.user.username)
+            else:
+                players.append(
+                    part.guest_name if part.guest_name 
+                    else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
+                )
         data = {
             'code': session.code,
             'players': players,
