@@ -12,7 +12,6 @@
 			const response = await fetch(`${API_URL}/api/create_room/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' }
-				// No body needed if your create_room endpoint doesn't require any data
 			});
 			if (!response.ok) {
 				const data = await response.json().catch(() => ({}));
@@ -41,6 +40,7 @@
 			const response = await fetch(`${API_URL}/api/join_room/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
+				// Send only the room code in the request body
 				body: JSON.stringify({ code })
 			});
 			if (!response.ok) {

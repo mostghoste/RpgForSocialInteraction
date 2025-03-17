@@ -56,8 +56,9 @@ def join_room(request):
     # Assign random UUID's to guest users
     user = request.user if request.user.is_authenticated else None
     guest_identifier = None
+    guest_username = request.data.get('guest_username', '').strip() or None
+    
     if not user:
-        # Use the session to store a persistent guest identifier
         guest_identifier = request.session.get('guest_identifier')
         if not guest_identifier:
             guest_identifier = str(uuid.uuid4())
@@ -66,8 +67,13 @@ def join_room(request):
     participant, created = Participant.objects.get_or_create(
         user=user,
         game_session=session,
-        defaults={'guest_identifier': guest_identifier}
+        defaults={'guest_identifier': guest_identifier, 'guest_name': guest_username}
     )
+
+    # If the participant already exists and guest_name wasn't set, update it.
+    if not user and not created and not participant.guest_name:
+        participant.guest_name = guest_username
+        participant.save()
 
     # Broadcast updated lobby state
     from .utils import broadcast_lobby_update
@@ -78,9 +84,7 @@ def join_room(request):
         if part.user:
             players.append(part.user.username)
         else:
-            # If guest_identifier exists, use a short version; else, use "Guest"
-            players.append(f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
-    
+            players.append(part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest"))    
     return Response({
         'code': session.code,
         'status': session.status,

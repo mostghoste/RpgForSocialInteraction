@@ -46,6 +46,7 @@ class Participant(models.Model):
     # if the user is deleted, keep their participant record.
     user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='participants', null=True)
     guest_identifier = models.CharField(max_length=36, null=True, blank=True)
+    guest_name = models.CharField(max_length=50, null=True, blank=True)
     # if the session is deleted, remove all its participants.
     game_session = models.ForeignKey(
         GameSession, on_delete=models.CASCADE, related_name='participants'
@@ -77,6 +78,8 @@ class Participant(models.Model):
     def __str__(self):
         if self.user:
             username = self.user.username
+        elif self.guest_name:
+            username = self.guest_name
         elif self.guest_identifier:
             username = f"Guest {self.guest_identifier[:8]}"
         else:

@@ -67,7 +67,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         }
         await self.send(text_data=json.dumps(data))
 
-    async def disconnect(self):
+    async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     # This method will be called when the group sends an update
