@@ -37,11 +37,9 @@
 		errorMessage = '';
 		loading = true;
 		try {
-			const response = await fetch(`${API_URL}/api/join_room/`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				// Send only the room code in the request body
-				body: JSON.stringify({ code })
+			// Call the verify_room GET endpoint with the room code as a query parameter.
+			const response = await fetch(`${API_URL}/api/verify_room/?code=${encodeURIComponent(code)}`, {
+				method: 'GET'
 			});
 			if (!response.ok) {
 				const data = await response.json().catch(() => ({}));
@@ -49,7 +47,7 @@
 				return;
 			}
 			const data = await response.json();
-			// Navigate to the lobby page for the existing code
+			// If verification is successful, redirect to the lobby page.
 			goto(`/lobby/${data.code}`);
 		} catch (err) {
 			console.error(err);
@@ -62,8 +60,8 @@
 
 <div>
 	<input class="border" type="text" bind:value={code} placeholder="Įveskite kambario kodą" />
-	<button class="border" on:click={createRoom} disabled={loading}> Sukurti kambarį </button>
-	<button class="border" on:click={joinRoom} disabled={!code || loading}> Prisijungti </button>
+	<button class="border" on:click={createRoom} disabled={loading}>Sukurti kambarį</button>
+	<button class="border" on:click={joinRoom} disabled={!code || loading}>Prisijungti</button>
 
 	{#if errorMessage}
 		<p class="error">{errorMessage}</p>

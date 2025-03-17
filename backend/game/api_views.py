@@ -116,6 +116,25 @@ def leave_room(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def verify_room(request):
+    code = request.query_params.get('code', '').strip()
+    if not code:
+        return Response({'error': 'Prašome įrašyti kambario kodą!'}, status=400)
+    try:
+        session = GameSession.objects.get(code=code)
+    except GameSession.DoesNotExist:
+        return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
+    if session.status != 'pending':
+        return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
+    return Response({
+        'code': session.code,
+        'status': session.status,
+        'round_length': session.round_length,
+        'round_count': session.round_count,
+    })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def lobby_state(request):
     code = request.query_params.get('code', '').strip()
     if not code:
