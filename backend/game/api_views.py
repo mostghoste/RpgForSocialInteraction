@@ -41,41 +41,37 @@ def create_room(request):
 @permission_classes([AllowAny])
 def join_room(request):
     code = request.data.get('code', '').strip()
-    # Check if code was provided
     if not code:
         return Response({'error': 'Prašome įrašyti kambario kodą!'}, status=400)
-    # Check if the room exists
     try:
         session = GameSession.objects.get(code=code)
     except GameSession.DoesNotExist:
         return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
-    # Check if the game is still joinable
     if session.status != 'pending':
         return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
 
-    # Assign random UUID's to guest users
     user = request.user if request.user.is_authenticated else None
-    guest_identifier = None
     guest_username = request.data.get('guest_username', '').strip() or None
-    
+
     if not user:
-        guest_identifier = request.session.get('guest_identifier')
-        if not guest_identifier:
-            guest_identifier = str(uuid.uuid4())
-            request.session['guest_identifier'] = guest_identifier
+        # Always create a new Participant for unauthenticated users.
+        participant = Participant.objects.create(
+            user=None,
+            game_session=session,
+            guest_identifier=str(uuid.uuid4()),
+            guest_name=guest_username
+        )
+    else:
+        participant, created = Participant.objects.get_or_create(
+            user=user,
+            game_session=session,
+            defaults={'guest_name': guest_username}
+        )
+        # Optionally update guest_name if provided
+        if guest_username and not created:
+            participant.guest_name = guest_username
+            participant.save()
 
-    participant, created = Participant.objects.get_or_create(
-        user=user,
-        game_session=session,
-        defaults={'guest_identifier': guest_identifier, 'guest_name': guest_username}
-    )
-
-    # If the participant already exists and guest_name wasn't set, update it.
-    if not user and not created and not participant.guest_name:
-        participant.guest_name = guest_username
-        participant.save()
-
-    # Broadcast updated lobby state
     from .utils import broadcast_lobby_update
     broadcast_lobby_update(session)
 
@@ -84,7 +80,10 @@ def join_room(request):
         if part.user:
             players.append(part.user.username)
         else:
-            players.append(part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest"))    
+            players.append(
+                part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
+            )
+
     return Response({
         'code': session.code,
         'status': session.status,
@@ -144,9 +143,13 @@ def lobby_state(request):
     except GameSession.DoesNotExist:
         return Response({'error': 'Toks kambarys nebuvo rastas.'}, status=404)
     
-    # Build the lobby state. Adjust logic if you need more checks.
-    players_qs = session.participants.values_list('user__username', flat=True)
-    players = [username if username is not None else "Guest" for username in players_qs]
+    players = []
+    for part in session.participants.all():
+        if part.user:
+            players.append(part.user.username)
+        else:
+            # Use guest_name if set, otherwise a default based on guest_identifier.
+            players.append(part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest"))
     
     data = {
         'code': session.code,
