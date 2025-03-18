@@ -1,3 +1,5 @@
+// lobby/[code]/+page.server.js
+
 import { redirect } from '@sveltejs/kit';
 
 export async function load({ params, request, fetch, locals }) {
