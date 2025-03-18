@@ -1,5 +1,6 @@
 # game/models.py
 
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -54,6 +55,7 @@ class Participant(models.Model):
     points = models.IntegerField(default=0)
     joined_at = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
+    secret = models.CharField(max_length=64, default=uuid.uuid4().hex)
     is_host = models.BooleanField(default=False)
 
     class Meta:

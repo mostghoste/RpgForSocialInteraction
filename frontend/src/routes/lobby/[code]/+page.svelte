@@ -1,5 +1,3 @@
-<!-- lobby/[code]/+page.svelte -->
-
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -7,7 +5,7 @@
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 	// Data coming from the server load function.
-	// It will either have { lobbyState, needsUsername: false } (for authenticated users)
+	// It will either have { lobbyState, needsUsername: false } (for authed users)
 	// or { roomCode, needsUsername: true } (for unauthenticated users).
 	export let data;
 	let needsUsername = data.needsUsername;
@@ -16,13 +14,19 @@
 	let players = needsUsername ? [] : lobbyState.players || [];
 	let errorMessage = '';
 
-	// For storing the participant id (if available)
+	// For storing the participant id and secret (if available)
 	let participantId = lobbyState?.participant_id;
+	let participantSecret = lobbyState?.secret;
 	if (browser) {
 		if (participantId) {
 			localStorage.setItem('participantId', participantId);
 		} else {
 			participantId = localStorage.getItem('participantId');
+		}
+		if (participantSecret) {
+			localStorage.setItem('participantSecret', participantSecret);
+		} else {
+			participantSecret = localStorage.getItem('participantSecret');
 		}
 	}
 
@@ -104,8 +108,10 @@
 			lobbyState = data;
 			players = lobbyState.players || [];
 			participantId = lobbyState.participant_id;
+			participantSecret = lobbyState.secret;
 			if (browser && participantId) {
 				localStorage.setItem('participantId', participantId);
+				localStorage.setItem('participantSecret', participantSecret);
 			}
 			// Update host flag and settings.
 			isHost = lobbyState.is_host || false;
@@ -130,12 +136,14 @@
 	// Host-only: Update session settings.
 	async function updateSettings() {
 		try {
+			const secret = localStorage.getItem('participantSecret');
 			const res = await fetch(`${API_URL}/api/update_settings/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					code,
 					participant_id: participantId,
+					secret,
 					round_length: roundLength,
 					round_count: roundCount
 				})

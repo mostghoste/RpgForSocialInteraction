@@ -33,48 +33,6 @@ def create_room(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def update_settings(request):
-    code = request.data.get('code', '').strip()
-    participant_id = request.data.get('participant_id')
-    round_length = request.data.get('round_length')
-    round_count = request.data.get('round_count')
-
-    if not code or not participant_id:
-         return Response({'error': 'Kambario kodas ir dalyvio ID privalomi.'}, status=400)
-    try:
-         session = GameSession.objects.get(code=code)
-         participant = session.participants.get(id=participant_id)
-    except (GameSession.DoesNotExist, Participant.DoesNotExist):
-         return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
-
-    if not participant.is_host:
-         return Response({'error': 'Tik vedėjas gali keisti nustatymus.'}, status=403)
-
-    try:
-         round_length = int(round_length)
-         round_count = int(round_count)
-         if round_length <= 0 or round_count <= 0:
-              raise ValueError
-    except (ValueError, TypeError):
-         return Response({'error': 'Neteisingi nustatymų duomenys.'}, status=400)
-
-    session.round_length = round_length
-    session.round_count = round_count
-    session.save()
-
-    from .utils import broadcast_lobby_update
-    broadcast_lobby_update(session)
-
-    return Response({
-         'code': session.code,
-         'status': session.status,
-         'round_length': session.round_length,
-         'round_count': session.round_count,
-    })
-
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
 def join_room(request):
     code = request.data.get('code', '').strip()
     if not code:
@@ -166,7 +124,53 @@ def join_room(request):
         'round_count': session.round_count,
         'players': players,
         'participant_id': participant.id,
+        'secret': participant.secret,
         'is_host': participant.is_host,
+    })
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def update_settings(request):
+    code = request.data.get('code', '').strip()
+    participant_id = request.data.get('participant_id')
+    provided_secret = request.data.get('secret', '').strip()
+    round_length = request.data.get('round_length')
+    round_count = request.data.get('round_count')
+
+    if not code or not participant_id or not provided_secret:
+         return Response({'error': 'Kambario kodas, dalyvio ID ir slaptažodis privalomi.'}, status=400)
+    try:
+         session = GameSession.objects.get(code=code)
+         participant = session.participants.get(id=participant_id)
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
+         return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
+
+    if participant.secret != provided_secret:
+         return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+
+    if not participant.is_host:
+         return Response({'error': 'Tik vedėjas gali keisti nustatymus.'}, status=403)
+
+    try:
+         round_length = int(round_length)
+         round_count = int(round_count)
+         if round_length <= 0 or round_count <= 0:
+              raise ValueError
+    except (ValueError, TypeError):
+         return Response({'error': 'Neteisingi nustatymų duomenys.'}, status=400)
+
+    session.round_length = round_length
+    session.round_count = round_count
+    session.save()
+
+    from .utils import broadcast_lobby_update
+    broadcast_lobby_update(session)
+
+    return Response({
+         'code': session.code,
+         'status': session.status,
+         'round_length': session.round_length,
+         'round_count': session.round_count,
     })
 
 @api_view(['POST'])
