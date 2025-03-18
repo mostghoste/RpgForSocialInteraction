@@ -24,10 +24,6 @@ class GameSession(models.Model):
         ('completed', 'Completed'),
     )
     code = models.CharField(max_length=20)
-    # if the host user is deleted, the session record remains
-    host = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, related_name='hosted_sessions'
-    )
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     round_length = models.IntegerField(default=60)  # Round duration in seconds.
     round_count = models.IntegerField(default=3)    # Total number of rounds for the session.
@@ -58,6 +54,7 @@ class Participant(models.Model):
     points = models.IntegerField(default=0)
     joined_at = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
+    is_host = models.BooleanField(default=False)
 
     class Meta:
         constraints = [

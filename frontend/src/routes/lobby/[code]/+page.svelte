@@ -7,7 +7,7 @@
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 	// Data coming from the server load function.
-	// It will either have { lobbyState, needsUsername: false } (for authed users)
+	// It will either have { lobbyState, needsUsername: false } (for authenticated users)
 	// or { roomCode, needsUsername: true } (for unauthenticated users).
 	export let data;
 	let needsUsername = data.needsUsername;
@@ -32,7 +32,12 @@
 	let socket;
 	let heartbeatInterval;
 
-	// Function to connect the WebSocket to the lobby.
+	// Host-specific state; these values are returned from the backend.
+	let isHost = lobbyState?.is_host || false;
+	let roundLength = lobbyState?.round_length || 60;
+	let roundCount = lobbyState?.round_count || 3;
+
+	// Connect the WebSocket to the lobby.
 	function connectWebSocket() {
 		let baseUrl = API_URL || 'http://localhost:8000';
 		if (baseUrl.startsWith('https://')) {
@@ -64,14 +69,19 @@
 
 		socket.onmessage = (event) => {
 			const data = JSON.parse(event.data);
-			// Expect updated lobby state including players
+			// Update players list when a lobby update is received.
 			if (data.players) {
 				players = data.players;
+			}
+			// Update settings if they change.
+			if (data.round_length && data.round_count) {
+				roundLength = data.round_length;
+				roundCount = data.round_count;
 			}
 		};
 	}
 
-	// Function to join the room using the guest username.
+	// Function to join the room using a guest username.
 	async function submitGuestUsername() {
 		if (!guestUsername) {
 			errorMessage = 'Prašome įvesti vartotojo vardą.';
@@ -90,16 +100,18 @@
 				return;
 			}
 			const data = await res.json();
-			// Save the updated lobby state and participant id.
+			// Update local state with the returned lobby state.
 			lobbyState = data;
 			players = lobbyState.players || [];
 			participantId = lobbyState.participant_id;
 			if (browser && participantId) {
 				localStorage.setItem('participantId', participantId);
 			}
-			// Hide the username input form.
+			// Update host flag and settings.
+			isHost = lobbyState.is_host || false;
+			roundLength = lobbyState.round_length || 60;
+			roundCount = lobbyState.round_count || 3;
 			needsUsername = false;
-			// Establish the WebSocket connection.
 			connectWebSocket();
 		} catch (err) {
 			console.error(err);
@@ -115,8 +127,55 @@
 		goto('/');
 	}
 
+	// Host-only: Update session settings.
+	async function updateSettings() {
+		try {
+			const res = await fetch(`${API_URL}/api/update_settings/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					round_length: roundLength,
+					round_count: roundCount
+				})
+			});
+			if (!res.ok) {
+				const data = await res.json();
+				errorMessage = data.error || 'Nepavyko atnaujinti nustatymų.';
+				return;
+			}
+			const updated = await res.json();
+			roundLength = updated.round_length;
+			roundCount = updated.round_count;
+		} catch (err) {
+			console.error(err);
+			errorMessage = 'Serverio klaida atnaujinant nustatymus.';
+		}
+	}
+
+	// Host-only: Start the game.
+	async function startGame() {
+		try {
+			const res = await fetch(`${API_URL}/api/start_game/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ code, participant_id: participantId })
+			});
+			if (!res.ok) {
+				const data = await res.json();
+				errorMessage = data.error || 'Nepavyko pradėti žaidimo.';
+				return;
+			}
+			// Navigate to the game view (ensure you implement this route/endpoint).
+			goto(`/game/${code}`);
+		} catch (err) {
+			console.error(err);
+			errorMessage = 'Serverio klaida pradedant žaidimą.';
+		}
+	}
+
 	onMount(() => {
-		// If the user is already joined (i.e. needsUsername is false), connect the WebSocket.
 		if (!needsUsername) {
 			connectWebSocket();
 		}
@@ -129,7 +188,7 @@
 </script>
 
 {#if needsUsername}
-	<!-- Show username input form for unauthenticated users -->
+	<!-- Guest user: Show username input form -->
 	<h2>Kambario kodas: {code}</h2>
 	<p>Prašome įvesti vartotojo vardą, kad prisijungtumėte prie kambario.</p>
 	<input class="border" type="text" bind:value={guestUsername} placeholder="Vartotojo vardas" />
@@ -138,7 +197,7 @@
 		<p class="error">{errorMessage}</p>
 	{/if}
 {:else}
-	<!-- Show lobby view -->
+	<!-- Lobby view -->
 	<h2>Kambario kodas: {code}</h2>
 	<p>Žaidėjai kambaryje:</p>
 	<ul>
@@ -146,6 +205,22 @@
 			<li>{p}</li>
 		{/each}
 	</ul>
+	{#if isHost}
+		<!-- Host-only settings controls -->
+		<div class="host-settings">
+			<h3>Nustatymai (Tik vedėjui)</h3>
+			<label>
+				Round Length (s):
+				<input type="number" bind:value={roundLength} min="1" />
+			</label>
+			<label>
+				Round Count:
+				<input type="number" bind:value={roundCount} min="1" />
+			</label>
+			<button class="border" on:click={updateSettings}>Atnaujinti nustatymus</button>
+			<button class="border" on:click={startGame}>Pradėti žaidimą</button>
+		</div>
+	{/if}
 	<button class="border" on:click={leaveLobby}>Palikti kambarį</button>
 	{#if errorMessage}
 		<p class="error">{errorMessage}</p>
