@@ -7,7 +7,8 @@ from .api_views import (
     available_collections,
     verify_room,
     lobby_state,
-    leave_room
+    leave_room,
+    start_game
 )
 
 urlpatterns = [
@@ -19,4 +20,5 @@ urlpatterns = [
     path('verify_room/', verify_room, name='verify_room'),
     path('lobby_state/', lobby_state, name='lobby_state'),
     path('leave_room/', leave_room, name='leave_room'),
+    path('start_game/', start_game, name='start_game'),
 ]

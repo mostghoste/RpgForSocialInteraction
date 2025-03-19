@@ -255,17 +255,17 @@
 	// Host-only: Start the game.
 	async function startGame() {
 		try {
+			const secret = localStorage.getItem('participantSecret');
 			const res = await fetch(`${API_URL}/api/start_game/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ code, participant_id: participantId })
+				body: JSON.stringify({ code, participant_id: participantId, secret })
 			});
 			if (!res.ok) {
 				const data = await res.json();
 				errorMessage = data.error || 'Nepavyko pradėti žaidimo.';
 				return;
 			}
-			goto(`/game/${code}`);
 		} catch (err) {
 			console.error(err);
 			errorMessage = 'Serverio klaida pradedant žaidimą.';

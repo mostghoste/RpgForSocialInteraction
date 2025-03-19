@@ -300,3 +300,52 @@ def available_collections(request):
     collections = QuestionCollection.objects.all().values('id', 'name')
     return Response(list(collections))
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def start_game(request):
+    code = request.data.get('code', '').strip()
+    participant_id = request.data.get('participant_id')
+    provided_secret = request.data.get('secret', '').strip()
+
+    if not code or not participant_id or not provided_secret:
+         return Response({'error': 'Kambario kodas, dalyvio ID ir slaptažodis privalomi.'}, status=400)
+    
+    try:
+         session = GameSession.objects.get(code=code)
+         participant = session.participants.get(id=participant_id)
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
+         return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
+
+    if participant.secret != provided_secret:
+         return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+
+    if not participant.is_host:
+         return Response({'error': 'Tik vedėjas gali pradėti žaidimą.'}, status=403)
+    
+    if session.status != 'pending':
+         return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
+
+    if session.participants.count() < 3:
+         return Response({'error': 'Žaidimui reikia bent 3 dalyvių.'}, status=400)
+    
+    if session.participants.filter(assigned_character__isnull=True).exists():
+         return Response({'error': 'Kiekvienas dalyvis privalo turėti personažą.'}, status=400)
+    
+    total_questions = sum(collection.questions.count() for collection in session.question_collections.all())
+    if total_questions <= session.round_count:
+         return Response({'error': 'Klausimų kolekcijose nepakanka klausimų pagal nurodytą raundų skaičių.'}, status=400)
+
+    # All checks passed; change game status.
+    session.status = 'in_progress'
+    session.save()
+
+    from .utils import broadcast_lobby_update
+    broadcast_lobby_update(session)
+
+    return Response({
+         'message': 'Žaidimas pradėtas.',
+         'code': session.code,
+         'status': session.status,
+         'round_length': session.round_length,
+         'round_count': session.round_count,
+    })

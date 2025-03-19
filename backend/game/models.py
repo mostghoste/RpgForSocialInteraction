@@ -44,7 +44,7 @@ def generate_secret():
 
 class Participant(models.Model):
     # if the user is deleted, keep their participant record.
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='participants', null=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='participants', null=True, blank=True)
     guest_identifier = models.CharField(max_length=36, null=True, blank=True)
     guest_name = models.CharField(max_length=50, null=True, blank=True)
     # if the session is deleted, remove all its participants.
