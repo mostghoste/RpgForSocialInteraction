@@ -54,7 +54,8 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         except GameSession.DoesNotExist:
             await self.close()
             return
-        # Iterate over all participants and build the players list
+
+        # Build the players list
         participants = await sync_to_async(list)(session.participants.all())
         players = []
         for part in participants:
@@ -62,22 +63,24 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 players.append(part.user.username)
             else:
                 players.append(
-                    part.guest_name if part.guest_name 
+                    part.guest_name if part.guest_name
                     else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
                 )
+        # Wrap the collections query with sync_to_async.
+        collections = await sync_to_async(list)(session.question_collections.values('id', 'name'))
         data = {
             'code': session.code,
             'players': players,
             'status': session.status,
             'round_length': session.round_length,
             'round_count': session.round_count,
+            'question_collections': collections,
         }
         await self.send(text_data=json.dumps(data))
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
-    # This method will be called when the group sends an update
     async def lobby_update(self, event):
         data = event['data']
         await self.send(text_data=json.dumps(data))
@@ -85,7 +88,6 @@ class LobbyConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         if data.get('type') == 'ping':
-            # Participant id gets passed from the frontend
             participant_id = data.get('participant_id')
             if participant_id:
                 try:
@@ -94,5 +96,4 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                     await sync_to_async(participant.save)()
                 except Participant.DoesNotExist:
                     print("ERROR: Couldn't find the participant to update.")
-                    pass
             return
