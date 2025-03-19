@@ -112,6 +112,15 @@
 					selectedCollections = data.question_collections.map((qc) => qc.id);
 				}
 			}
+			if (data.host_id !== undefined) {
+				const newIsHost = parseInt(data.host_id) === parseInt(participantId);
+				if (newIsHost && !isHost) {
+					isHost = true;
+					fetchAvailableCollections();
+				} else {
+					isHost = newIsHost;
+				}
+			}
 		};
 	}
 

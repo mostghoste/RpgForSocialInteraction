@@ -6,17 +6,15 @@ def broadcast_lobby_update(session):
     channel_layer = get_channel_layer()
     group_name = f'lobby_{session.code}'
     players = []
+    host_id = None
     for part in session.participants.all():
         if part.user:
             username = part.user.username
-        elif part.guest_name:
-            username = part.guest_name
-        elif part.guest_identifier:
-            username = f"Guest {part.guest_identifier[:8]}"
         else:
-            username = "Guest"
+            username = part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
         if part.is_host:
             username += " 👑"
+            host_id = part.id
         players.append(username)
     collections_list = list(session.question_collections.values('id', 'name'))
     data = {
@@ -26,6 +24,7 @@ def broadcast_lobby_update(session):
         'round_length': session.round_length,
         'round_count': session.round_count,
         'question_collections': collections_list,
+        'host_id': host_id,
     }
     async_to_sync(channel_layer.group_send)(
         group_name,
