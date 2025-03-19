@@ -1,6 +1,14 @@
-# game/urls.py
 from django.urls import path
-from .api_views import create_room, join_room, update_settings, update_question_collections, available_collections, verify_room, lobby_state
+from .api_views import (
+    create_room,
+    join_room,
+    update_settings,
+    update_question_collections,
+    available_collections,
+    verify_room,
+    lobby_state,
+    leave_room
+)
 
 urlpatterns = [
     path('create_room/', create_room, name='create_room'),
@@ -10,4 +18,5 @@ urlpatterns = [
     path('available_collections/', available_collections, name="available_collections"),
     path('verify_room/', verify_room, name='verify_room'),
     path('lobby_state/', lobby_state, name='lobby_state'),
+    path('leave_room/', leave_room, name='leave_room'),
 ]

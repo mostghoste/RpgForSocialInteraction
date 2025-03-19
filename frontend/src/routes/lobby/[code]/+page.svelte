@@ -161,11 +161,30 @@
 	}
 
 	// Function to leave the lobby.
-	function leaveLobby() {
-		if (socket) {
-			socket.close();
+	async function leaveLobby() {
+		try {
+			const secret = localStorage.getItem('participantSecret');
+			const res = await fetch(`${API_URL}/api/leave_room/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret: secret
+				})
+			});
+			if (!res.ok) {
+				const data = await res.json();
+				errorMessage = data.error || 'Nepavyko išeiti iš kambario.';
+				return;
+			}
+			localStorage.removeItem('participantId');
+			localStorage.removeItem('participantSecret');
+			goto('/');
+		} catch (err) {
+			console.error(err);
+			errorMessage = 'Serverio klaida bandant išeiti iš kambario.';
 		}
-		goto('/');
 	}
 
 	// Host-only: Update session settings.

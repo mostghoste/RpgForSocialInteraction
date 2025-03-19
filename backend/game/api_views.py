@@ -177,21 +177,37 @@ def update_settings(request):
 @permission_classes([AllowAny])
 def leave_room(request):
     code = request.data.get('code', '').strip()
-    if not code:
-        return Response({'error': 'Kambario kodas privalomas.'}, status=400)
+    participant_id = request.data.get('participant_id')
+    provided_secret = request.data.get('secret', '').strip()
+    if not code or not participant_id or not provided_secret:
+         return Response({'error': 'Kambario kodas, dalyvio ID ir slaptažodis privalomi.'}, status=400)
     try:
-        session = GameSession.objects.get(code=code)
-    except GameSession.DoesNotExist:
-        return Response({'error': 'Toks kambarys nebuvo rastas.'}, status=404)
-    
-    user = request.user if request.user.is_authenticated else None
-    # Remove the participant record (if it exists)
-    Participant.objects.filter(user=user, game_session=session).delete()
-    
-    from .utils import broadcast_lobby_update
-    broadcast_lobby_update(session)
-    
-    return Response({'message': 'Išėjote iš kambario.'})
+         session = GameSession.objects.get(code=code)
+         participant = session.participants.get(id=participant_id)
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
+         return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
+
+    if participant.secret != provided_secret:
+         return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+
+    was_host = participant.is_host
+    participant.delete()
+
+    remaining = session.participants.all()
+    if remaining.exists():
+         # If the leaving participant was the host, transfer host privileges
+         if was_host:
+             oldest = remaining.order_by('joined_at').first()
+             oldest.is_host = True
+             oldest.save()
+         from .utils import broadcast_lobby_update
+         broadcast_lobby_update(session)
+         return Response({'message': 'Išėjote iš kambario.'})
+    else:
+         # If no participants remain, delete the session.
+         session.delete()
+         return Response({'message': 'Jūs buvote paskutinis kambaryje. Kambarys ištrintas.'})
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

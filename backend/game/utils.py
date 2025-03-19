@@ -8,9 +8,16 @@ def broadcast_lobby_update(session):
     players = []
     for part in session.participants.all():
         if part.user:
-            players.append(part.user.username)
+            username = part.user.username
+        elif part.guest_name:
+            username = part.guest_name
+        elif part.guest_identifier:
+            username = f"Guest {part.guest_identifier[:8]}"
         else:
-            players.append(part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest"))
+            username = "Guest"
+        if part.is_host:
+            username += " 👑"
+        players.append(username)
     collections_list = list(session.question_collections.values('id', 'name'))
     data = {
         'code': session.code,

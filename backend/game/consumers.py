@@ -55,18 +55,19 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # Build the players list
+        # Build the players list and mark the host with a crown emoji.
         participants = await sync_to_async(list)(session.participants.all())
         players = []
         for part in participants:
             if part.user:
-                players.append(part.user.username)
+                username = part.user.username
             else:
-                players.append(
-                    part.guest_name if part.guest_name
-                    else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
-                )
-        # Wrap the collections query with sync_to_async.
+                username = part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
+            if part.is_host:
+                username += " 👑"
+            players.append(username)
+            
+        # Get the current question collections.
         collections = await sync_to_async(list)(session.question_collections.values('id', 'name'))
         data = {
             'code': session.code,
