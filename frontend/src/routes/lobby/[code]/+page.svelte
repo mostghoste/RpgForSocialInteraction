@@ -4,7 +4,7 @@
 	import { browser } from '$app/environment';
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
 
-	// Data coming from the server load function.
+	// Data from the server load function.
 	// It will either have { lobbyState, needsUsername: false } (for authed users)
 	// or { roomCode, needsUsername: true } (for unauthenticated users).
 	export let data;
@@ -41,6 +41,32 @@
 	let roundLength = lobbyState?.round_length || 60;
 	let roundCount = lobbyState?.round_count || 3;
 
+	// For managing question collections (host only)
+	let availableCollections = [];
+	let selectedCollections = []; // IDs of collections currently selected
+
+	// Fetch available collections (only for host)
+	async function fetchAvailableCollections() {
+		try {
+			const res = await fetch(`${API_URL}/api/available_collections/`);
+			if (res.ok) {
+				availableCollections = await res.json();
+			} else {
+				console.error('Failed to fetch available collections');
+			}
+		} catch (err) {
+			console.error('Error fetching available collections:', err);
+		}
+	}
+
+	// If host, fetch available collections and initialize selected collections
+	if (isHost) {
+		fetchAvailableCollections();
+		if (lobbyState.question_collections) {
+			selectedCollections = lobbyState.question_collections.map((qc) => qc.id);
+		}
+	}
+
 	// Connect the WebSocket to the lobby.
 	function connectWebSocket() {
 		let baseUrl = API_URL || 'http://localhost:8000';
@@ -73,14 +99,18 @@
 
 		socket.onmessage = (event) => {
 			const data = JSON.parse(event.data);
-			// Update players list when a lobby update is received.
 			if (data.players) {
 				players = data.players;
 			}
-			// Update settings if they change.
 			if (data.round_length && data.round_count) {
 				roundLength = data.round_length;
 				roundCount = data.round_count;
+			}
+			if (data.question_collections) {
+				lobbyState.question_collections = data.question_collections;
+				if (isHost) {
+					selectedCollections = data.question_collections.map((qc) => qc.id);
+				}
 			}
 		};
 	}
@@ -113,12 +143,17 @@
 				localStorage.setItem('participantId', participantId);
 				localStorage.setItem('participantSecret', participantSecret);
 			}
-			// Update host flag and settings.
 			isHost = lobbyState.is_host || false;
 			roundLength = lobbyState.round_length || 60;
 			roundCount = lobbyState.round_count || 3;
+			if (lobbyState.question_collections) {
+				selectedCollections = lobbyState.question_collections.map((qc) => qc.id);
+			}
 			needsUsername = false;
 			connectWebSocket();
+			if (isHost) {
+				fetchAvailableCollections();
+			}
 		} catch (err) {
 			console.error(err);
 			errorMessage = 'Serverio klaida bandant prisijungti prie kambario.';
@@ -162,6 +197,33 @@
 		}
 	}
 
+	// Host-only: Update question collections.
+	async function updateCollections() {
+		try {
+			const secret = localStorage.getItem('participantSecret');
+			const res = await fetch(`${API_URL}/api/update_question_collections/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret,
+					collections: selectedCollections
+				})
+			});
+			if (!res.ok) {
+				const data = await res.json();
+				errorMessage = data.error || 'Nepavyko atnaujinti kolekcijų.';
+				return;
+			}
+			const updated = await res.json();
+			lobbyState.question_collections = updated.question_collections;
+		} catch (err) {
+			console.error(err);
+			errorMessage = 'Serverio klaida atnaujinant kolekcijas.';
+		}
+	}
+
 	// Host-only: Start the game.
 	async function startGame() {
 		try {
@@ -175,7 +237,6 @@
 				errorMessage = data.error || 'Nepavyko pradėti žaidimo.';
 				return;
 			}
-			// Navigate to the game view (ensure you implement this route/endpoint).
 			goto(`/game/${code}`);
 		} catch (err) {
 			console.error(err);
@@ -213,8 +274,24 @@
 			<li>{p}</li>
 		{/each}
 	</ul>
+
+	<!-- Display current room settings for all players -->
+	<div class="room-settings">
+		<h3>Kambario nustatymai</h3>
+		<p>Round Length: {roundLength} s</p>
+		<p>Round Count: {roundCount}</p>
+		{#if lobbyState.question_collections}
+			<h4>Pasirinktos klausimų kolekcijos:</h4>
+			<ul>
+				{#each lobbyState.question_collections as qc}
+					<li>{qc.name}</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
+
 	{#if isHost}
-		<!-- Host-only settings controls -->
+		<!-- Host-only controls -->
 		<div class="host-settings">
 			<h3>Nustatymai (Tik vedėjui)</h3>
 			<label>
@@ -226,9 +303,30 @@
 				<input type="number" bind:value={roundCount} min="1" />
 			</label>
 			<button class="border" on:click={updateSettings}>Atnaujinti nustatymus</button>
+
+			<!-- Question Collection Management for Host -->
+			<h3>Klausimų kolekcijos</h3>
+			{#if availableCollections.length > 0}
+				{#each availableCollections as collection}
+					<div>
+						<input
+							type="checkbox"
+							id="qc-{collection.id}"
+							value={collection.id}
+							bind:group={selectedCollections}
+						/>
+						<label for="qc-{collection.id}">{collection.name}</label>
+					</div>
+				{/each}
+				<button class="border" on:click={updateCollections}>Atnaujinti kolekcijas</button>
+			{:else}
+				<p>Nėra prieinamų klausimų kolekcijų.</p>
+			{/if}
+
 			<button class="border" on:click={startGame}>Pradėti žaidimą</button>
 		</div>
 	{/if}
+
 	<button class="border" on:click={leaveLobby}>Palikti kambarį</button>
 	{#if errorMessage}
 		<p class="error">{errorMessage}</p>

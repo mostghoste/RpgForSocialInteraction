@@ -39,6 +39,9 @@ class GameSession(models.Model):
     def __str__(self):
         return f"Session {self.code} ({self.status})"
 
+def generate_secret():
+    return uuid.uuid4().hex
+
 class Participant(models.Model):
     # if the user is deleted, keep their participant record.
     user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='participants', null=True)
@@ -55,7 +58,7 @@ class Participant(models.Model):
     points = models.IntegerField(default=0)
     joined_at = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
-    secret = models.CharField(max_length=64, default=uuid.uuid4().hex)
+    secret = models.CharField(max_length=64, default=generate_secret)
     is_host = models.BooleanField(default=False)
 
     class Meta:

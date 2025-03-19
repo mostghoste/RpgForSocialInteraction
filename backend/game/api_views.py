@@ -4,7 +4,7 @@ import random, string, uuid
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .models import GameSession, Participant
+from .models import GameSession, Participant, QuestionCollection
 from django.contrib.auth.models import AnonymousUser
 
 def generate_room_code(length=6):
@@ -154,7 +154,7 @@ def update_settings(request):
     try:
          round_length = int(round_length)
          round_count = int(round_count)
-         if round_length <= 0 or round_count <= 0:
+         if round_length <= 0 or round_length > 1200 or round_count <= 0 or round_count > 20:
               raise ValueError
     except (ValueError, TypeError):
          return Response({'error': 'Neteisingi nustatymų duomenys.'}, status=400)
@@ -239,3 +239,48 @@ def lobby_state(request):
         'players': players,
     }
     return Response(data)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def update_question_collections(request):
+    code = request.data.get('code', '').strip()
+    participant_id = request.data.get('participant_id')
+    provided_secret = request.data.get('secret', '').strip()
+    collections_ids = request.data.get('collections', [])  # Expect a list of IDs
+
+    if not code or not participant_id or not provided_secret:
+        return Response({'error': 'Kambario kodas, dalyvio ID ir slaptažodis privalomi.'}, status=400)
+
+    try:
+        session = GameSession.objects.get(code=code)
+        participant = session.participants.get(id=participant_id)
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
+        return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
+
+    if participant.secret != provided_secret:
+        return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+
+    if not participant.is_host:
+        return Response({'error': 'Tik vedėjas gali keisti klausimų kolekcijas.'}, status=403)
+
+    # Fetch valid collections from the provided IDs
+    valid_collections = QuestionCollection.objects.filter(id__in=collections_ids)
+    # Update the session's question collections.
+    session.question_collections.set(valid_collections)
+    session.save()
+
+    from .utils import broadcast_lobby_update
+    broadcast_lobby_update(session)
+
+    collections_list = list(session.question_collections.values('id', 'name'))
+    return Response({
+         'code': session.code,
+         'question_collections': collections_list,
+    })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def available_collections(request):
+    collections = QuestionCollection.objects.all().values('id', 'name')
+    return Response(list(collections))
+
