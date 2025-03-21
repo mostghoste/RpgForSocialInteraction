@@ -309,7 +309,7 @@ def select_character(request):
     character_id = request.data.get('character_id')
     
     if not code or not participant_id or not provided_secret or not character_id:
-        return Response({'error': 'Code, participant_id, secret, character_id yra privaloma.'}, status=400)
+        return Response({'error': 'Trūksta privalomų parametrų.'}, status=400)
     
     try:
         session = GameSession.objects.get(code=code)
@@ -325,6 +325,9 @@ def select_character(request):
         character = Character.objects.get(id=character_id)
     except Character.DoesNotExist:
         return Response({'error': 'Personažas nerastas.'}, status=404)
+
+    if session.participants.filter(assigned_character=character).exists():
+        return Response({'error': 'Šis personažas jau pasirinktas.'}, status=400)
     
     participant.assigned_character = character
     participant.save()
@@ -371,8 +374,9 @@ def create_character(request):
 @permission_classes([AllowAny])
 def available_characters(request):
     from .models import Character
-    characters = Character.objects.all().values('id', 'name', 'description')
+    characters = Character.objects.filter(creator__username="mostghoste").values('id', 'name', 'description')
     return Response(list(characters))
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

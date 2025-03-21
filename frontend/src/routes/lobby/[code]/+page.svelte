@@ -357,7 +357,10 @@
 	<p>Žaidėjai kambaryje:</p>
 	<ul>
 		{#each players as player}
-			<li>{player.username}</li>
+			<li>
+				{player.username}
+				{player.characterSelected ? '✅' : ''}
+			</li>
 		{/each}
 	</ul>
 
