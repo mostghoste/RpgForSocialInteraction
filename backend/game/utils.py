@@ -7,7 +7,7 @@ def broadcast_lobby_update(session):
     group_name = f'lobby_{session.code}'
     players = []
     host_id = None
-    for part in session.participants.all():
+    for part in session.participants.all().order_by('joined_at'):
         if part.user:
             username = part.user.username
         else:

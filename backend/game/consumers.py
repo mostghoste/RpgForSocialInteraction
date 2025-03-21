@@ -55,10 +55,10 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # Prefetch the assigned_character to avoid sync calls in the async context.
         participants = await sync_to_async(list)(
-            session.participants.all().select_related('assigned_character')
+            session.participants.all().order_by('joined_at').select_related('assigned_character')
         )
+
         players = []
         host_id = None
         for part in participants:
