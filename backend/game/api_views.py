@@ -144,6 +144,10 @@ def update_settings(request):
          participant = session.participants.get(id=participant_id)
     except (GameSession.DoesNotExist, Participant.DoesNotExist):
          return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
+    
+    if session.status != 'pending':
+        return Response({'error': 'Negalima keisti kambario nustatymų, kai žaidimas jau prasidėjo.'}, status=400)
+
 
     if participant.secret != provided_secret:
          return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
@@ -262,7 +266,7 @@ def update_question_collections(request):
     code = request.data.get('code', '').strip()
     participant_id = request.data.get('participant_id')
     provided_secret = request.data.get('secret', '').strip()
-    collections_ids = request.data.get('collections', [])  # Expect a list of IDs
+    collections_ids = request.data.get('collections', [])
 
     if not code or not participant_id or not provided_secret:
         return Response({'error': 'Kambario kodas, dalyvio ID ir slaptažodis privalomi.'}, status=400)
@@ -272,6 +276,9 @@ def update_question_collections(request):
         participant = session.participants.get(id=participant_id)
     except (GameSession.DoesNotExist, Participant.DoesNotExist):
         return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
+    
+    if session.status != 'pending':
+         return Response({'error': 'Negalima keisti klausimų kolekcijų, kai žaidimas jau prasidėjo.'}, status=400)
 
     if participant.secret != provided_secret:
         return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
@@ -317,6 +324,9 @@ def select_character(request):
     except (GameSession.DoesNotExist, Participant.DoesNotExist):
         return Response({'error': 'Neteisingas kambario kodas arba dalyvio ID.'}, status=404)
     
+    if session.status != 'pending':
+         return Response({'error': 'Negalima keisti personažų, kai žaidimas jau prasidėjo.'}, status=400)
+    
     if participant.secret != provided_secret:
         return Response({'error': 'Neteisingas slaptažodis.'}, status=403)
     
@@ -354,6 +364,10 @@ def create_character(request):
         participant = session.participants.get(id=participant_id)
     except (GameSession.DoesNotExist, Participant.DoesNotExist):
         return Response({'error': 'Neteisingas kambario kodas arba dalyvio ID.'}, status=404)
+    
+    if session.status != 'pending':
+        return Response({'error': 'Negalima keisti personažų, kai žaidimas jau prasidėjo.'}, status=400)
+    
     
     if participant.secret != provided_secret:
         return Response({'error': 'Neteisingas slaptažodis.'}, status=403)
