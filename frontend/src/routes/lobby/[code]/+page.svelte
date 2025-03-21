@@ -43,9 +43,9 @@
 
 	// For managing question collections (host only)
 	let availableCollections = [];
-	let selectedCollections = []; // IDs of collections currently selected
+	let selectedCollections = [];
 
-	// Fetch available collections (only for host)
+	// Fetch available question collections (only for host)
 	async function fetchAvailableCollections() {
 		try {
 			const res = await fetch(`${API_URL}/api/available_collections/`);
@@ -59,7 +59,7 @@
 		}
 	}
 
-	// If host, fetch available collections and initialize selected collections
+	// If host, fetch available question collections and initialize selected collections
 	if (isHost) {
 		fetchAvailableCollections();
 		if (lobbyState.question_collections) {
@@ -272,10 +272,68 @@
 		}
 	}
 
+	let availableCharacters = [];
+	let newCharacterName = '';
+	let newCharacterDescription = '';
+
+	// Fetch available characters for selection
+	async function fetchAvailableCharacters() {
+		try {
+			const res = await fetch(`${API_URL}/api/available_characters/`);
+			if (res.ok) {
+				availableCharacters = await res.json();
+			}
+		} catch (error) {
+			console.error('Error fetching characters', error);
+		}
+	}
+
+	async function selectCharacter(characterId) {
+		const secret = localStorage.getItem('participantSecret');
+		const res = await fetch(`${API_URL}/api/select_character/`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				code,
+				participant_id: participantId,
+				secret,
+				character_id: characterId
+			})
+		});
+		if (!res.ok) {
+			const data = await res.json();
+			errorMessage = data.error || 'Nepavyko pasirinkti personažo.';
+		}
+	}
+
+	async function createCharacter() {
+		if (!newCharacterName) {
+			errorMessage = 'Įveskite personažo vardą.';
+			return;
+		}
+		const secret = localStorage.getItem('participantSecret');
+		const res = await fetch(`${API_URL}/api/create_character/`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				code,
+				participant_id: participantId,
+				secret,
+				name: newCharacterName,
+				description: newCharacterDescription
+			})
+		});
+		if (!res.ok) {
+			const data = await res.json();
+			errorMessage = data.error || 'Nepavyko sukurti personažo.';
+		}
+	}
+
 	onMount(() => {
 		if (!needsUsername) {
 			connectWebSocket();
 		}
+		fetchAvailableCharacters();
 	});
 
 	onDestroy(() => {
@@ -298,8 +356,8 @@
 	<h2>Kambario kodas: {code}</h2>
 	<p>Žaidėjai kambaryje:</p>
 	<ul>
-		{#each players as p}
-			<li>{p}</li>
+		{#each players as player}
+			<li>{player.username}</li>
 		{/each}
 	</ul>
 
@@ -352,6 +410,22 @@
 			{/if}
 
 			<button class="border" on:click={startGame}>Pradėti žaidimą</button>
+		</div>
+	{/if}
+
+	{#if !lobbyState.players.find((p) => p.id === participantId)?.characterSelected}
+		<h3>Pasirinkite savo personažą</h3>
+		<div>
+			<h4 class="flex flex-col">Pasirinkti iš esamų:</h4>
+			{#each availableCharacters as char}
+				<button on:click={() => selectCharacter(char.id)}>{char.name}</button>
+			{/each}
+		</div>
+		<div>
+			<h4>Sukurti naują personažą:</h4>
+			<input type="text" bind:value={newCharacterName} placeholder="Personažo vardas" />
+			<textarea bind:value={newCharacterDescription} placeholder="Aprašymas"></textarea>
+			<button on:click={createCharacter}>Sukurti ir pasirinkti</button>
 		</div>
 	{/if}
 

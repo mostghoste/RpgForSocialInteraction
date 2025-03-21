@@ -15,7 +15,11 @@ def broadcast_lobby_update(session):
         if part.is_host:
             username += " 👑"
             host_id = part.id
-        players.append(username)
+        players.append({
+            'id': part.id,
+            'username': username,
+            'characterSelected': part.assigned_character is not None
+        })
     collections_list = list(session.question_collections.values('id', 'name'))
     data = {
         'code': session.code,

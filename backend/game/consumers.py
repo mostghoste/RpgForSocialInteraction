@@ -55,9 +55,12 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
 
-        # Build the players list and mark the host with a crown emoji.
-        participants = await sync_to_async(list)(session.participants.all())
+        # Prefetch the assigned_character to avoid sync calls in the async context.
+        participants = await sync_to_async(list)(
+            session.participants.all().select_related('assigned_character')
+        )
         players = []
+        host_id = None
         for part in participants:
             if part.user:
                 username = part.user.username
@@ -65,13 +68,22 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 username = part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
             if part.is_host:
                 username += " 👑"
-            players.append(username)
-            
-        # Get the current question collections.
-        collections = await sync_to_async(list)(session.question_collections.values('id', 'name'))
+                host_id = part.id
+            # Now this check won't trigger a new DB query.
+            character_selected = part.assigned_character is not None
+            players.append({
+                'id': part.id,
+                'username': username,
+                'characterSelected': character_selected,
+            })
+
+        collections = await sync_to_async(list)(
+            session.question_collections.values('id', 'name')
+        )
         data = {
             'code': session.code,
             'players': players,
+            'host_id': host_id,
             'status': session.status,
             'round_length': session.round_length,
             'round_count': session.round_count,

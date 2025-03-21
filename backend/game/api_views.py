@@ -302,6 +302,80 @@ def available_collections(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+def select_character(request):
+    code = request.data.get('code', '').strip()
+    participant_id = request.data.get('participant_id')
+    provided_secret = request.data.get('secret', '').strip()
+    character_id = request.data.get('character_id')
+    
+    if not code or not participant_id or not provided_secret or not character_id:
+        return Response({'error': 'Code, participant_id, secret, character_id yra privaloma.'}, status=400)
+    
+    try:
+        session = GameSession.objects.get(code=code)
+        participant = session.participants.get(id=participant_id)
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
+        return Response({'error': 'Neteisingas kambario kodas arba dalyvio ID.'}, status=404)
+    
+    if participant.secret != provided_secret:
+        return Response({'error': 'Neteisingas slaptažodis.'}, status=403)
+    
+    try:
+        from .models import Character
+        character = Character.objects.get(id=character_id)
+    except Character.DoesNotExist:
+        return Response({'error': 'Personažas nerastas.'}, status=404)
+    
+    participant.assigned_character = character
+    participant.save()
+    
+    from .utils import broadcast_lobby_update
+    broadcast_lobby_update(session)
+    
+    return Response({'message': 'Personažas pasirinktas.'})
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_character(request):
+    code = request.data.get('code', '').strip()
+    participant_id = request.data.get('participant_id')
+    provided_secret = request.data.get('secret', '').strip()
+    name = request.data.get('name', '').strip()
+    description = request.data.get('description', '').strip()
+    
+    if not code or not participant_id or not provided_secret or not name:
+        return Response({'error': 'Trūksta privalomų parametrų.'}, status=400)
+    
+    try:
+        session = GameSession.objects.get(code=code)
+        participant = session.participants.get(id=participant_id)
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
+        return Response({'error': 'Neteisingas kambario kodas arba dalyvio ID.'}, status=404)
+    
+    if participant.secret != provided_secret:
+        return Response({'error': 'Neteisingas slaptažodis.'}, status=403)
+    
+    from .models import Character
+    user = request.user if request.user.is_authenticated else None
+    new_character = Character.objects.create(name=name, description=description, creator=user)
+    
+    participant.assigned_character = new_character
+    participant.save()
+    
+    from .utils import broadcast_lobby_update
+    broadcast_lobby_update(session)
+    
+    return Response({'message': 'Personažas sukurtas ir pasirinktas.', 'character_id': new_character.id})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def available_characters(request):
+    from .models import Character
+    characters = Character.objects.all().values('id', 'name', 'description')
+    return Response(list(characters))
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
 def start_game(request):
     code = request.data.get('code', '').strip()
     participant_id = request.data.get('participant_id')
