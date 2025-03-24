@@ -19,14 +19,14 @@
 	let participantSecret = lobbyState?.secret;
 	if (browser) {
 		if (participantId) {
-			localStorage.setItem('participantId', participantId);
+			sessionStorage.setItem('participantId', participantId);
 		} else {
-			participantId = localStorage.getItem('participantId');
+			participantId = sessionStorage.getItem('participantId');
 		}
 		if (participantSecret) {
-			localStorage.setItem('participantSecret', participantSecret);
+			sessionStorage.setItem('participantSecret', participantSecret);
 		} else {
-			participantSecret = localStorage.getItem('participantSecret');
+			participantSecret = sessionStorage.getItem('participantSecret');
 		}
 	}
 
@@ -168,8 +168,8 @@
 			participantId = lobbyState.participant_id;
 			participantSecret = lobbyState.secret;
 			if (browser && participantId) {
-				localStorage.setItem('participantId', participantId);
-				localStorage.setItem('participantSecret', participantSecret);
+				sessionStorage.setItem('participantId', participantId);
+				sessionStorage.setItem('participantSecret', participantSecret);
 			}
 			isHost = lobbyState.is_host || false;
 			roundLength = lobbyState.round_length || 60;
@@ -191,7 +191,7 @@
 	// Function to leave the lobby.
 	async function leaveLobby() {
 		try {
-			const secret = localStorage.getItem('participantSecret');
+			const secret = sessionStorage.getItem('participantSecret');
 			const res = await fetch(`${API_URL}/api/leave_room/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -206,8 +206,8 @@
 				errorMessage = data.error || 'Nepavyko išeiti iš kambario.';
 				return;
 			}
-			localStorage.removeItem('participantId');
-			localStorage.removeItem('participantSecret');
+			sessionStorage.removeItem('participantId');
+			sessionStorage.removeItem('participantSecret');
 			goto('/');
 		} catch (err) {
 			console.error(err);
@@ -218,7 +218,7 @@
 	// Host-only: Update session settings.
 	async function updateSettings() {
 		try {
-			const secret = localStorage.getItem('participantSecret');
+			const secret = sessionStorage.getItem('participantSecret');
 			const res = await fetch(`${API_URL}/api/update_settings/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -247,7 +247,7 @@
 	// Host-only: Update question collections.
 	async function updateCollections() {
 		try {
-			const secret = localStorage.getItem('participantSecret');
+			const secret = sessionStorage.getItem('participantSecret');
 			const res = await fetch(`${API_URL}/api/update_question_collections/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -274,7 +274,7 @@
 	// Host-only: Start the game.
 	async function startGame() {
 		try {
-			const secret = localStorage.getItem('participantSecret');
+			const secret = sessionStorage.getItem('participantSecret');
 			const res = await fetch(`${API_URL}/api/start_game/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -293,7 +293,7 @@
 
 	// Character selection: choose from available characters
 	async function selectCharacter(characterId) {
-		const secret = localStorage.getItem('participantSecret');
+		const secret = sessionStorage.getItem('participantSecret');
 		const res = await fetch(`${API_URL}/api/select_character/`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -316,7 +316,7 @@
 			errorMessage = 'Įveskite personažo vardą.';
 			return;
 		}
-		const secret = localStorage.getItem('participantSecret');
+		const secret = sessionStorage.getItem('participantSecret');
 		const formData = new FormData();
 		formData.append('code', code);
 		formData.append('participant_id', participantId);
@@ -351,7 +351,7 @@
 				body: JSON.stringify({
 					code,
 					participant_id: participantId,
-					secret: participantSecret,
+					secret: sessionStorage.getItem('participantSecret'),
 					text
 				})
 			});
@@ -496,9 +496,9 @@
 	{:else if lobbyState.status === 'in_progress'}
 		<!-- Game View: Display the current round details and chat -->
 		<div class="round-info" style="margin-bottom: 1rem;">
-			<h3>Round {currentRound.round_number}</h3>
-			<p>Question: {currentRound.question}</p>
-			<p>Time Left: {timeLeft} seconds</p>
+			<h3>Raundas {currentRound.round_number}</h3>
+			<p>Klausimas: {currentRound.question}</p>
+			<p>Liko laiko: {timeLeft}s</p>
 		</div>
 		<div class="chat-container" style="border: 1px solid #ccc; padding: 1rem;">
 			<h3>Game Chat</h3>
