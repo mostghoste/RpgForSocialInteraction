@@ -41,8 +41,10 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'django_celery_results',
+    'django_celery_beat',
     'channels',
-    'game'
+    'game',
 ]
 
 MIDDLEWARE = [
@@ -103,6 +105,21 @@ DATABASES = {
         'HOST': os.environ.get('DB_HOST', 'db'),
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
+}
+
+# Celery settings
+CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = 'django-db'
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
+CELERY_BEAT_SCHEDULE = {
+    'check-and-advance-rounds-every-5-seconds': {
+        'task': 'game.tasks.run_round_check',
+        'schedule': 5.0,
+    },
 }
 
 MEDIA_URL = '/media/'

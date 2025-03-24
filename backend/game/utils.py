@@ -1,8 +1,11 @@
 # game/utils.py
 
+import random
+from datetime import timedelta
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.utils import timezone
+from .models import Round
 
 def broadcast_lobby_update(session):
     channel_layer = get_channel_layer()
@@ -75,3 +78,40 @@ def broadcast_round_update(room_code, round_obj):
          f'lobby_{room_code}',
          {'type': 'lobby_update', 'data': data}
     )
+
+def check_and_advance_rounds():
+    print("⏰ Checking rounds...")
+    now = timezone.now()
+    ongoing_rounds = Round.objects.filter(end_time__lte=now, game_session__status='in_progress')
+
+    for r in ongoing_rounds:
+        session = r.game_session
+        total_rounds = session.round_count
+        current_round_number = r.round_number
+
+        if current_round_number >= total_rounds:
+            session.status = 'guessing'
+            session.save()
+            broadcast_lobby_update(session)
+            continue
+
+        # Create the next round
+        next_round_number = current_round_number + 1
+        collections = list(session.question_collections.all())
+        question = None
+        if collections:
+            collection = random.choice(collections)
+            questions = list(collection.questions.exclude(round__game_session=session))
+            if questions:
+                question = random.choice(questions)
+
+        end_time = now + timedelta(seconds=session.round_length)
+        new_round = Round.objects.create(
+            game_session=session,
+            question=question,
+            round_number=next_round_number,
+            end_time=end_time
+        )
+
+        broadcast_round_update(session.code, new_round)
+        broadcast_lobby_update(session)

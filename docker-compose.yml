@@ -63,6 +63,52 @@ services:
     networks:
       - rpg_net
 
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rpg_celery
+    command: celery -A backend worker -l info
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - backend
+      - redis
+    env_file:
+      - .env
+    environment:
+      DB_NAME: rpgdb
+      DB_USER: rpguser
+      DB_PASSWORD: rpgpass
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379
+    networks:
+      - rpg_net
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: rpg_beat
+    command: celery -A backend beat -l info
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - backend
+      - redis
+    env_file:
+      - .env
+    environment:
+      DB_NAME: rpgdb
+      DB_USER: rpguser
+      DB_PASSWORD: rpgpass
+      DB_HOST: db
+      DB_PORT: 5432
+      REDIS_URL: redis://redis:6379
+    networks:
+      - rpg_net
+
 networks:
   rpg_net:
 
