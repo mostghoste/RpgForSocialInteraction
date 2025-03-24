@@ -542,7 +542,7 @@
 			<input type="file" bind:this={newCharacterImage} accept="image/*" />
 			<button on:click={createCharacter}>Sukurti ir pasirinkti</button>
 		</div>
-	{:else if lobbyState.status === 'in_progress' || lobbyState.status === 'guessing' || lobbyState.status === 'completed'}
+	{:else if lobbyState.status === 'in_progress'}
 		<!-- Game View: Display current round details and chat -->
 		{#if currentRound.round_number}
 			<div class="round-info" style="margin-bottom: 1rem;">
@@ -596,6 +596,26 @@
 				/>
 				<button on:click={sendChatMessage} style="padding: 0.5rem;">Siųsti</button>
 			</div>
+		</div>
+	{:else if lobbyState.status === 'guessing'}
+		<!-- Guessing View -->
+		<div class="guessing-view">
+			<h2>Atspėk draugus! 👀</h2>
+			<p>Bandyk susieti žaidėjus su jų personažais.</p>
+			<div class="guessing-panel">
+				{#each players as player}
+					<div class="guessing-card">
+						<p><strong>{player.username}</strong></p>
+						<select>
+							<option disabled selected>Pasirink personažą</option>
+							{#each availableCharacters as character}
+								<option value={character.id}>{character.name}</option>
+							{/each}
+						</select>
+					</div>
+				{/each}
+			</div>
+			<button on:click={() => alert('Guesses submitted! (Placeholder)')}>Pateikti spėjimus</button>
 		</div>
 	{/if}
 	<button class="border" on:click={leaveLobby}>Palikti kambarį</button>
