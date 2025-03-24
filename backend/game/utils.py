@@ -1,6 +1,8 @@
 # game/utils.py
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.utils import timezone
 
 def broadcast_lobby_update(session):
     channel_layer = get_channel_layer()
@@ -33,4 +35,28 @@ def broadcast_lobby_update(session):
     async_to_sync(channel_layer.group_send)(
         group_name,
         {'type': 'lobby_update', 'data': data}
+    )
+
+def broadcast_chat_message(room_code, message_obj):
+    channel_layer = get_channel_layer()
+    participant = message_obj.participant
+    character = participant.assigned_character
+
+    data = {
+        'type': 'chat_update',
+        'message': {
+            'id': message_obj.id,
+            'text': message_obj.text,
+            'sentAt': message_obj.sent_at.isoformat(),
+            'characterName': character.name if character else '???',
+            'characterImage': character.image.url if (character and character.image) else None
+        }
+    }
+
+    async_to_sync(channel_layer.group_send)(
+        f'lobby_{room_code}',
+        {
+            'type': 'lobby_update',  # Re-using the same handler in LobbyConsumer
+            'data': data
+        }
     )

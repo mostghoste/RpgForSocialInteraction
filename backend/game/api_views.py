@@ -4,8 +4,9 @@ import random, string, uuid
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .models import GameSession, Participant, QuestionCollection
-from django.contrib.auth.models import AnonymousUser
+from .models import GameSession, Participant, QuestionCollection, Message, Round
+from django.utils import timezone
+from .utils import broadcast_chat_message
 
 def generate_room_code(length=6):
     return ''.join(random.choices(string.ascii_uppercase, k=length))
@@ -457,3 +458,48 @@ def start_game(request):
          'round_length': session.round_length,
          'round_count': session.round_count,
     })
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def send_chat_message(request):
+    code = request.data.get('code', '').strip()
+    participant_id = request.data.get('participant_id')
+    secret = request.data.get('secret', '').strip()
+    text = request.data.get('text', '').strip()
+
+    if not code or not participant_id or not secret or not text:
+        return Response({'error': 'Trūksta reikiamų laukų.'}, status=400)
+
+    # Retrieve the game session
+    try:
+        session = GameSession.objects.get(code=code)
+    except GameSession.DoesNotExist:
+        return Response({'error': 'Nerasta žaidimo sesija.'}, status=404)
+
+    # Only allow chat in "pending" or "in_progress" (example logic)
+    if session.status not in ['pending', 'in_progress']:
+        return Response({'error': 'Šios žaidimo stadijos metu žinučių siųsti negalima.'}, status=400)
+
+    # Retrieve the participant
+    try:
+        participant = Participant.objects.get(id=participant_id, game_session=session)
+    except Participant.DoesNotExist:
+        return Response({'error': 'Dalyvis nerastas.'}, status=404)
+
+    if participant.secret != secret:
+        return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+
+    # Determine the current round (or store None if no round started yet)
+    current_round = session.rounds.filter(end_time__isnull=True).order_by('-round_number').first()
+    
+    # Create the message in DB
+    msg = Message.objects.create(
+        participant=participant,
+        round=current_round,
+        text=text
+    )
+
+    # Broadcast the new message to the WebSocket group
+    broadcast_chat_message(session.code, msg)
+
+    return Response({'message': 'Žinutė išsiųsta.'})

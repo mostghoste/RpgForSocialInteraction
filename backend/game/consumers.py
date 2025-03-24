@@ -5,47 +5,12 @@ from .models import GameSession, Participant
 from asgiref.sync import sync_to_async
 from django.utils import timezone
 
-class ChatConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        self.room_group_name = 'chat'
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
-
-    async def receive(self, text_data):
-        data = json.loads(text_data)
-        message = data.get('message', '')
-
-        # Broadcast to group
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
-                'message': message,
-            }
-        )
-
-    async def chat_message(self, event):
-        message = event['message']
-        await self.send(text_data=json.dumps({
-            'message': message
-        }))
-
 class LobbyConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_code = self.scope['url_route']['kwargs']['room_code']
         self.group_name = f'lobby_{self.room_code}'
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        # Send current state after connecting
         await self.send_initial_state()
 
     async def send_initial_state(self):
@@ -94,10 +59,6 @@ class LobbyConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
-    async def lobby_update(self, event):
-        data = event['data']
-        await self.send(text_data=json.dumps(data))
-
     async def receive(self, text_data):
         data = json.loads(text_data)
         if data.get('type') == 'ping':
@@ -110,3 +71,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                 except Participant.DoesNotExist:
                     print("ERROR: Couldn't find the participant to update.")
             return
+        
+    async def lobby_update(self, event):
+        data = event['data']
+        await self.send(text_data=json.dumps(data))

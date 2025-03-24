@@ -14,7 +14,7 @@
 	let players = needsUsername ? [] : lobbyState.players || [];
 	let errorMessage = '';
 
-	// For storing the participant id and secret (if available)
+	// For storing participant secret (participantId remains hidden on the client UI)
 	let participantId = lobbyState?.participant_id;
 	let participantSecret = lobbyState?.secret;
 	if (browser) {
@@ -44,6 +44,10 @@
 	// For managing question collections (host only)
 	let availableCollections = [];
 	let selectedCollections = [];
+
+	// --- Chat State ---
+	let chatMessages = []; // Array to hold incoming chat messages
+	let chatInput = ''; // The current chat message input
 
 	// Fetch available question collections (only for host)
 	async function fetchAvailableCollections() {
@@ -82,12 +86,8 @@
 			console.log(`Connected to lobby: ${code}`);
 			heartbeatInterval = setInterval(() => {
 				if (socket.readyState === WebSocket.OPEN) {
-					socket.send(
-						JSON.stringify({
-							type: 'ping',
-							participant_id: participantId
-						})
-					);
+					// We still send a ping, but no need to include participantId in the broadcast.
+					socket.send(JSON.stringify({ type: 'ping' }));
 				}
 			}, 15000);
 		};
@@ -99,6 +99,7 @@
 
 		socket.onmessage = (event) => {
 			const data = JSON.parse(event.data);
+			// Handle lobby updates
 			if (data.players) {
 				players = data.players;
 			}
@@ -114,6 +115,7 @@
 			}
 			if (data.host_id !== undefined) {
 				const newIsHost = parseInt(data.host_id) === parseInt(participantId);
+				// If participant is new host
 				if (newIsHost && !isHost) {
 					isHost = true;
 					fetchAvailableCollections();
@@ -121,10 +123,19 @@
 					isHost = newIsHost;
 				}
 			}
+			// Handle realtime chat messages
+			if (data.type === 'chat_update' && data.message) {
+				chatMessages = [...chatMessages, data.message];
+			}
+			// Other update types (round_update, game_status_update) here
+		};
+
+		socket.onclose = (event) => {
+			console.log('WebSocket disconnected:', event.code, event.reason);
 		};
 	}
 
-	// Function to join the room using a guest username.
+	// Join the room using a guest username.
 	async function submitGuestUsername() {
 		if (!guestUsername) {
 			errorMessage = 'Prašome įvesti vartotojo vardą.';
@@ -332,6 +343,33 @@
 		}
 	}
 
+	// Send a chat message via HTTP
+	async function sendChatMessage() {
+		const text = chatInput.trim();
+		if (!text) return;
+		try {
+			const res = await fetch(`${API_URL}/api/send_chat_message/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret: participantSecret,
+					text
+				})
+			});
+			if (!res.ok) {
+				const data = await res.json();
+				errorMessage = data.error || 'Nepavyko išsiųsti žinutės.';
+			} else {
+				chatInput = '';
+			}
+		} catch (err) {
+			console.error(err);
+			errorMessage = 'Serverio klaida siunčiant žinutę.';
+		}
+	}
+
 	onMount(() => {
 		if (!needsUsername) {
 			connectWebSocket();
@@ -442,6 +480,54 @@
 			<button on:click={createCharacter}>Sukurti ir pasirinkti</button>
 		</div>
 	{/if}
+
+	<!-- Chat -->
+	<div class="chat-container" style="border: 1px solid #ccc; padding: 1rem; margin-top: 1rem;">
+		<h3>Pokalbio langas</h3>
+		<div class="messages-list" style="max-height: 300px; overflow-y: auto;">
+			{#each chatMessages as msg}
+				<div
+					class="message-item"
+					style="margin-bottom: 0.5rem; padding: 0.5rem; border-bottom: 1px solid #eee;"
+				>
+					<div class="message-sender" style="display: flex; align-items: center;">
+						{#if msg.characterImage}
+							<img
+								src="{API_URL}{msg.characterImage}"
+								alt="Char"
+								width="40"
+								style="margin-right: 0.5rem;"
+							/>
+						{:else}
+							<img
+								src="/fallback_character.jpg"
+								alt="Fallback"
+								width="40"
+								style="margin-right: 0.5rem;"
+							/>
+						{/if}
+						<strong>{msg.characterName}:</strong>
+					</div>
+					<div class="message-text">
+						{msg.text}
+					</div>
+					<div class="message-time" style="font-size: 0.8rem; color: #888;">
+						{new Date(msg.sentAt).toLocaleTimeString()}
+					</div>
+				</div>
+			{/each}
+		</div>
+		<div class="message-input" style="margin-top: 0.5rem;">
+			<input
+				type="text"
+				bind:value={chatInput}
+				placeholder="Rašyk žinutę..."
+				on:keydown={(evt) => evt.key === 'Enter' && sendChatMessage()}
+				style="width: 80%; padding: 0.5rem;"
+			/>
+			<button on:click={sendChatMessage} style="padding: 0.5rem;">Siųsti</button>
+		</div>
+	</div>
 
 	<button class="border" on:click={leaveLobby}>Palikti kambarį</button>
 	{#if errorMessage}

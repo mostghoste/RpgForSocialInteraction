@@ -12,6 +12,7 @@ from .api_views import (
     select_character,
     create_character,
     available_characters,
+    send_chat_message
 )
 
 urlpatterns = [
@@ -27,4 +28,5 @@ urlpatterns = [
     path('select_character/', select_character, name='select_character'),
     path('create_character/', create_character, name='create_character'),
     path('available_characters/', available_characters, name='available_characters'),
-]
+    path('send_chat_message/', send_chat_message, name='send_chat_message'),
+    ]
