@@ -1,13 +1,21 @@
 # game/models.py
 
-import uuid
+import uuid, os
 from django.db import models
 from django.contrib.auth.models import User
+
+def get_character_image_upload_path(instance, filename):
+    # Extract the file extension
+    ext = filename.split('.')[-1]
+    # Generate a unique filename using uuid4
+    new_filename = f"{uuid.uuid4().hex}.{ext}"
+    # Return the full path where the file will be stored
+    return os.path.join("character_images", new_filename)
 
 class Character(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to='character_images/', null=True, blank=True)
+    image = models.ImageField(upload_to=get_character_image_upload_path, null=True, blank=True)
     # When a creator (User) is deleted, set field to NULL (Don't delete the character).
     creator = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_characters'

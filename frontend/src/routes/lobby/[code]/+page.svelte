@@ -275,6 +275,7 @@
 	let availableCharacters = [];
 	let newCharacterName = '';
 	let newCharacterDescription = '';
+	let newCharacterImage;
 
 	// Fetch available characters for selection
 	async function fetchAvailableCharacters() {
@@ -312,16 +313,18 @@
 			return;
 		}
 		const secret = localStorage.getItem('participantSecret');
+		const formData = new FormData();
+		formData.append('code', code);
+		formData.append('participant_id', participantId);
+		formData.append('secret', secret);
+		formData.append('name', newCharacterName);
+		formData.append('description', newCharacterDescription);
+		if (newCharacterImage && newCharacterImage.files.length > 0) {
+			formData.append('image', newCharacterImage.files[0]);
+		}
 		const res = await fetch(`${API_URL}/api/create_character/`, {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				code,
-				participant_id: participantId,
-				secret,
-				name: newCharacterName,
-				description: newCharacterDescription
-			})
+			body: formData
 		});
 		if (!res.ok) {
 			const data = await res.json();
@@ -421,13 +424,21 @@
 		<div>
 			<h4 class="flex flex-col">Pasirinkti iš esamų:</h4>
 			{#each availableCharacters as char}
-				<button on:click={() => selectCharacter(char.id)}>{char.name}</button>
+				<button on:click={() => selectCharacter(char.id)}>
+					{#if char.image}
+						<img src="{API_URL}{char.image}" alt={char.name} width="100" />
+					{:else}
+						<img src="/fallback_character.jpg" alt="Fallback Character" width="100" />
+					{/if}
+					<span>{char.name}</span>
+				</button>
 			{/each}
 		</div>
 		<div>
 			<h4>Sukurti naują personažą:</h4>
 			<input type="text" bind:value={newCharacterName} placeholder="Personažo vardas" />
 			<textarea bind:value={newCharacterDescription} placeholder="Aprašymas"></textarea>
+			<input type="file" bind:this={newCharacterImage} accept="image/*" />
 			<button on:click={createCharacter}>Sukurti ir pasirinkti</button>
 		</div>
 	{/if}

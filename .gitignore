@@ -36,3 +36,5 @@ Thumbs.db
 # ---- Coverage / Testing ----
 coverage/
 .coverage
+
+backend/media/

@@ -368,13 +368,28 @@ def create_character(request):
     if session.status != 'pending':
         return Response({'error': 'Negalima keisti personažų, kai žaidimas jau prasidėjo.'}, status=400)
     
-    
     if participant.secret != provided_secret:
-        return Response({'error': 'Neteisingas slaptažodis.'}, status=403)
+        return Response({'error': 'Netinkas slaptažodis.'}, status=403)
     
     from .models import Character
     user = request.user if request.user.is_authenticated else None
-    new_character = Character.objects.create(name=name, description=description, creator=user)
+
+    # Handle image upload, if provided.
+    image = request.FILES.get('image')
+    if image:
+        # Validate that the file is an image.
+        if not image.content_type.startswith('image/'):
+            return Response({'error': 'Neteisingas failo tipas. Tinka .jpg, .png.'}, status=400)
+        # Check file size (limit example: 5 MB)
+        if image.size > 5 * 1024 * 1024:
+            return Response({'error': 'Paveikslėlis per didelis. Didžiausias leidžiamas dydis yra 5MB.'}, status=400)
+    
+    new_character = Character.objects.create(
+        name=name,
+        description=description,
+        creator=user,
+        image=image
+    )
     
     participant.assigned_character = new_character
     participant.save()
@@ -384,11 +399,12 @@ def create_character(request):
     
     return Response({'message': 'Personažas sukurtas ir pasirinktas.', 'character_id': new_character.id})
 
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def available_characters(request):
     from .models import Character
-    characters = Character.objects.filter(creator__username="mostghoste").values('id', 'name', 'description')
+    characters = Character.objects.filter(creator__username="mostghoste").values('id', 'name', 'description', 'image')
     return Response(list(characters))
 
 
