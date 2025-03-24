@@ -5,7 +5,7 @@ from datetime import timedelta
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.utils import timezone
-from .models import Round
+from .models import GameSession, Round
 
 def broadcast_lobby_update(session):
     channel_layer = get_channel_layer()
@@ -59,7 +59,7 @@ def broadcast_chat_message(room_code, message_obj):
     async_to_sync(channel_layer.group_send)(
         f'lobby_{room_code}',
         {
-            'type': 'lobby_update',  # Re-using the same handler in LobbyConsumer
+            'type': 'lobby_update',
             'data': data
         }
     )
@@ -80,23 +80,40 @@ def broadcast_round_update(room_code, round_obj):
     )
 
 def check_and_advance_rounds():
-    print("⏰ Checking rounds...")
+    print("⏰ Checking in-progress sessions...")
     now = timezone.now()
-    ongoing_rounds = Round.objects.filter(end_time__lte=now, game_session__status='in_progress')
+    sessions = GameSession.objects.filter(status='in_progress')
 
-    for r in ongoing_rounds:
-        session = r.game_session
-        total_rounds = session.round_count
-        current_round_number = r.round_number
+    for session in sessions:
+        # Get latest round for this session
+        latest_round = (
+            Round.objects
+            .filter(game_session=session)
+            .order_by('-round_number')
+            .first()
+        )
 
-        if current_round_number >= total_rounds:
+        # If no round has been started yet, we treat as pre-round state
+        if not latest_round:
+            print(f"🆕 No rounds yet for session {session.code}. Starting round 1.")
+            next_round_number = 1
+        else:
+            # If current round is not finished yet, skip
+            if latest_round.end_time > now:
+                print(f"⏳ Round {latest_round.round_number} in session {session.code} is still ongoing.")
+                continue
+
+            next_round_number = latest_round.round_number + 1
+
+        # Check if we've reached the max round count
+        if next_round_number > session.round_count:
+            print(f"✅ Session {session.code} finished all rounds. Moving to 'guessing'.")
             session.status = 'guessing'
             session.save()
             broadcast_lobby_update(session)
             continue
 
-        # Create the next round
-        next_round_number = current_round_number + 1
+        # Create a new round
         collections = list(session.question_collections.all())
         question = None
         if collections:
@@ -113,5 +130,6 @@ def check_and_advance_rounds():
             end_time=end_time
         )
 
+        print(f"🌀 Created round {next_round_number} in session {session.code}")
         broadcast_round_update(session.code, new_round)
         broadcast_lobby_update(session)
