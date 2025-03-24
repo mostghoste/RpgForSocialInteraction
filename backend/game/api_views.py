@@ -197,9 +197,15 @@ def leave_room(request):
          return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
 
     was_host = participant.is_host
-    participant.delete()
 
-    remaining = session.participants.all()
+    # If game is in progress, mark the participant as inactive, otherwise delete.
+    if session.status == 'in_progress':
+         participant.is_active = False
+         participant.save()
+    else:
+         participant.delete()
+
+    remaining = session.participants.filter(is_active=True)
     if remaining.exists():
          # If the leaving participant was the host, transfer host privileges
          if was_host:
@@ -210,10 +216,9 @@ def leave_room(request):
          broadcast_lobby_update(session)
          return Response({'message': 'Išėjote iš kambario.'})
     else:
-         # If no participants remain, delete the session.
+         # If no active participants remain, delete the session.
          session.delete()
          return Response({'message': 'Jūs buvote paskutinis kambaryje. Kambarys ištrintas.'})
-
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

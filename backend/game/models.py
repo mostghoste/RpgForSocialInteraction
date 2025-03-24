@@ -66,6 +66,7 @@ class Participant(models.Model):
     points = models.IntegerField(default=0)
     joined_at = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
     secret = models.CharField(max_length=64, default=generate_secret)
     is_host = models.BooleanField(default=False)
 
@@ -147,7 +148,19 @@ class Message(models.Model):
     sent_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Message from {self.participant.user.username} in round {self.round.round_number}"
+        if self.participant:
+            if self.participant.user:
+                name = self.participant.user.username
+            elif self.participant.guest_name:
+                name = self.participant.guest_name
+            elif self.participant.guest_identifier:
+                name = f"Guest {self.participant.guest_identifier[:8]}"
+            else:
+                name = "Guest"
+        else:
+            name = "Unknown"
+        return f"Message from {name} in round {self.round.round_number}"
+
 
 class Guess(models.Model):
     # The participant making the guess.
