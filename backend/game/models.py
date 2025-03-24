@@ -30,6 +30,7 @@ class GameSession(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('in_progress', 'In Progress'),
+        ('guessing', "Guessing"),
         ('completed', 'Completed'),
     )
     code = models.CharField(max_length=20)
