@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from .models import GameSession, Participant, QuestionCollection, Message, Round
 from django.utils import timezone
+from django.db.models import F
 from .utils import broadcast_chat_message, broadcast_lobby_update, broadcast_round_update
 
 def generate_room_code(length=6):
@@ -37,7 +38,8 @@ def create_room(request):
 @permission_classes([AllowAny])
 def join_room(request):
     code = request.data.get('code', '').strip()
-    participant = None  # Define it up front
+    participant = None  # define upfront
+
     # Try reconnecting if participant_id and secret are provided.
     participant_id = request.data.get('participant_id')
     provided_secret = request.data.get('secret', '').strip()
@@ -47,8 +49,6 @@ def join_room(request):
             session = GameSession.objects.get(code=code)
         except GameSession.DoesNotExist:
             return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
-        if session.status != 'pending':
-            return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
         try:
             participant = session.participants.get(id=participant_id)
         except Participant.DoesNotExist:
@@ -56,14 +56,15 @@ def join_room(request):
         if participant:
             if participant.secret != provided_secret:
                 return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
-            # Rejoin successful; no need for a username.
-        # If participant is not found, fall through to the new join flow.
+            # Rejoin successful.
+        # Fall through to new join flow if participant not found.
     
     if not participant:
         try:
             session = GameSession.objects.get(code=code)
         except GameSession.DoesNotExist:
             return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
+        # New joins are allowed only when the room is pending.
         if session.status != 'pending':
             return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
         user = request.user if request.user.is_authenticated else None
@@ -97,6 +98,7 @@ def join_room(request):
                 guest_name=guest_username,
                 is_host=is_host_flag
             )
+    # Broadcast the updated lobby state.
     from .utils import broadcast_lobby_update
     broadcast_lobby_update(session)
     players = []
@@ -105,6 +107,32 @@ def join_room(request):
             players.append(part.user.username)
         else:
             players.append(part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest"))
+
+    messages = []
+    for msg in Message.objects.filter(round__game_session=session).order_by('sent_at'):
+        messages.append({
+            'text': msg.text,
+            'sentAt': msg.sent_at.isoformat(),
+            'roundNumber': msg.round.round_number,
+            'characterImage': msg.participant.assigned_character.image.url
+                            if msg.participant.assigned_character and msg.participant.assigned_character.image
+                            else None,
+            'characterName': msg.participant.assigned_character.name
+                            if msg.participant.assigned_character else None,
+        })
+
+    # If the session is in progress include current round information.
+    current_round = None
+    if session.status == 'in_progress':
+        from django.utils import timezone
+        current_round_obj = session.rounds.filter(end_time__gt=timezone.now()).order_by('-round_number').first()
+        if current_round_obj:
+            current_round = {
+                'round_number': current_round_obj.round_number,
+                'question': current_round_obj.question.text if current_round_obj.question else '',
+                'end_time': current_round_obj.end_time.isoformat(),
+            }
+    
     return Response({
         'code': session.code,
         'status': session.status,
@@ -114,6 +142,8 @@ def join_room(request):
         'participant_id': participant.id,
         'secret': participant.secret,
         'is_host': participant.is_host,
+        'current_round': current_round,
+        'messages': messages,
     })
 
 @api_view(['POST'])
@@ -216,8 +246,6 @@ def verify_room(request):
         session = GameSession.objects.get(code=code)
     except GameSession.DoesNotExist:
         return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
-    if session.status != 'pending':
-        return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
     return Response({
         'code': session.code,
         'status': session.status,
