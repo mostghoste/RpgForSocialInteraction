@@ -37,66 +37,58 @@ def create_room(request):
 @permission_classes([AllowAny])
 def join_room(request):
     code = request.data.get('code', '').strip()
-    if not code:
-        return Response({'error': 'Prašome įrašyti kambario kodą!'}, status=400)
-    
-    try:
-        session = GameSession.objects.get(code=code)
-    except GameSession.DoesNotExist:
-        return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
-    
-    if session.status != 'pending':
-        return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
+    participant = None  # Define it up front
+    # Try reconnecting if participant_id and secret are provided.
+    participant_id = request.data.get('participant_id')
+    provided_secret = request.data.get('secret', '').strip()
 
-    user = request.user if request.user.is_authenticated else None
-
-    # For guests, get the username from the request.
-    guest_username = None
-    if not user:
-        guest_username = request.data.get('guest_username', '').strip()
-
-    # Use the appropriate name.
-    name_to_join = user.username if user else guest_username
-    if not name_to_join:
-        return Response({'error': 'Prašome įvesti vartotojo vardą.'}, status=400)
-
-    # Check for duplicate names in the room (case-insensitive).
-    existing_names = []
-    for part in session.participants.all():
-        if part.user:
-            existing_names.append(part.user.username.lower())
-        elif part.guest_name:
-            existing_names.append(part.guest_name.lower())
-    if name_to_join.lower() in existing_names:
-        return Response({'error': 'Toks vartotojo vardas jau naudojamas kambaryje.'}, status=400)
-
-    # Determine if this is the first participant in the room.
-    is_host_flag = (session.participants.count() == 0)
-
-    # Create (or update) the participant record.
-    if user:
-        participant, created = Participant.objects.get_or_create(
-            user=user,
-            game_session=session,
-            defaults={'is_host': is_host_flag}
-        )
-        display_name = user.username
-    else:
-        # For guests, also check if a participant_id is provided (e.g. from localStorage)
-        participant_id = request.data.get('participant_id')
-        if participant_id:
-            try:
-                participant = session.participants.get(id=participant_id, user__isnull=True)
-            except Participant.DoesNotExist:
-                participant = None
-        else:
+    if participant_id and provided_secret:
+        try:
+            session = GameSession.objects.get(code=code)
+        except GameSession.DoesNotExist:
+            return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
+        if session.status != 'pending':
+            return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
+        try:
+            participant = session.participants.get(id=participant_id)
+        except Participant.DoesNotExist:
             participant = None
-
         if participant:
-            # Update the guest name if necessary.
-            if participant.guest_name != guest_username:
-                participant.guest_name = guest_username
-                participant.save()
+            if participant.secret != provided_secret:
+                return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+            # Rejoin successful; no need for a username.
+        # If participant is not found, fall through to the new join flow.
+    
+    if not participant:
+        try:
+            session = GameSession.objects.get(code=code)
+        except GameSession.DoesNotExist:
+            return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
+        if session.status != 'pending':
+            return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
+        user = request.user if request.user.is_authenticated else None
+        guest_username = None
+        if not user:
+            guest_username = request.data.get('guest_username', '').strip()
+        name_to_join = user.username if user else guest_username
+        if not name_to_join:
+            return Response({'error': 'Prašome įvesti vartotojo vardą.'}, status=400)
+        # Check for duplicate names (case-insensitive).
+        existing_names = []
+        for part in session.participants.all():
+            if part.user:
+                existing_names.append(part.user.username.lower())
+            elif part.guest_name:
+                existing_names.append(part.guest_name.lower())
+        if name_to_join.lower() in existing_names:
+            return Response({'error': 'Toks vartotojo vardas jau naudojamas kambaryje.'}, status=400)
+        is_host_flag = (session.participants.count() == 0)
+        if user:
+            participant, created = Participant.objects.get_or_create(
+                user=user,
+                game_session=session,
+                defaults={'is_host': is_host_flag}
+            )
         else:
             participant = Participant.objects.create(
                 user=None,
@@ -105,20 +97,14 @@ def join_room(request):
                 guest_name=guest_username,
                 is_host=is_host_flag
             )
-        display_name = guest_username
-
-    # Broadcast the updated lobby state.
     from .utils import broadcast_lobby_update
     broadcast_lobby_update(session)
-
-    # Collect player names.
     players = []
     for part in session.participants.all():
         if part.user:
             players.append(part.user.username)
         else:
             players.append(part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest"))
-
     return Response({
         'code': session.code,
         'status': session.status,

@@ -379,17 +379,56 @@
 	}
 	const timerInterval = setInterval(updateTimeLeft, 1000);
 
+	async function rejoinRoom() {
+		try {
+			const storedId = sessionStorage.getItem('participantId');
+			const storedSecret = sessionStorage.getItem('participantSecret');
+			console.log('Rejoin attempt: storedId =', storedId, 'storedSecret =', storedSecret);
+
+			const res = await fetch(`${API_URL}/api/join_room/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ code, participant_id: storedId, secret: storedSecret })
+			});
+
+			console.log('Rejoin response status:', res.status);
+			if (res.ok) {
+				const data = await res.json();
+				console.log('Rejoin successful. Received lobbyState:', data);
+				lobbyState = data;
+				players = lobbyState.players || [];
+				isHost = lobbyState.is_host || false;
+				roundLength = lobbyState.round_length || 60;
+				roundCount = lobbyState.round_count || 3;
+				if (lobbyState.question_collections) {
+					selectedCollections = lobbyState.question_collections.map((qc) => qc.id);
+				}
+				connectWebSocket();
+				if (isHost) fetchAvailableCollections();
+				needsUsername = false;
+			} else {
+				const errorData = await res.json();
+				console.error('Rejoin failed with error data:', errorData);
+				needsUsername = true;
+			}
+		} catch (err) {
+			console.error('Rejoin encountered an exception:', err);
+			errorMessage = 'Serverio klaida bandant atkurti ryšį.';
+			needsUsername = true;
+		}
+	}
+
 	onMount(() => {
-		if (!needsUsername) {
+		// If stored credentials exist, attempt to rejoin the room.
+		const storedId = sessionStorage.getItem('participantId');
+		const storedSecret = sessionStorage.getItem('participantSecret');
+		if (storedId && storedSecret) {
+			rejoinRoom();
+		} else {
+			// The guest username input form will be visible if needed
 			connectWebSocket();
 		}
 		fetchAvailableCharacters();
-	});
-
-	onDestroy(() => {
-		if (heartbeatInterval) clearInterval(heartbeatInterval);
-		if (socket) socket.close();
-		clearInterval(timerInterval);
 	});
 </script>
 
