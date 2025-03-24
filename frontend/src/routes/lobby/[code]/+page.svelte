@@ -45,9 +45,11 @@
 	let availableCollections = [];
 	let selectedCollections = [];
 
-	// --- Chat State ---
-	let chatMessages = []; // Array to hold incoming chat messages
-	let chatInput = ''; // The current chat message input
+	// For character selection
+	let availableCharacters = [];
+	let newCharacterName = '';
+	let newCharacterDescription = '';
+	let newCharacterImage;
 
 	// Fetch available question collections (only for host)
 	async function fetchAvailableCollections() {
@@ -63,11 +65,15 @@
 		}
 	}
 
-	// If host, fetch available question collections and initialize selected collections
-	if (isHost) {
-		fetchAvailableCollections();
-		if (lobbyState.question_collections) {
-			selectedCollections = lobbyState.question_collections.map((qc) => qc.id);
+	// Fetch available characters for selection
+	async function fetchAvailableCharacters() {
+		try {
+			const res = await fetch(`${API_URL}/api/available_characters/`);
+			if (res.ok) {
+				availableCharacters = await res.json();
+			}
+		} catch (error) {
+			console.error('Error fetching characters', error);
 		}
 	}
 
@@ -86,7 +92,6 @@
 			console.log(`Connected to lobby: ${code}`);
 			heartbeatInterval = setInterval(() => {
 				if (socket.readyState === WebSocket.OPEN) {
-					// We still send a ping, but no need to include participantId in the broadcast.
 					socket.send(JSON.stringify({ type: 'ping' }));
 				}
 			}, 15000);
@@ -99,7 +104,10 @@
 
 		socket.onmessage = (event) => {
 			const data = JSON.parse(event.data);
-			// Handle lobby updates
+			// Update lobby status if provided
+			if (data.status) {
+				lobbyState.status = data.status;
+			}
 			if (data.players) {
 				players = data.players;
 			}
@@ -115,19 +123,19 @@
 			}
 			if (data.host_id !== undefined) {
 				const newIsHost = parseInt(data.host_id) === parseInt(participantId);
-				// If participant is new host
-				if (newIsHost && !isHost) {
-					isHost = true;
-					fetchAvailableCollections();
-				} else {
-					isHost = newIsHost;
-				}
+				isHost = newIsHost;
+				if (newIsHost) fetchAvailableCollections();
 			}
-			// Handle realtime chat messages
+			// Handle game chat messages
 			if (data.type === 'chat_update' && data.message) {
 				chatMessages = [...chatMessages, data.message];
 			}
-			// Other update types (round_update, game_status_update) here
+			// Handle round update events
+			if (data.type === 'round_update' && data.round) {
+				currentRound = data.round;
+				updateTimeLeft();
+			}
+			// Additional update types can be handled here.
 		};
 
 		socket.onclose = (event) => {
@@ -283,23 +291,7 @@
 		}
 	}
 
-	let availableCharacters = [];
-	let newCharacterName = '';
-	let newCharacterDescription = '';
-	let newCharacterImage;
-
-	// Fetch available characters for selection
-	async function fetchAvailableCharacters() {
-		try {
-			const res = await fetch(`${API_URL}/api/available_characters/`);
-			if (res.ok) {
-				availableCharacters = await res.json();
-			}
-		} catch (error) {
-			console.error('Error fetching characters', error);
-		}
-	}
-
+	// Character selection: choose from available characters
 	async function selectCharacter(characterId) {
 		const secret = localStorage.getItem('participantSecret');
 		const res = await fetch(`${API_URL}/api/select_character/`, {
@@ -318,6 +310,7 @@
 		}
 	}
 
+	// Character creation: create a new character
 	async function createCharacter() {
 		if (!newCharacterName) {
 			errorMessage = 'Įveskite personažo vardą.';
@@ -343,7 +336,11 @@
 		}
 	}
 
-	// Send a chat message via HTTP
+	// --- Chat State (Game Chat) ---
+	let chatMessages = []; // Holds incoming game chat messages
+	let chatInput = ''; // Current game chat message input
+
+	// Send a game chat message via HTTP
 	async function sendChatMessage() {
 		const text = chatInput.trim();
 		if (!text) return;
@@ -370,6 +367,18 @@
 		}
 	}
 
+	let currentRound = { round_number: null, question: '', end_time: null };
+	let timeLeft = 0;
+
+	// Update timeLeft every second.
+	function updateTimeLeft() {
+		if (currentRound.end_time) {
+			const endTime = new Date(currentRound.end_time);
+			timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+		}
+	}
+	const timerInterval = setInterval(updateTimeLeft, 1000);
+
 	onMount(() => {
 		if (!needsUsername) {
 			connectWebSocket();
@@ -380,6 +389,7 @@
 	onDestroy(() => {
 		if (heartbeatInterval) clearInterval(heartbeatInterval);
 		if (socket) socket.close();
+		clearInterval(timerInterval);
 	});
 </script>
 
@@ -393,141 +403,148 @@
 		<p class="error">{errorMessage}</p>
 	{/if}
 {:else}
-	<!-- Lobby view -->
-	<h2>Kambario kodas: {code}</h2>
-	<p>Žaidėjai kambaryje:</p>
-	<ul>
-		{#each players as player}
-			<li>
-				{player.username}
-				{player.characterSelected ? '✅' : ''}
-			</li>
-		{/each}
-	</ul>
+	<!-- Conditional UI based on lobby status -->
+	{#if lobbyState.status === 'pending'}
+		<!-- Lobby View: Display players, room settings, and character selection -->
+		<h2>Kambario kodas: {code}</h2>
+		<p>Žaidėjai kambaryje:</p>
+		<ul>
+			{#each players as player}
+				<li>
+					{player.username}
+					{player.characterSelected ? '✅' : ''}
+				</li>
+			{/each}
+		</ul>
 
-	<!-- Display current room settings for all players -->
-	<div class="room-settings">
-		<h3>Kambario nustatymai</h3>
-		<p>Round Length: {roundLength} s</p>
-		<p>Round Count: {roundCount}</p>
-		{#if lobbyState.question_collections}
-			<h4>Pasirinktos klausimų kolekcijos:</h4>
-			<ul>
-				{#each lobbyState.question_collections as qc}
-					<li>{qc.name}</li>
-				{/each}
-			</ul>
-		{/if}
-	</div>
-
-	{#if isHost}
-		<!-- Host-only controls -->
-		<div class="host-settings">
-			<h3>Nustatymai (Tik vedėjui)</h3>
-			<label>
-				Round Length (s):
-				<input type="number" bind:value={roundLength} min="1" />
-			</label>
-			<label>
-				Round Count:
-				<input type="number" bind:value={roundCount} min="1" />
-			</label>
-			<button class="border" on:click={updateSettings}>Atnaujinti nustatymus</button>
-
-			<!-- Question Collection Management for Host -->
-			<h3>Klausimų kolekcijos</h3>
-			{#if availableCollections.length > 0}
-				{#each availableCollections as collection}
-					<div>
-						<input
-							type="checkbox"
-							id="qc-{collection.id}"
-							value={collection.id}
-							bind:group={selectedCollections}
-						/>
-						<label for="qc-{collection.id}">{collection.name}</label>
-					</div>
-				{/each}
-				<button class="border" on:click={updateCollections}>Atnaujinti kolekcijas</button>
-			{:else}
-				<p>Nėra prieinamų klausimų kolekcijų.</p>
+		<!-- Room settings -->
+		<div class="room-settings">
+			<h3>Kambario nustatymai</h3>
+			<p>Round Length: {roundLength} s</p>
+			<p>Round Count: {roundCount}</p>
+			{#if lobbyState.question_collections}
+				<h4>Pasirinktos klausimų kolekcijos:</h4>
+				<ul>
+					{#each lobbyState.question_collections as qc}
+						<li>{qc.name}</li>
+					{/each}
+				</ul>
 			{/if}
-
-			<button class="border" on:click={startGame}>Pradėti žaidimą</button>
 		</div>
-	{/if}
 
-	{#if !lobbyState.players.find((p) => p.id === participantId)?.characterSelected}
-		<h3>Pasirinkite savo personažą</h3>
-		<div>
-			<h4 class="flex flex-col">Pasirinkti iš esamų:</h4>
-			{#each availableCharacters as char}
-				<button on:click={() => selectCharacter(char.id)}>
-					{#if char.image}
-						<img src="{API_URL}{char.image}" alt={char.name} width="100" />
-					{:else}
-						<img src="/fallback_character.jpg" alt="Fallback Character" width="100" />
-					{/if}
-					<span>{char.name}</span>
-				</button>
-			{/each}
-		</div>
-		<div>
-			<h4>Sukurti naują personažą:</h4>
-			<input type="text" bind:value={newCharacterName} placeholder="Personažo vardas" />
-			<textarea bind:value={newCharacterDescription} placeholder="Aprašymas"></textarea>
-			<input type="file" bind:this={newCharacterImage} accept="image/*" />
-			<button on:click={createCharacter}>Sukurti ir pasirinkti</button>
-		</div>
-	{/if}
+		{#if isHost}
+			<!-- Host-only controls -->
+			<div class="host-settings">
+				<h3>Nustatymai (Tik vedėjui)</h3>
+				<label>
+					Round Length (s):
+					<input type="number" bind:value={roundLength} min="1" />
+				</label>
+				<label>
+					Round Count:
+					<input type="number" bind:value={roundCount} min="1" />
+				</label>
+				<button class="border" on:click={updateSettings}>Atnaujinti nustatymus</button>
 
-	<!-- Chat -->
-	<div class="chat-container" style="border: 1px solid #ccc; padding: 1rem; margin-top: 1rem;">
-		<h3>Pokalbio langas</h3>
-		<div class="messages-list" style="max-height: 300px; overflow-y: auto;">
-			{#each chatMessages as msg}
-				<div
-					class="message-item"
-					style="margin-bottom: 0.5rem; padding: 0.5rem; border-bottom: 1px solid #eee;"
-				>
-					<div class="message-sender" style="display: flex; align-items: center;">
-						{#if msg.characterImage}
-							<img
-								src="{API_URL}{msg.characterImage}"
-								alt="Char"
-								width="40"
-								style="margin-right: 0.5rem;"
+				<!-- Question Collection Management for Host -->
+				<h3>Klausimų kolekcijos</h3>
+				{#if availableCollections.length > 0}
+					{#each availableCollections as collection}
+						<div>
+							<input
+								type="checkbox"
+								id="qc-{collection.id}"
+								value={collection.id}
+								bind:group={selectedCollections}
 							/>
+							<label for="qc-{collection.id}">{collection.name}</label>
+						</div>
+					{/each}
+					<button class="border" on:click={updateCollections}>Atnaujinti kolekcijas</button>
+				{:else}
+					<p>Nėra prieinamų klausimų kolekcijų.</p>
+				{/if}
+
+				<button class="border" on:click={startGame}>Pradėti žaidimą</button>
+			</div>
+		{/if}
+
+		{#if !lobbyState.players.find((p) => p.id === participantId)?.characterSelected}
+			<!-- Character Selection -->
+			<h3>Pasirinkite savo personažą</h3>
+			<div>
+				<h4 class="flex flex-col">Pasirinkti iš esamų:</h4>
+				{#each availableCharacters as char}
+					<button on:click={() => selectCharacter(char.id)}>
+						{#if char.image}
+							<img src="{API_URL}{char.image}" alt={char.name} width="100" />
 						{:else}
-							<img
-								src="/fallback_character.jpg"
-								alt="Fallback"
-								width="40"
-								style="margin-right: 0.5rem;"
-							/>
+							<img src="/fallback_character.jpg" alt="Fallback Character" width="100" />
 						{/if}
-						<strong>{msg.characterName}:</strong>
-					</div>
-					<div class="message-text">
-						{msg.text}
-					</div>
-					<div class="message-time" style="font-size: 0.8rem; color: #888;">
-						{new Date(msg.sentAt).toLocaleTimeString()}
-					</div>
-				</div>
-			{/each}
+						<span>{char.name}</span>
+					</button>
+				{/each}
+			</div>
+			<div>
+				<h4>Sukurti naują personažą:</h4>
+				<input type="text" bind:value={newCharacterName} placeholder="Personažo vardas" />
+				<textarea bind:value={newCharacterDescription} placeholder="Aprašymas"></textarea>
+				<input type="file" bind:this={newCharacterImage} accept="image/*" />
+				<button on:click={createCharacter}>Sukurti ir pasirinkti</button>
+			</div>
+		{/if}
+	{:else if lobbyState.status === 'in_progress'}
+		<!-- Game View: Display the current round details and chat -->
+		<div class="round-info" style="margin-bottom: 1rem;">
+			<h3>Round {currentRound.round_number}</h3>
+			<p>Question: {currentRound.question}</p>
+			<p>Time Left: {timeLeft} seconds</p>
 		</div>
-		<div class="message-input" style="margin-top: 0.5rem;">
-			<input
-				type="text"
-				bind:value={chatInput}
-				placeholder="Rašyk žinutę..."
-				on:keydown={(evt) => evt.key === 'Enter' && sendChatMessage()}
-				style="width: 80%; padding: 0.5rem;"
-			/>
-			<button on:click={sendChatMessage} style="padding: 0.5rem;">Siųsti</button>
+		<div class="chat-container" style="border: 1px solid #ccc; padding: 1rem;">
+			<h3>Game Chat</h3>
+			<div class="messages-list" style="max-height: 300px; overflow-y: auto;">
+				{#each chatMessages as msg}
+					<div
+						class="message-item"
+						style="margin-bottom: 0.5rem; padding: 0.5rem; border-bottom: 1px solid #eee;"
+					>
+						<div class="message-sender" style="display: flex; align-items: center;">
+							{#if msg.characterImage}
+								<img
+									src="{API_URL}{msg.characterImage}"
+									alt="Char"
+									width="40"
+									style="margin-right: 0.5rem;"
+								/>
+							{:else}
+								<img
+									src="/fallback_character.jpg"
+									alt="Fallback"
+									width="40"
+									style="margin-right: 0.5rem;"
+								/>
+							{/if}
+							<strong>{msg.characterName}:</strong>
+						</div>
+						<div class="message-text">{msg.text}</div>
+						<div class="message-time" style="font-size: 0.8rem; color: #888;">
+							{new Date(msg.sentAt).toLocaleTimeString()}
+						</div>
+					</div>
+				{/each}
+			</div>
+			<div class="message-input" style="margin-top: 0.5rem;">
+				<input
+					type="text"
+					bind:value={chatInput}
+					placeholder="Rašyk žinutę..."
+					on:keydown={(evt) => evt.key === 'Enter' && sendChatMessage()}
+					style="width: 80%; padding: 0.5rem;"
+				/>
+				<button on:click={sendChatMessage} style="padding: 0.5rem;">Siųsti</button>
+			</div>
 		</div>
-	</div>
+	{/if}
 
 	<button class="border" on:click={leaveLobby}>Palikti kambarį</button>
 	{#if errorMessage}

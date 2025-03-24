@@ -60,3 +60,18 @@ def broadcast_chat_message(room_code, message_obj):
             'data': data
         }
     )
+
+def broadcast_round_update(room_code, round_obj):
+    channel_layer = get_channel_layer()
+    data = {
+         'type': 'round_update',
+         'round': {
+              'round_number': round_obj.round_number,
+              'question': round_obj.question.text if round_obj.question else '',
+              'end_time': round_obj.end_time.isoformat(),
+         }
+    }
+    async_to_sync(channel_layer.group_send)(
+         f'lobby_{room_code}',
+         {'type': 'lobby_update', 'data': data}
+    )

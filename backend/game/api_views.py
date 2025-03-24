@@ -1,12 +1,13 @@
 # game/api_views.py
 
 import random, string, uuid
+from datetime import timedelta
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from .models import GameSession, Participant, QuestionCollection, Message, Round
 from django.utils import timezone
-from .utils import broadcast_chat_message
+from .utils import broadcast_chat_message, broadcast_lobby_update, broadcast_round_update
 
 def generate_room_code(length=6):
     return ''.join(random.choices(string.ascii_uppercase, k=length))
@@ -448,15 +449,45 @@ def start_game(request):
     session.status = 'in_progress'
     session.save()
 
-    from .utils import broadcast_lobby_update
-    broadcast_lobby_update(session)
+    # Create the first round.
+    round_number = 1
+    start_time = timezone.now()
+    end_time = start_time + timedelta(seconds=session.round_length)
+    
+    # Choose a random question from a random collection
+    question = None
+    if session.question_collections.exists():
+        collections = list(session.question_collections.all())
+        collection = random.choice(collections)
+        questions = list(collection.questions.all())
+        if questions:
+            question = random.choice(questions)
 
+    new_round = Round.objects.create(
+        game_session=session,
+        question=question,
+        round_number=round_number,
+        start_time=start_time,
+        end_time=end_time
+    )
+
+    # Broadcast round update so clients can display the question, round number, and time left.
+    broadcast_round_update(session.code, new_round)
+    
+    # Update lobby state for everyone.
+    broadcast_lobby_update(session)
+    
     return Response({
          'message': 'Žaidimas pradėtas.',
          'code': session.code,
          'status': session.status,
          'round_length': session.round_length,
          'round_count': session.round_count,
+         'current_round': {
+              'round_number': new_round.round_number,
+              'question': new_round.question.text if new_round.question else '',
+              'end_time': new_round.end_time.isoformat(),
+         }
     })
 
 @api_view(['POST'])
@@ -489,8 +520,9 @@ def send_chat_message(request):
     if participant.secret != secret:
         return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
 
-    # Determine the current round (or store None if no round started yet)
-    current_round = session.rounds.filter(end_time__isnull=True).order_by('-round_number').first()
+    current_round = session.rounds.filter(end_time__gt=timezone.now()).order_by('-round_number').first()
+    if not current_round:
+        return Response({'error': 'Palaukite sekančio raundo.'}, status=400)
     
     # Create the message in DB
     msg = Message.objects.create(
