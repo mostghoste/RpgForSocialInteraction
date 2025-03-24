@@ -31,7 +31,7 @@
 	let socket;
 	let heartbeatInterval;
 
-	let isHost = lobbyState?.is_host || false;
+	$: isHost = lobbyState.is_host || false;
 	let roundLength = lobbyState?.round_length || 60;
 	let roundCount = lobbyState?.round_count || 3;
 
@@ -166,9 +166,14 @@
 				// Update lobby state based on rejoin response.
 				lobbyState = data;
 				players = lobbyState.players || [];
-				isHost = lobbyState.is_host || false;
 				roundLength = lobbyState.round_length || 60;
 				roundCount = lobbyState.round_count || 3;
+
+				participantId = lobbyState.participant_id;
+				participantSecret = lobbyState.secret;
+				sessionStorage.setItem('participantId', participantId);
+				sessionStorage.setItem('participantSecret', participantSecret);
+
 				// Set current round info if provided.
 				if (lobbyState.current_round) {
 					currentRound = lobbyState.current_round;
@@ -181,6 +186,7 @@
 				if (lobbyState.question_collections) {
 					selectedCollections = lobbyState.question_collections.map((qc) => qc.id);
 				}
+
 				connectWebSocket();
 				if (isHost) fetchAvailableCollections();
 				needsUsername = false;
@@ -457,11 +463,19 @@
 		<ul>
 			{#each players as player}
 				<li>
-					{player.username}
-					{player.characterSelected ? '✅' : ''}
+					{#if String(player.id) === String(participantId)}
+						<strong>{player.username}</strong>
+					{:else}
+						{player.username}
+					{/if}
+					{#if player.is_host}
+						<span> 👑</span>
+					{/if}
+					{player.characterSelected ? ' ✅' : ''}
 				</li>
 			{/each}
 		</ul>
+
 		<div class="room-settings">
 			<h3>Kambario nustatymai</h3>
 			<p>Round Length: {roundLength} s</p>
@@ -507,29 +521,27 @@
 				<button class="border" on:click={startGame}>Pradėti žaidimą</button>
 			</div>
 		{/if}
-		{#if !lobbyState.players.find((p) => p.id === participantId)?.characterSelected}
-			<h3>Pasirinkite savo personažą</h3>
-			<div>
-				<h4 class="flex flex-col">Pasirinkti iš esamų:</h4>
-				{#each availableCharacters as char}
-					<button on:click={() => selectCharacter(char.id)}>
-						{#if char.image}
-							<img src="{API_URL}{char.image}" alt={char.name} width="100" />
-						{:else}
-							<img src="/fallback_character.jpg" alt="Fallback Character" width="100" />
-						{/if}
-						<span>{char.name}</span>
-					</button>
-				{/each}
-			</div>
-			<div>
-				<h4>Sukurti naują personažą:</h4>
-				<input type="text" bind:value={newCharacterName} placeholder="Personažo vardas" />
-				<textarea bind:value={newCharacterDescription} placeholder="Aprašymas"></textarea>
-				<input type="file" bind:this={newCharacterImage} accept="image/*" />
-				<button on:click={createCharacter}>Sukurti ir pasirinkti</button>
-			</div>
-		{/if}
+		<h3>Pasirinkite savo personažą</h3>
+		<div>
+			<h4 class="flex flex-col">Pasirinkti iš esamų:</h4>
+			{#each availableCharacters as char}
+				<button on:click={() => selectCharacter(char.id)}>
+					{#if char.image}
+						<img src="{API_URL}{char.image}" alt={char.name} width="100" />
+					{:else}
+						<img src="/fallback_character.jpg" alt="Fallback Character" width="100" />
+					{/if}
+					<span>{char.name}</span>
+				</button>
+			{/each}
+		</div>
+		<div>
+			<h4>Sukurti naują personažą:</h4>
+			<input type="text" bind:value={newCharacterName} placeholder="Personažo vardas" />
+			<textarea bind:value={newCharacterDescription} placeholder="Aprašymas"></textarea>
+			<input type="file" bind:this={newCharacterImage} accept="image/*" />
+			<button on:click={createCharacter}>Sukurti ir pasirinkti</button>
+		</div>
 	{:else if lobbyState.status === 'in_progress' || lobbyState.status === 'guessing' || lobbyState.status === 'completed'}
 		<!-- Game View: Display current round details and chat -->
 		{#if currentRound.round_number}

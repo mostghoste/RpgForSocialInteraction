@@ -7,22 +7,21 @@ from django.utils import timezone
 def broadcast_lobby_update(session):
     channel_layer = get_channel_layer()
     group_name = f'lobby_{session.code}'
+
     players = []
     host_id = None
     for part in session.participants.all().order_by('joined_at'):
-        if part.user:
-            username = part.user.username
-        else:
-            username = part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
         if part.is_host:
-            username += " 👑"
             host_id = part.id
         players.append({
             'id': part.id,
-            'username': username,
-            'characterSelected': part.assigned_character is not None
+            'username': part.user.username if part.user else (part.guest_name or f"Guest {part.guest_identifier[:8]}"),
+            'characterSelected': part.assigned_character is not None,
+            'is_host': part.is_host,
         })
+
     collections_list = list(session.question_collections.values('id', 'name'))
+
     data = {
         'code': session.code,
         'players': players,
@@ -36,6 +35,7 @@ def broadcast_lobby_update(session):
         group_name,
         {'type': 'lobby_update', 'data': data}
     )
+
 
 def broadcast_chat_message(room_code, message_obj):
     channel_layer = get_channel_layer()

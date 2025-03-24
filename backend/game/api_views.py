@@ -103,10 +103,13 @@ def join_room(request):
     broadcast_lobby_update(session)
     players = []
     for part in session.participants.all():
-        if part.user:
-            players.append(part.user.username)
-        else:
-            players.append(part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest"))
+        players.append({
+            'id': part.id,
+            'username': part.user.username if part.user else (part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")),
+            'characterSelected': part.assigned_character is not None,
+            'is_host': part.is_host,
+        })
+
 
     messages = []
     for msg in Message.objects.filter(round__game_session=session).order_by('sent_at'):
@@ -120,6 +123,8 @@ def join_room(request):
             'characterName': msg.participant.assigned_character.name
                             if msg.participant.assigned_character else None,
         })
+
+    collections_list = list(session.question_collections.values('id', 'name'))
 
     # If the session is in progress include current round information.
     current_round = None
@@ -144,6 +149,7 @@ def join_room(request):
         'is_host': participant.is_host,
         'current_round': current_round,
         'messages': messages,
+        'question_collections': collections_list
     })
 
 @api_view(['POST'])
