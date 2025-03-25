@@ -417,6 +417,65 @@
 		}
 	}
 
+	let guessOptions = []; // holds /api/available_guess_options/
+	let guessMap = {}; // Map: { [opponentId]: guessedCharacterId }
+
+	async function fetchGuessOptions() {
+		try {
+			const res = await fetch(
+				`${API_URL}/api/available_guess_options/?code=${encodeURIComponent(code)}`
+			);
+			if (res.ok) {
+				guessOptions = await res.json();
+			} else {
+				console.error('Nepavyko gauti galimų spėjimų.');
+			}
+		} catch (err) {
+			console.error('Nepavyko gauti galimų spėjimų:', err);
+		}
+	}
+
+	async function submitGuesses() {
+		// Build the guesses array; only include opponents for whom a guess was selected.
+		let guessesArray = [];
+		for (const player of players) {
+			if (String(player.id) === String(participantId)) continue; // skip self
+			const guessedCharId = guessMap[player.id];
+			if (guessedCharId) {
+				guessesArray.push({
+					guessed_participant_id: player.id,
+					guessed_character_id: parseInt(guessedCharId, 10)
+				});
+			}
+		}
+		try {
+			const res = await fetch(`${API_URL}/api/submit_guesses/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret: participantSecret,
+					guesses: guessesArray
+				})
+			});
+			if (!res.ok) {
+				const data = await res.json();
+				errorMessage = data.error || 'Nepavyko pateikti spėjimų.';
+			} else {
+				const data = await res.json();
+				console.log('Guesses submitted:', data);
+			}
+		} catch (err) {
+			console.error(err);
+			errorMessage = 'Serverio klaida teikiant spėjimus.';
+		}
+	}
+
+	$: if (lobbyState.status === 'guessing') {
+		fetchGuessOptions();
+	}
+
 	onMount(() => {
 		const storedRoom = sessionStorage.getItem('roomCode');
 		const storedId = sessionStorage.getItem('participantId');
@@ -601,21 +660,26 @@
 		<!-- Guessing View -->
 		<div class="guessing-view">
 			<h2>Atspėk draugus! 👀</h2>
-			<p>Bandyk susieti žaidėjus su jų personažais.</p>
+			<p>Pasirink, kurį personažą, manai, žaidžia kiekvienas iš kitų žaidėjų.</p>
 			<div class="guessing-panel">
 				{#each players as player}
-					<div class="guessing-card">
-						<p><strong>{player.username}</strong></p>
-						<select>
-							<option disabled selected>Pasirink personažą</option>
-							{#each availableCharacters as character}
-								<option value={character.id}>{character.name}</option>
-							{/each}
-						</select>
-					</div>
+					{#if String(player.id) !== String(participantId)}
+						<div class="guessing-card">
+							<p><strong>{player.username}</strong></p>
+							<select bind:value={guessMap[player.id]}>
+								<option value="" disabled selected>Pasirink personažą</option>
+								{#each guessOptions as option}
+									<option value={option.character_id}>{option.character_name}</option>
+								{/each}
+							</select>
+						</div>
+					{/if}
 				{/each}
 			</div>
-			<button on:click={() => alert('Guesses submitted! (Placeholder)')}>Pateikti spėjimus</button>
+			<button class="border" on:click={submitGuesses}>Pateikti spėjimus</button>
+			{#if errorMessage}
+				<p class="error">{errorMessage}</p>
+			{/if}
 		</div>
 	{/if}
 	<button class="border" on:click={leaveLobby}>Palikti kambarį</button>

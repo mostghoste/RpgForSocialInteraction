@@ -180,6 +180,30 @@ class Guess(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return (f"{self.guesser.user.username} guessed {self.guessed_character.name} "
-                f"for {self.guessed_participant.user.username}")
+        # Determine guesser name
+        if self.guesser:
+            if self.guesser.user:
+                guesser_name = self.guesser.user.username
+            elif self.guesser.guest_name:
+                guesser_name = self.guesser.guest_name
+            elif self.guesser.guest_identifier:
+                guesser_name = f"Guest {self.guesser.guest_identifier[:8]}"
+            else:
+                guesser_name = "Guest"
+        else:
+            guesser_name = "Unknown"
 
+        # Determine guessed participant name
+        if self.guessed_participant:
+            if self.guessed_participant.user:
+                guessed_participant_name = self.guessed_participant.user.username
+            elif self.guessed_participant.guest_name:
+                guessed_participant_name = self.guessed_participant.guest_name
+            elif self.guessed_participant.guest_identifier:
+                guessed_participant_name = f"Guest {self.guessed_participant.guest_identifier[:8]}"
+            else:
+                guessed_participant_name = "Guest"
+        else:
+            guessed_participant_name = "Unknown"
+
+        return f"{guesser_name} guessed {self.guessed_character.name} for {guessed_participant_name}"
