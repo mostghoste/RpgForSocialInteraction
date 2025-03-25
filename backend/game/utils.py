@@ -31,6 +31,7 @@ def broadcast_lobby_update(session):
         'status': session.status,
         'round_length': session.round_length,
         'round_count': session.round_count,
+        'guess_timer': session.guess_timer,
         'question_collections': collections_list,
         'host_id': host_id,
     }
@@ -85,35 +86,30 @@ def check_and_advance_rounds():
     sessions = GameSession.objects.filter(status='in_progress')
 
     for session in sessions:
-        # Get latest round for this session
         latest_round = (
             Round.objects
             .filter(game_session=session)
             .order_by('-round_number')
             .first()
         )
-
-        # If no round has been started yet, we treat as pre-round state
+        # First round is created when host starts the game so this is redundant
         if not latest_round:
             print(f"🆕 No rounds yet for session {session.code}. Starting round 1.")
             next_round_number = 1
         else:
-            # If current round is not finished yet, skip
             if latest_round.end_time > now:
                 print(f"⏳ Round {latest_round.round_number} in session {session.code} is still ongoing.")
                 continue
-
             next_round_number = latest_round.round_number + 1
 
-        # Check if we've reached the max round count
         if next_round_number > session.round_count:
             print(f"✅ Session {session.code} finished all rounds. Moving to 'guessing'.")
             session.status = 'guessing'
+            session.guess_deadline = now + timedelta(seconds=session.guess_timer)
             session.save()
             broadcast_lobby_update(session)
             continue
 
-        # Create a new round
         collections = list(session.question_collections.all())
         question = None
         if collections:
@@ -121,7 +117,6 @@ def check_and_advance_rounds():
             questions = list(collection.questions.exclude(round__game_session=session))
             if questions:
                 question = random.choice(questions)
-
         end_time = now + timedelta(seconds=session.round_length)
         new_round = Round.objects.create(
             game_session=session,
@@ -129,7 +124,6 @@ def check_and_advance_rounds():
             round_number=next_round_number,
             end_time=end_time
         )
-
         print(f"🌀 Created round {next_round_number} in session {session.code}")
         broadcast_round_update(session.code, new_round)
         broadcast_lobby_update(session)

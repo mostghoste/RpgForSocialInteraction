@@ -143,6 +143,7 @@ def join_room(request):
         'status': session.status,
         'round_length': session.round_length,
         'round_count': session.round_count,
+        'guess_timer': session.guess_timer,
         'players': players,
         'participant_id': participant.id,
         'secret': participant.secret,
@@ -160,6 +161,7 @@ def update_settings(request):
     provided_secret = request.data.get('secret', '').strip()
     round_length = request.data.get('round_length')
     round_count = request.data.get('round_count')
+    guess_timer = request.data.get('guess_timer')
 
     if not code or not participant_id or not provided_secret:
          return Response({'error': 'Kambario kodas, dalyvio ID ir slaptažodis privalomi.'}, status=400)
@@ -171,7 +173,6 @@ def update_settings(request):
     
     if session.status != 'pending':
         return Response({'error': 'Negalima keisti kambario nustatymų, kai žaidimas jau prasidėjo.'}, status=400)
-
 
     if participant.secret != provided_secret:
          return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
@@ -185,7 +186,16 @@ def update_settings(request):
          if round_length <= 0 or round_length > 1200 or round_count <= 0 or round_count > 20:
               raise ValueError
     except (ValueError, TypeError):
-         return Response({'error': 'Neteisingi nustatymų duomenys.'}, status=400)
+         return Response({'error': 'Neteisingi raundų nustatymų duomenys.'}, status=400)
+
+    if guess_timer is not None:
+         try:
+             guess_timer = int(guess_timer)
+             if guess_timer <= 0 or guess_timer > 600:
+                 raise ValueError
+         except (ValueError, TypeError):
+             return Response({'error': 'Neteisingi spėjimų laiko nustatymo duomenys.'}, status=400)
+         session.guess_timer = guess_timer
 
     session.round_length = round_length
     session.round_count = round_count
@@ -199,6 +209,7 @@ def update_settings(request):
          'status': session.status,
          'round_length': session.round_length,
          'round_count': session.round_count,
+         'guess_timer': session.guess_timer
     })
 
 @api_view(['POST'])
@@ -615,6 +626,9 @@ def submit_guesses(request):
     if session.status != 'guessing':
         return Response({'error': 'Šiuo metu negalima pateikti spėjimų (ne spėjimų fazė).'}, status=400)
 
+    if session.guess_deadline and timezone.now() > session.guess_deadline:
+        return Response({'error': 'Laikas spėjimams pasibaigė.'}, status=400)
+    
     # Limit total guesses to (number_of_participants - 1)
     max_guesses = session.participants.count() - 1
     if len(guesses_data) > max_guesses:

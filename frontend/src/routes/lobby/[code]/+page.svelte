@@ -34,6 +34,8 @@
 	$: isHost = lobbyState.is_host || false;
 	let roundLength = lobbyState?.round_length || 60;
 	let roundCount = lobbyState?.round_count || 3;
+	// NEW: guessTimer setting, visible to all users
+	let guessTimer = lobbyState?.guess_timer || 60;
 
 	let availableCollections = [];
 	let selectedCollections = [];
@@ -122,6 +124,10 @@
 				roundLength = data.round_length;
 				roundCount = data.round_count;
 			}
+			// NEW: Update guess timer if provided in the update.
+			if (data.guess_timer !== undefined) {
+				guessTimer = data.guess_timer;
+			}
 			if (data.question_collections) {
 				lobbyState.question_collections = data.question_collections;
 				if (isHost) {
@@ -167,8 +173,8 @@
 				lobbyState = data;
 				players = lobbyState.players || [];
 				roundLength = lobbyState.round_length || 60;
-				roundCount = lobbyState.round_count || 3;
-
+				roundCount = lobbyState.round_count || 60;
+				guessTimer = lobbyState.guess_timer || 60;
 				participantId = lobbyState.participant_id;
 				participantSecret = lobbyState.secret;
 				sessionStorage.setItem('participantId', participantId);
@@ -193,9 +199,7 @@
 			} else {
 				const errorData = await res.json();
 				console.error('Rejoin failed with error data:', errorData);
-				// Display the error and redirect.
 				errorMessage = errorData.error || 'Nepavyko atkurti ryšio.';
-				// Wait a short time so the error can be seen.
 				setTimeout(() => goto('/'), 3000);
 			}
 		} catch (err) {
@@ -234,7 +238,8 @@
 			}
 			isHost = lobbyState.is_host || false;
 			roundLength = lobbyState.round_length || 60;
-			roundCount = lobbyState.round_count || 3;
+			roundCount = lobbyState.round_count || 60;
+			guessTimer = lobbyState.guess_timer || 60;
 			if (lobbyState.question_collections) {
 				selectedCollections = lobbyState.question_collections.map((qc) => qc.id);
 			}
@@ -286,7 +291,8 @@
 					participant_id: participantId,
 					secret,
 					round_length: roundLength,
-					round_count: roundCount
+					round_count: roundCount,
+					guess_timer: guessTimer // NEW: send the guess timer
 				})
 			});
 			if (!res.ok) {
@@ -297,6 +303,7 @@
 			const updated = await res.json();
 			roundLength = updated.round_length;
 			roundCount = updated.round_count;
+			guessTimer = updated.guess_timer; // update guessTimer from response
 		} catch (err) {
 			console.error(err);
 			errorMessage = 'Serverio klaida atnaujinant nustatymus.';
@@ -476,6 +483,16 @@
 		fetchGuessOptions();
 	}
 
+	let guessTimeLeft = 0;
+
+	function updateGuessTimeLeft() {
+		if (lobbyState.guess_deadline) {
+			const deadline = new Date(lobbyState.guess_deadline);
+			guessTimeLeft = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+		}
+	}
+	const guessTimerInterval = setInterval(updateGuessTimeLeft, 1000);
+
 	onMount(() => {
 		const storedRoom = sessionStorage.getItem('roomCode');
 		const storedId = sessionStorage.getItem('participantId');
@@ -501,6 +518,7 @@
 		if (heartbeatInterval) clearInterval(heartbeatInterval);
 		if (socket) socket.close();
 		clearInterval(timerInterval);
+		clearInterval(guessTimerInterval);
 	});
 </script>
 
@@ -534,7 +552,8 @@
 				</li>
 			{/each}
 		</ul>
-
+		<!-- Display current guess timer setting to all users -->
+		<p>Spėjimų laikas: {guessTimer} s</p>
 		<div class="room-settings">
 			<h3>Kambario nustatymai</h3>
 			<p>Round Length: {roundLength} s</p>
@@ -558,6 +577,10 @@
 				<label>
 					Round Count:
 					<input type="number" bind:value={roundCount} min="1" />
+				</label>
+				<label>
+					Spėjimų laikas (s):
+					<input type="number" bind:value={guessTimer} min="1" />
 				</label>
 				<button class="border" on:click={updateSettings}>Atnaujinti nustatymus</button>
 				<h3>Klausimų kolekcijos</h3>
@@ -660,6 +683,7 @@
 		<!-- Guessing View -->
 		<div class="guessing-view">
 			<h2>Atspėk draugus! 👀</h2>
+			<p>Liko laiko spėjimams: {guessTimeLeft}s</p>
 			<p>Pasirink, kurį personažą, manai, žaidžia kiekvienas iš kitų žaidėjų.</p>
 			<div class="guessing-panel">
 				{#each players as player}
@@ -676,7 +700,9 @@
 					{/if}
 				{/each}
 			</div>
-			<button class="border" on:click={submitGuesses}>Pateikti spėjimus</button>
+			<button class="border" on:click={submitGuesses} disabled={guessTimeLeft === 0}
+				>Pateikti spėjimus</button
+			>
 			{#if errorMessage}
 				<p class="error">{errorMessage}</p>
 			{/if}

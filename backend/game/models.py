@@ -37,6 +37,8 @@ class GameSession(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     round_length = models.IntegerField(default=60)  # Round duration in seconds.
     round_count = models.IntegerField(default=3)    # Total number of rounds for the session.
+    guess_timer = models.IntegerField(default=60)  # Timer (in seconds) for guessing phase.
+    guess_deadline = models.DateTimeField(null=True, blank=True) # Deadline for submitting guesses.
 
     # A session can reference one or several question collections.
     question_collections = models.ManyToManyField(
