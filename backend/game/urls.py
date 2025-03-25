@@ -14,7 +14,9 @@ from .api_views import (
     select_character,
     create_character,
     available_characters,
-    send_chat_message
+    send_chat_message,
+    submit_guesses,
+    available_guess_options
 )
 
 urlpatterns = [
@@ -31,4 +33,6 @@ urlpatterns = [
     path('create_character/', create_character, name='create_character'),
     path('available_characters/', available_characters, name='available_characters'),
     path('send_chat_message/', send_chat_message, name='send_chat_message'),
-    ]
+    path('submit_guesses/', submit_guesses, name='submit_guesses'),
+    path('available_guess_options/', available_guess_options, name='available_guess_options'),
+]

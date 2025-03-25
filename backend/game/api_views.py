@@ -560,3 +560,127 @@ def send_chat_message(request):
     broadcast_chat_message(session.code, msg)
 
     return Response({'message': 'Žinutė išsiųsta.'})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def available_guess_options(request):
+    code = request.query_params.get('code', '').strip()
+    if not code:
+        return Response({'error': 'Prašome įvesti kambario kodą.'}, status=400)
+    try:
+        session = GameSession.objects.get(code=code)
+    except GameSession.DoesNotExist:
+        return Response({'error': 'Kambarys nerastas.'}, status=404)
+    
+    if session.status != 'guessing':
+        return Response({'error': 'Spėjimų pasirinkimai prieinami tik spėjimų fazėje.'}, status=400)
+    
+    # Get unique assigned characters
+    assigned_chars = (
+        session.participants
+        .filter(assigned_character__isnull=False)
+        .values('assigned_character__id', 'assigned_character__name', 'assigned_character__image')
+        .distinct()
+    )
+    options = []
+    for char in assigned_chars:
+        options.append({
+            'character_id': char['assigned_character__id'],
+            'character_name': char['assigned_character__name'],
+            'character_image': char['assigned_character__image'] if char['assigned_character__image'] else None
+        })
+    
+    return Response(options)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def submit_guesses(request):
+    from .models import GameSession, Participant, Guess, Character
+
+    code = request.data.get('code', '').strip()
+    participant_id = request.data.get('participant_id')
+    secret = request.data.get('secret', '').strip()
+    guesses_data = request.data.get('guesses', [])
+
+    # Validate session & participant
+    try:
+        session = GameSession.objects.get(code=code)
+        participant = Participant.objects.get(id=participant_id, game_session=session)
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
+        return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
+
+    if participant.secret != secret:
+        return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+
+    if session.status != 'guessing':
+        return Response({'error': 'Šiuo metu negalima pateikti spėjimų (ne spėjimų fazė).'}, status=400)
+
+    # Limit total guesses to (number_of_participants - 1)
+    max_guesses = session.participants.count() - 1
+    if len(guesses_data) > max_guesses:
+        return Response({'error': 'Per daug spėjimų.'}, status=400)
+
+    # Check for duplicates within the current submission
+    guessed_participant_ids = set()
+    for g in guesses_data:
+        gp_id = g.get('guessed_participant_id')
+        if not gp_id:
+            return Response({'error': 'Trūksta guessed_participant_id lauko.'}, status=400)
+        if gp_id == participant.id:
+            return Response({'error': 'Negalite spėti savęs.'}, status=400)
+        if gp_id in guessed_participant_ids:
+            return Response({'error': 'Negalite spėti to paties dalyvio daugiau nei vieną kartą.'}, status=400)
+        guessed_participant_ids.add(gp_id)
+
+    # Get all character IDs that are valid in this session
+    assigned_char_ids = set(
+        session.participants
+               .exclude(assigned_character=None)
+               .values_list('assigned_character_id', flat=True)
+    )
+
+    updated_guesses = []
+    for guess_info in guesses_data:
+        gp_id = guess_info['guessed_participant_id']
+        gc_id = guess_info.get('guessed_character_id')
+        if not gc_id:
+            return Response({'error': 'Trūksta guessed_character_id lauko.'}, status=400)
+
+        # Validate the guessed participant
+        try:
+            guessed_participant = session.participants.get(id=gp_id)
+        except Participant.DoesNotExist:
+            return Response({'error': 'Neteisingas guessed_participant_id.'}, status=404)
+
+        if not guessed_participant.assigned_character:
+            return Response({'error': 'Šis dalyvis neturi priskirto personažo.'}, status=400)
+
+        # Ensure the character belongs to this session
+        if gc_id not in assigned_char_ids:
+            return Response({'error': 'Šis personažas nepriklauso šiam kambariui.'}, status=400)
+
+        # Determine if the guess is correct
+        is_correct = (guessed_participant.assigned_character_id == gc_id)
+
+        # Update existing guess only if the guessed character is different;
+        # otherwise, if it doesn't exist, create it.
+        try:
+            guess = Guess.objects.get(guesser=participant, guessed_participant=guessed_participant)
+            if guess.guessed_character_id != gc_id:
+                guess.guessed_character_id = gc_id
+                guess.is_correct = is_correct
+                guess.save()
+        except Guess.DoesNotExist:
+            guess = Guess.objects.create(
+                guesser=participant,
+                guessed_participant=guessed_participant,
+                guessed_character_id=gc_id,
+                is_correct=is_correct
+            )
+        updated_guesses.append(guess.id)
+
+    return Response({
+        'message': 'Spėjimai sėkmingai pateikti.',
+        'guesses_updated': updated_guesses
+    })
+
