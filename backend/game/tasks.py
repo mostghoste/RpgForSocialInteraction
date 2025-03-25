@@ -1,3 +1,5 @@
+# game/tasks.py
+
 from celery import shared_task
 from .utils import check_and_advance_rounds
 

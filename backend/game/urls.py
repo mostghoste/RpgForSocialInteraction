@@ -1,3 +1,5 @@
+# game/urls.py
+
 from django.urls import path
 from .api_views import (
     create_room,

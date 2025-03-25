@@ -38,3 +38,4 @@ coverage/
 .coverage
 
 backend/media/
+collect_text.sh
