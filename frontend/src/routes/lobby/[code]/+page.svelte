@@ -124,9 +124,11 @@
 				roundLength = data.round_length;
 				roundCount = data.round_count;
 			}
-			// NEW: Update guess timer if provided in the update.
 			if (data.guess_timer !== undefined) {
 				guessTimer = data.guess_timer;
+			}
+			if (data.guess_deadline !== undefined) {
+				lobbyState.guess_deadline = data.guess_deadline;
 			}
 			if (data.question_collections) {
 				lobbyState.question_collections = data.question_collections;

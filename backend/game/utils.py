@@ -32,6 +32,7 @@ def broadcast_lobby_update(session):
         'round_length': session.round_length,
         'round_count': session.round_count,
         'guess_timer': session.guess_timer,
+        'guess_deadline': session.guess_deadline.isoformat() if session.guess_deadline else None,
         'question_collections': collections_list,
         'host_id': host_id,
     }

@@ -144,6 +144,7 @@ def join_room(request):
         'round_length': session.round_length,
         'round_count': session.round_count,
         'guess_timer': session.guess_timer,
+        'guess_deadline': session.guess_deadline.isoformat() if session.guess_deadline else None,
         'players': players,
         'participant_id': participant.id,
         'secret': participant.secret,
