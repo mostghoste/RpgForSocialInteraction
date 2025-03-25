@@ -16,12 +16,15 @@ def broadcast_lobby_update(session):
     for part in session.participants.all().order_by('joined_at'):
         if part.is_host:
             host_id = part.id
-        players.append({
+        player_data = {
             'id': part.id,
             'username': part.user.username if part.user else (part.guest_name or f"Guest {part.guest_identifier[:8]}"),
             'characterSelected': part.assigned_character is not None,
             'is_host': part.is_host,
-        })
+        }
+        if session.status == 'completed':
+            player_data['points'] = part.points
+        players.append(player_data)
 
     collections_list = list(session.question_collections.values('id', 'name'))
 

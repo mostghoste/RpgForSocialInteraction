@@ -709,6 +709,17 @@
 				<p class="error">{errorMessage}</p>
 			{/if}
 		</div>
+	{:else if lobbyState.status === 'completed'}
+		<div class="completed-view">
+			<h2>Žaidimas baigtas!</h2>
+			<h3>Rezultatai:</h3>
+			<ul>
+				{#each players as player}
+					<li>{player.username}: {player.points} taškai</li>
+				{/each}
+			</ul>
+			<button class="border" on:click={leaveLobby}>Išeiti</button>
+		</div>
 	{/if}
 	<button class="border" on:click={leaveLobby}>Palikti kambarį</button>
 	{#if errorMessage}

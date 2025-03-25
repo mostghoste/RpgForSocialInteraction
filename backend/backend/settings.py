@@ -120,6 +120,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'game.tasks.run_round_check',
         'schedule': 5.0,
     },
+    'check-and-end-games-every-10-seconds': {
+        'task': 'game.tasks.run_game_end_check',
+        'schedule': 5.0,
+    },
 }
 
 MEDIA_URL = '/media/'
