@@ -1,4 +1,4 @@
-<!-- /lobby/[code]/components/LobbyGuessing.svelte -->
+<!-- src/routes/lobby/[code]/components/LobbyGuessing.svelte -->
 <script>
 	import { createEventDispatcher } from 'svelte';
 
@@ -7,12 +7,10 @@
 	export let participantId;
 	export let guessOptions;
 	export let guessMap; // e.g. { [playerId]: characterId }
-	export let errorMessage;
 
 	const dispatch = createEventDispatcher();
 
 	function handleChangeGuess(playerId, charId) {
-		// We can mutate guessMap directly, or we can dispatch an event to parent
 		guessMap[playerId] = charId;
 	}
 
@@ -54,8 +52,4 @@
 	</button>
 
 	<button class="border" on:click={handleLeaveLobby}>Palikti kambarį</button>
-
-	{#if errorMessage}
-		<p class="error">{errorMessage}</p>
-	{/if}
 </div>

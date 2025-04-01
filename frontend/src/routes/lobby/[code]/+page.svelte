@@ -1,8 +1,10 @@
-<!-- /lobby/[code]/+page.svelte -->
+<!-- src/routes/lobby/[code]/+page.svelte -->
 <script>
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
+	import { toast } from '@zerodevx/svelte-toast';
+	import { toastOptions } from '$lib/toastConfig';
 
 	// Child components
 	import GuestUsernameForm from './components/GuestUsernameForm.svelte';
@@ -19,14 +21,12 @@
 	let code = needsUsername ? data.roomCode : data.lobbyState.code;
 	let lobbyState = needsUsername ? {} : data.lobbyState;
 	let players = needsUsername ? [] : lobbyState.players || [];
-	let errorMessage = '';
 
 	// Credentials
 	let participantId = lobbyState?.participant_id;
 	let participantSecret = lobbyState?.secret;
 
 	if (browser) {
-		// Save or restore from sessionStorage
 		if (participantId) sessionStorage.setItem('participantId', participantId);
 		else participantId = sessionStorage.getItem('participantId');
 
@@ -34,13 +34,11 @@
 		else participantSecret = sessionStorage.getItem('participantSecret');
 	}
 
-	// Host & settings
 	$: isHost = lobbyState.is_host || false;
 	let roundLength = lobbyState?.round_length || 60;
 	let roundCount = lobbyState?.round_count || 3;
 	let guessTimer = lobbyState?.guess_timer || 60;
 
-	// Collections / characters
 	let availableCollections = [];
 	let selectedCollections = lobbyState?.question_collections
 		? lobbyState.question_collections.map((qc) => qc.id)
@@ -50,11 +48,9 @@
 	let newCharacterDescription = '';
 	let newCharacterImage;
 
-	// Chat
 	let chatMessages = lobbyState.messages || [];
 	let chatInput = '';
 
-	// Round info
 	let currentRound = lobbyState.current_round || {
 		round_number: null,
 		question: '',
@@ -63,28 +59,21 @@
 	let timeLeft = 0;
 	let timerInterval;
 
-	// Guessing
 	let guessOptions = [];
-	let guessMap = {}; // { [opponentId]: guessedCharacterId }
+	let guessMap = {};
 	let guessTimeLeft = 0;
 	let guessTimerInterval;
 
-	// WebSocket
 	let socket;
 	let heartbeatInterval;
 
-	// ------------------------------------------------------------------
-	//  onMount / onDestroy lifecycle
-	// ------------------------------------------------------------------
 	onMount(() => {
-		// Clear credentials if stored room != current
 		const storedRoom = sessionStorage.getItem('roomCode');
 		if (storedRoom !== code) {
 			sessionStorage.removeItem('participantId');
 			sessionStorage.removeItem('participantSecret');
 		}
 
-		// Rejoin if credentials exist
 		if (sessionStorage.getItem('participantId') && sessionStorage.getItem('participantSecret')) {
 			rejoinRoom();
 		} else {
@@ -103,9 +92,6 @@
 		clearInterval(guessTimerInterval);
 	});
 
-	// ------------------------------------------------------------------
-	//  WebSocket & Data Fetching
-	// ------------------------------------------------------------------
 	function connectWebSocket() {
 		if (socket && socket.readyState === WebSocket.OPEN) return;
 
@@ -128,7 +114,7 @@
 
 		socket.onerror = (event) => {
 			console.error('WebSocket error:', event);
-			errorMessage = 'Nepavyko prisijungti prie WS.';
+			toast.push('Nepavyko prisijungti prie WS.', toastOptions.error);
 		};
 
 		socket.onmessage = (event) => {
@@ -149,12 +135,9 @@
 				isHost = parseInt(data.host_id) === parseInt(participantId);
 				if (isHost) fetchAvailableCollections();
 			}
-
-			// Handle new chat message
 			if (data.type === 'chat_update' && data.message) {
 				chatMessages = [...chatMessages, data.message];
 			}
-			// Handle round update
 			if (data.type === 'round_update' && data.round) {
 				currentRound = data.round;
 				updateTimeLeft();
@@ -197,12 +180,12 @@
 				needsUsername = false;
 			} else {
 				const errorData = await res.json().catch(() => ({}));
-				errorMessage = errorData.error || 'Nepavyko atkurti ryšio.';
+				toast.push(errorData.error || 'Nepavyko atkurti ryšio.', toastOptions.error);
 				setTimeout(() => goto('/'), 3000);
 			}
 		} catch (err) {
 			console.error(err);
-			errorMessage = 'Serverio klaida bandant atkurti ryšį.';
+			toast.push('Serverio klaida bandant atkurti ryšį.', toastOptions.error);
 			setTimeout(() => goto('/'), 3000);
 		}
 	}
@@ -229,9 +212,6 @@
 		}
 	}
 
-	// ------------------------------------------------------------------
-	//  Timers (Round & Guessing)
-	// ------------------------------------------------------------------
 	function updateTimeLeft() {
 		if (currentRound.end_time) {
 			const endTime = new Date(currentRound.end_time);
@@ -246,16 +226,12 @@
 		}
 	}
 
-	// ------------------------------------------------------------------
-	//  Child-Triggered Callbacks (Events)
-	// ------------------------------------------------------------------
 	async function submitGuestUsername(event) {
-		const { guestUsername } = event.detail; // or pass directly
+		const { guestUsername } = event.detail;
 		if (!guestUsername) {
-			errorMessage = 'Prašome įvesti vartotojo vardą.';
+			toast.push('Prašome įvesti vartotojo vardą.', toastOptions.error);
 			return;
 		}
-		errorMessage = '';
 		try {
 			const res = await fetch(`${API_URL}/api/join_room/`, {
 				method: 'POST',
@@ -264,7 +240,7 @@
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				errorMessage = data.error ?? 'Nepavyko prisijungti.';
+				toast.push(data.error ?? 'Nepavyko prisijungti.', toastOptions.error);
 				return;
 			}
 			const data = await res.json();
@@ -289,7 +265,7 @@
 			if (isHost) fetchAvailableCollections();
 		} catch (err) {
 			console.error(err);
-			errorMessage = 'Serverio klaida bandant prisijungti prie kambario.';
+			toast.push('Serverio klaida bandant prisijungti prie kambario.', toastOptions.error);
 		}
 	}
 
@@ -303,7 +279,7 @@
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				errorMessage = data.error || 'Nepavyko išeiti iš kambario.';
+				toast.push(data.error || 'Nepavyko išeiti iš kambario.', toastOptions.error);
 				return;
 			}
 			sessionStorage.removeItem('participantId');
@@ -311,12 +287,11 @@
 			goto('/');
 		} catch (err) {
 			console.error(err);
-			errorMessage = 'Serverio klaida bandant išeiti iš kambario.';
+			toast.push('Serverio klaida bandant išeiti iš kambario.', toastOptions.error);
 		}
 	}
 
 	async function updateSettings(event) {
-		// event.detail might have roundLength, roundCount, guessTimer
 		const { roundLength: newRL, roundCount: newRC, guessTimer: newGT } = event.detail;
 		try {
 			const secret = sessionStorage.getItem('participantSecret');
@@ -334,7 +309,7 @@
 			});
 			if (!res.ok) {
 				const data = await res.json();
-				errorMessage = data.error || 'Nepavyko atnaujinti nustatymų.';
+				toast.push(data.error || 'Nepavyko atnaujinti nustatymų.', toastOptions.error);
 				return;
 			}
 			const updated = await res.json();
@@ -343,12 +318,11 @@
 			guessTimer = updated.guess_timer;
 		} catch (err) {
 			console.error(err);
-			errorMessage = 'Serverio klaida atnaujinant nustatymus.';
+			toast.push('Serverio klaida atnaujinant nustatymus.', toastOptions.error);
 		}
 	}
 
 	async function updateCollections(event) {
-		// event.detail.collections = array of IDs
 		try {
 			const secret = sessionStorage.getItem('participantSecret');
 			const res = await fetch(`${API_URL}/api/update_question_collections/`, {
@@ -363,14 +337,14 @@
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				errorMessage = data.error || 'Nepavyko atnaujinti kolekcijų.';
+				toast.push(data.error || 'Nepavyko atnaujinti kolekcijų.', toastOptions.error);
 				return;
 			}
 			const updated = await res.json();
 			lobbyState.question_collections = updated.question_collections;
 		} catch (err) {
 			console.error(err);
-			errorMessage = 'Serverio klaida atnaujinant kolekcijas.';
+			toast.push('Serverio klaida atnaujinant kolekcijas.', toastOptions.error);
 		}
 	}
 
@@ -384,13 +358,12 @@
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				errorMessage = data.error || 'Nepavyko pradėti žaidimo.';
+				toast.push(data.error || 'Nepavyko pradėti žaidimo.', toastOptions.error);
 				return;
 			}
-			// If success, the socket or subsequent fetch will update the UI automatically
 		} catch (err) {
 			console.error(err);
-			errorMessage = 'Serverio klaida pradedant žaidimą.';
+			toast.push('Serverio klaida pradedant žaidimą.', toastOptions.error);
 		}
 	}
 
@@ -409,14 +382,14 @@
 		});
 		if (!res.ok) {
 			const data = await res.json().catch(() => ({}));
-			errorMessage = data.error || 'Nepavyko pasirinkti personažo.';
+			toast.push(data.error || 'Nepavyko pasirinkti personažo.', toastOptions.error);
 		}
 	}
 
 	async function createCharacter(event) {
 		const { name, description, image } = event.detail;
 		if (!name) {
-			errorMessage = 'Įveskite personažo vardą.';
+			toast.push('Įveskite personažo vardą.', toastOptions.error);
 			return;
 		}
 		const secret = sessionStorage.getItem('participantSecret');
@@ -434,7 +407,7 @@
 		});
 		if (!res.ok) {
 			const data = await res.json().catch(() => ({}));
-			errorMessage = data.error || 'Nepavyko sukurti personažo.';
+			toast.push(data.error || 'Nepavyko sukurti personažo.', toastOptions.error);
 		}
 	}
 
@@ -455,11 +428,11 @@
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				errorMessage = data.error || 'Nepavyko išsiųsti žinutės.';
+				toast.push(data.error || 'Nepavyko išsiųsti žinutės.', toastOptions.error);
 			}
 		} catch (err) {
 			console.error(err);
-			errorMessage = 'Serverio klaida siunčiant žinutę.';
+			toast.push('Serverio klaida siunčiant žinutę.', toastOptions.error);
 		}
 	}
 
@@ -483,7 +456,6 @@
 	}
 
 	async function submitGuesses() {
-		// Build guesses from guessMap
 		const guessesArray = [];
 		for (const player of players) {
 			if (String(player.id) === String(participantId)) continue;
@@ -508,31 +480,22 @@
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				errorMessage = data.error || 'Nepavyko pateikti spėjimų.';
+				toast.push(data.error || 'Nepavyko pateikti spėjimų.', toastOptions.error);
 			}
 		} catch (err) {
 			console.error(err);
-			errorMessage = 'Serverio klaida teikiant spėjimus.';
+			toast.push('Serverio klaida teikiant spėjimus.', toastOptions.error);
 		}
 	}
 </script>
 
-<!--
-	Conditional rendering for each game state:
-	- needsUsername
-	- pending
-	- in_progress
-	- guessing
-	- completed
-  -->
 {#if needsUsername}
-	<GuestUsernameForm {code} bind:errorMessage on:submitGuestUsername={submitGuestUsername} />
+	<GuestUsernameForm {code} on:submitGuestUsername={submitGuestUsername} />
 {:else if lobbyState.status === 'pending'}
 	<LobbyPending
 		{code}
 		{lobbyState}
 		{players}
-		bind:errorMessage
 		{isHost}
 		{roundLength}
 		{roundCount}
@@ -557,7 +520,6 @@
 		{timeLeft}
 		{chatMessages}
 		bind:chatInput
-		bind:errorMessage
 		on:sendChatMessage={sendChatMessage}
 		on:leaveLobby={leaveLobby}
 	/>
@@ -568,15 +530,9 @@
 		{participantId}
 		{guessOptions}
 		{guessMap}
-		bind:errorMessage
 		on:submitGuesses={submitGuesses}
 		on:leaveLobby={leaveLobby}
 	/>
 {:else if lobbyState.status === 'completed'}
 	<LobbyCompleted {players} on:leaveLobby={leaveLobby} />
-{/if}
-
-<!-- Error display -->
-{#if errorMessage}
-	<p class="error">{errorMessage}</p>
 {/if}

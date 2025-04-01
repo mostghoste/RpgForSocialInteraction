@@ -1,36 +1,29 @@
-<!-- /lobby/[code]/components/LobbyPending.svelte -->
+<!-- src/routes/lobby/[code]/components/LobbyPending.svelte -->
 <script>
 	import { createEventDispatcher } from 'svelte';
 
 	export let code;
-	export let lobbyState; // holds entire state object if needed
+	export let lobbyState; // full state if needed
 	export let players;
 	export let isHost;
 	export let roundLength;
 	export let roundCount;
 	export let guessTimer;
 	export let availableCollections;
-	export let selectedCollections; // array of selected collection IDs
+	export let selectedCollections; // array of collection IDs
 	export let availableCharacters;
 	export let newCharacterName;
 	export let newCharacterDescription;
 	export let newCharacterImage;
-	export let errorMessage;
 
 	const dispatch = createEventDispatcher();
 
 	function handleUpdateSettings() {
-		dispatch('updateSettings', {
-			roundLength,
-			roundCount,
-			guessTimer
-		});
+		dispatch('updateSettings', { roundLength, roundCount, guessTimer });
 	}
 
 	function handleUpdateCollections() {
-		dispatch('updateCollections', {
-			collections: selectedCollections
-		});
+		dispatch('updateCollections', { collections: selectedCollections });
 	}
 
 	function handleStartGame() {
@@ -103,7 +96,7 @@
 			Spėjimų laikas (s):
 			<input type="number" bind:value={guessTimer} min="1" />
 		</label>
-		<button class="border" on:click={handleUpdateSettings}> Atnaujinti nustatymus </button>
+		<button class="border" on:click={handleUpdateSettings}>Atnaujinti nustatymus</button>
 
 		<h3>Klausimų kolekcijos</h3>
 		{#if availableCollections?.length > 0}
@@ -118,7 +111,7 @@
 					<label for="qc-{collection.id}">{collection.name}</label>
 				</div>
 			{/each}
-			<button class="border" on:click={handleUpdateCollections}> Atnaujinti kolekcijas </button>
+			<button class="border" on:click={handleUpdateCollections}>Atnaujinti kolekcijas</button>
 		{:else}
 			<p>Nėra prieinamų klausimų kolekcijų.</p>
 		{/if}
@@ -151,7 +144,3 @@
 </div>
 
 <button class="border" on:click={handleLeaveLobby}>Palikti kambarį</button>
-
-{#if errorMessage}
-	<p class="error">{errorMessage}</p>
-{/if}

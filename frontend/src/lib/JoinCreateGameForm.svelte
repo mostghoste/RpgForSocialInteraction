@@ -1,9 +1,10 @@
-<!-- JoinCreateGameForm.svelte -->
-
+<!-- src/lib/JoinCreateGameForm.svelte -->
 <script>
 	import { goto } from '$app/navigation';
 	import { toast } from '@zerodevx/svelte-toast';
+	import { toastOptions } from '$lib/toastConfig';
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
+
 	let code = '';
 	let loading = false;
 
@@ -16,18 +17,14 @@
 			});
 			if (!response.ok) {
 				const data = await response.json().catch(() => ({}));
-				toast.push(data.error ?? 'Serverio klaida: Nepavyko sukurti kambario.', {
-					theme: { '--toastBackground': 'red', '--toastColor': 'white' }
-				});
+				toast.push(data.error ?? 'Serverio klaida: Nepavyko sukurti kambario.', toastOptions.error);
 				return;
 			}
 			const data = await response.json();
 			goto(`/lobby/${data.code}`);
 		} catch (err) {
 			console.error(err);
-			toast.push('Serverio klaida bandant sukurti kambarį.', {
-				theme: { '--toastBackground': 'red', '--toastColor': 'white' }
-			});
+			toast.push('Serverio klaida bandant sukurti kambarį.', toastOptions.error);
 		} finally {
 			loading = false;
 		}
@@ -35,9 +32,7 @@
 
 	async function joinRoom() {
 		if (!code) {
-			toast.push('Prašome įrašyti kambario kodą!', {
-				theme: { '--toastBackground': 'red', '--toastColor': 'white' }
-			});
+			toast.push('Prašome įrašyti kambario kodą!', toastOptions.error);
 			return;
 		}
 		loading = true;
@@ -47,18 +42,14 @@
 			});
 			if (!response.ok) {
 				const data = await response.json().catch(() => ({}));
-				toast.push(data.error ?? 'Nepavyko prisijungti.', {
-					theme: { '--toastBackground': 'red', '--toastColor': 'white' }
-				});
+				toast.push(data.error ?? 'Nepavyko prisijungti.', toastOptions.error);
 				return;
 			}
 			const data = await response.json();
 			goto(`/lobby/${data.code}`);
 		} catch (err) {
 			console.error(err);
-			toast.push('Serverio klaida bandant prisijungti prie kambario.', {
-				theme: { '--toastBackground': 'red', '--toastColor': 'white' }
-			});
+			toast.push('Serverio klaida bandant prisijungti prie kambario.', toastOptions.error);
 		} finally {
 			loading = false;
 		}

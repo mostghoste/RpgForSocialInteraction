@@ -1,4 +1,4 @@
-<!-- /lobby/[code]/components/LobbyInProgress.svelte -->
+<!-- src/routes/lobby/[code]/components/LobbyInProgress.svelte -->
 <script>
 	import { createEventDispatcher } from 'svelte';
 
@@ -7,7 +7,6 @@
 	export let timeLeft;
 	export let chatMessages;
 	export let chatInput;
-	export let errorMessage;
 
 	const dispatch = createEventDispatcher();
 
@@ -72,12 +71,8 @@
 			on:keydown={(evt) => evt.key === 'Enter' && handleSendMessage()}
 			style="width: 80%; padding: 0.5rem;"
 		/>
-		<button on:click={handleSendMessage} style="padding: 0.5rem;"> Siųsti </button>
+		<button on:click={handleSendMessage} style="padding: 0.5rem;">Siųsti</button>
 	</div>
 </div>
 
 <button class="border" on:click={handleLeaveLobby}>Palikti kambarį</button>
-
-{#if errorMessage}
-	<p class="error">{errorMessage}</p>
-{/if}
