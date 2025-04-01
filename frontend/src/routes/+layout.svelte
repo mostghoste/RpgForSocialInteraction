@@ -1,12 +1,17 @@
 <script>
 	import '../app.css';
-	import avatar from '$lib/avatar.png';
-	let { children } = $props();
+	import { SvelteToast } from '@zerodevx/svelte-toast';
+	import { browser } from '$app/environment';
+	const options = {};
 </script>
 
 <div class="h-full w-full bg-[#464646] px-2 py-4">
-	{@render children()}
+	<slot />
+	{#if browser}
+		<SvelteToast {options} />
+	{/if}
 </div>
+
 <!-- Notification -->
 <!-- <section
 	class="absolute top-0 flex h-fit w-full flex-col items-center bg-[#8B3399] p-2 text-center text-white"
