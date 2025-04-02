@@ -139,8 +139,11 @@
 				chatMessages = [...chatMessages, data.message];
 			}
 			if (data.type === 'round_update' && data.round) {
-				currentRound = data.round;
-				updateTimeLeft();
+				lobbyState.update((current) => ({
+					...current,
+					status: data.status || current.status,
+					current_round: data.round
+				}));
 			}
 		};
 
