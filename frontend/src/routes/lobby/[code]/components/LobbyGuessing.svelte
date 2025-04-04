@@ -1,6 +1,7 @@
 <!-- src/routes/lobby/[code]/components/LobbyGuessing.svelte -->
 <script>
 	import { createEventDispatcher } from 'svelte';
+	import Banner from '$lib/Banner.svelte';
 
 	export let guessTimeLeft;
 	export let players;
@@ -23,9 +24,13 @@
 	}
 </script>
 
+<Banner>
+	<h2>Spėjimų fazė</h2>
+	<p>Liko laiko spėjimams: {guessTimeLeft}s</p>
+</Banner>
+
 <div class="guessing-view">
 	<h2>Atspėk draugus! 👀</h2>
-	<p>Liko laiko spėjimams: {guessTimeLeft}s</p>
 	<p>Pasirink, kurį personažą, manai, žaidžia kiekvienas iš kitų žaidėjų.</p>
 
 	<div class="guessing-panel">

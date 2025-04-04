@@ -1,6 +1,7 @@
 <!-- src/routes/lobby/[code]/components/LobbyInProgress.svelte -->
 <script>
 	import { createEventDispatcher } from 'svelte';
+	import Banner from '$lib/Banner.svelte';
 
 	export let API_URL;
 	export let currentRound;
@@ -20,15 +21,15 @@
 	}
 </script>
 
-{#if currentRound.round_number}
-	<div class="round-info" style="margin-bottom: 1rem;">
+<Banner>
+	{#if currentRound.round_number}
 		<h3>Raundas {currentRound.round_number}</h3>
 		<p>Klausimas: {currentRound.question}</p>
 		<p>Liko laiko: {timeLeft}s</p>
-	</div>
-{:else}
-	<p>Šiuo metu nėra aktyvaus raundo.</p>
-{/if}
+	{:else}
+		<p>Šiuo metu nėra aktyvaus raundo.</p>
+	{/if}
+</Banner>
 
 <div class="chat-container" style="border: 1px solid #ccc; padding: 1rem;">
 	<h3>Game Chat</h3>

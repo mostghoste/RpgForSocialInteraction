@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { toast } from '@zerodevx/svelte-toast';
 	import { toastOptions } from '$lib/toastConfig';
+	import Banner from '$lib/Banner.svelte';
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 	let code = '';
@@ -56,8 +57,13 @@
 	}
 </script>
 
-<div>
-	<input class="border" type="text" bind:value={code} placeholder="Įveskite kambario kodą" />
-	<button class="border" on:click={createRoom} disabled={loading}>Sukurti kambarį</button>
-	<button class="border" on:click={joinRoom} disabled={!code || loading}>Prisijungti</button>
-</div>
+<Banner>
+	<h1 class="text-2xl font-bold">Role playing game for social interaction</h1>
+</Banner>
+<main class="flex h-full flex-col items-center justify-center">
+	<div>
+		<input class="border" type="text" bind:value={code} placeholder="Įveskite kambario kodą" />
+		<button class="border" on:click={createRoom} disabled={loading}>Sukurti kambarį</button>
+		<button class="border" on:click={joinRoom} disabled={!code || loading}>Prisijungti</button>
+	</div>
+</main>

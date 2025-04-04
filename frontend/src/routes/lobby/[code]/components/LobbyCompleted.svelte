@@ -1,5 +1,7 @@
+<!-- src/routes/lobby/[code]/components/LobbyCompleted.svelte -->
 <script>
 	import { createEventDispatcher } from 'svelte';
+	import Banner from '$lib/Banner.svelte';
 
 	export let players = [];
 
@@ -10,8 +12,11 @@
 	}
 </script>
 
-<div class="completed-view">
+<Banner>
 	<h2>Žaidimas baigtas!</h2>
+</Banner>
+
+<div class="completed-view">
 	<h3>Rezultatai:</h3>
 	<ul>
 		{#each players as player}
