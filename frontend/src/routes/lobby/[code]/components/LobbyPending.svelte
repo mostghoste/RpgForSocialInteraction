@@ -71,18 +71,32 @@
 
 	<p>Spėjimų laikas: {guessTimer} s</p>
 
-	<div class="room-settings">
-		<h3>Kambario nustatymai</h3>
-		<p>Round Length: {roundLength} s</p>
-		<p>Round Count: {roundCount}</p>
-		{#if lobbyState.question_collections}
+	<div class="room-settings flex flex-col rounded-2xl bg-gray-300 p-4">
+		<h3 class="text-2xl font-semibold">Kambario nustatymai</h3>
+		<div class="flex">
+			<p class="text-nowrap">Raundo ilgis</p>
+			<span class="w-full"></span>
+			<span>{roundLength}s</span>
+		</div>
+		<div class="flex">
+			<p class="text-nowrap">Raundų kiekis</p>
+			<span class="w-full"></span>
+			<span>{roundCount}</span>
+		</div>
+		<div class="flex">
+			<p class="text-nowrap">Laikas spėjimams</p>
+			<span class="w-full"></span>
+			<!-- TODO: Display the guesstimer here -->
+			<span>60s</span>
+		</div>
+		<!-- {#if lobbyState.question_collections}
 			<h4>Pasirinktos klausimų kolekcijos:</h4>
 			<ul>
 				{#each lobbyState.question_collections as qc}
 					<li>{qc.name}</li>
 				{/each}
 			</ul>
-		{/if}
+		{/if} -->
 	</div>
 
 	{#if isHost}
