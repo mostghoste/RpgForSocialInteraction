@@ -51,27 +51,27 @@
 <Banner>
 	<h2>Kambario kodas: {code}</h2>
 </Banner>
-<main class="flex h-full flex-col items-center justify-center">
-	<p>Žaidėjai kambaryje:</p>
-	<ul>
-		{#each players as player}
-			<li>
-				{#if String(player.id) === String(lobbyState.participant_id)}
-					<strong>{player.username}</strong>
-				{:else}
-					{player.username}
-				{/if}
-				{#if player.is_host}
-					<span> 👑</span>
-				{/if}
-				{player.characterSelected ? ' ✅' : ''}
-			</li>
-		{/each}
-	</ul>
+<main class="flex h-full flex-col items-center justify-center overflow-y-scroll">
+	<div class="flex flex-col rounded-2xl bg-gray-300 p-4">
+		<p>Žaidėjai kambaryje:</p>
+		<ul>
+			{#each players as player}
+				<li>
+					{#if String(player.id) === String(lobbyState.participant_id)}
+						<strong>{player.username}</strong>
+					{:else}
+						{player.username}
+					{/if}
+					{#if player.is_host}
+						<span> 👑</span>
+					{/if}
+					{player.characterSelected ? ' ✅' : ''}
+				</li>
+			{/each}
+		</ul>
+	</div>
 
-	<p>Spėjimų laikas: {guessTimer} s</p>
-
-	<div class="room-settings flex flex-col rounded-2xl bg-gray-300 p-4">
+	<div class="flex flex-col rounded-2xl bg-gray-300 p-4">
 		<h3 class="text-2xl font-semibold">Kambario nustatymai</h3>
 		<div class="flex">
 			<p class="text-nowrap">Raundo ilgis</p>
@@ -86,8 +86,7 @@
 		<div class="flex">
 			<p class="text-nowrap">Laikas spėjimams</p>
 			<span class="w-full"></span>
-			<!-- TODO: Display the guesstimer here -->
-			<span>60s</span>
+			<span>{guessTimer}s</span>
 		</div>
 		<!-- {#if lobbyState.question_collections}
 			<h4>Pasirinktos klausimų kolekcijos:</h4>
