@@ -13,7 +13,7 @@
 </script>
 
 <Banner>
-	<h2>Kambario kodas: {code}</h2>
+	<h2>Kambario {code} laukiamasis</h2>
 </Banner>
 
 <main class="flex h-full flex-col items-center justify-center gap-2">
