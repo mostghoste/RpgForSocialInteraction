@@ -16,9 +16,22 @@
 	<h2>Kambario kodas: {code}</h2>
 </Banner>
 
-<main class="flex h-full flex-col items-center justify-center">
-	<h1 class="text-2xl font-semibold">Kas tu?</h1>
-	<p class="text-white">Įvesk savo vartotojo vardą, kad prisijungtum prie kambario.</p>
-	<input class="border" type="text" bind:value={guestUsername} placeholder="Vartotojo vardas" />
-	<button class="border" on:click={handleSubmit}>Prisijungti</button>
+<main class="flex h-full flex-col items-center justify-center gap-2">
+	<h1 class="h1">Kas tu?</h1>
+	<p>Įvesk savo vartotojo vardą, kad prisijungtum prie kambario.</p>
+	<div class="flex flex-col gap-1">
+		<input
+			class="input text-center"
+			type="text"
+			bind:value={guestUsername}
+			placeholder="Vartotojo vardas"
+		/>
+		<button
+			class="btn preset-filled-primary-500"
+			on:click={handleSubmit}
+			disabled={guestUsername.trim().length < 3 || guestUsername.trim().length > 20}
+		>
+			Prisijungti
+		</button>
+	</div>
 </main>

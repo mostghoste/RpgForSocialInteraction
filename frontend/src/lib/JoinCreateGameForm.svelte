@@ -66,7 +66,7 @@
 			class="input bg-surface-950-50 text-primary-contrast-950-50 text-center"
 			type="text"
 			bind:value={code}
-			placeholder="Įveskite kambario kodą"
+			placeholder="Kambario kodas"
 		/>
 		<footer class="flex gap-1">
 			<button class="btn preset-filled w-1/2" on:click={createRoom} disabled={loading}
