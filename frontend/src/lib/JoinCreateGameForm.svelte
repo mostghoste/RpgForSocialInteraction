@@ -61,9 +61,22 @@
 	<h1 class="text-2xl font-bold">Role playing game for social interaction</h1>
 </Banner>
 <main class="flex h-full flex-col items-center justify-center">
-	<div>
-		<input class="border" type="text" bind:value={code} placeholder="Įveskite kambario kodą" />
-		<button class="border" on:click={createRoom} disabled={loading}>Sukurti kambarį</button>
-		<button class="border" on:click={joinRoom} disabled={!code || loading}>Prisijungti</button>
+	<div class="flex w-96 flex-col gap-1">
+		<input
+			class="input bg-surface-950-50 text-primary-contrast-950-50 text-center"
+			type="text"
+			bind:value={code}
+			placeholder="Įveskite kambario kodą"
+		/>
+		<footer class="flex gap-1">
+			<button class="btn preset-filled w-1/2" on:click={createRoom} disabled={loading}
+				>Sukurti kambarį</button
+			>
+			<button
+				class="btn preset-filled-success-50-950 w-full"
+				on:click={joinRoom}
+				disabled={!code || loading}>Prisijungti</button
+			>
+		</footer>
 	</div>
 </main>
