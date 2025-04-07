@@ -45,6 +45,8 @@
 	function handleLeaveLobby() {
 		dispatch('leaveLobby');
 	}
+
+	import { Settings } from '@lucide/svelte';
 </script>
 
 <Banner>
@@ -53,7 +55,7 @@
 
 <main class="flex h-full flex-col items-center justify-center gap-4 pt-16">
 	<div class="bg-surface-100-900 flex flex-col rounded-2xl p-4">
-		<p>Žaidėjai kambaryje:</p>
+		<h2 class="h6">Žaidėjai kambaryje:</h2>
 		<ul>
 			{#each players as player}
 				<li>
@@ -62,17 +64,20 @@
 					{:else}
 						{player.username}
 					{/if}
-					{#if player.is_host}
-						<span> 👑</span>
-					{/if}
-					{player.characterSelected ? ' ✅' : ''}
+					<span>{player.is_host ? ' 👑' : ''}</span>
+					<span>{player.characterSelected ? ' ✅' : ''}</span>
 				</li>
 			{/each}
 		</ul>
 	</div>
 
-	<div class="bg-surface-100-900 flex flex-col rounded-2xl p-4">
-		<h3 class="text-2xl font-semibold">Žaidimo nustatymai</h3>
+	<div class="bg-surface-100-900 relative flex flex-col rounded-2xl p-4">
+		{#if isHost}
+			<button class="btn absolute right-2" on:click={() => (showSettingsModal = true)}>
+				<Settings />
+			</button>
+		{/if}
+		<h3 class="h6 {isHost ? 'pr-12' : ''}">Žaidimo nustatymai</h3>
 		<div class="flex justify-between">
 			<p>Raundo ilgis:</p>
 			<span>{roundLength}s</span>
@@ -86,13 +91,6 @@
 			<span>{guessTimer}s</span>
 		</div>
 	</div>
-
-	{#if isHost}
-		<!-- Button to open host settings modal -->
-		<button class="btn preset-filled" on:click={() => (showSettingsModal = true)}>
-			Nustatymai
-		</button>
-	{/if}
 
 	{#if showSettingsModal}
 		<HostSettingsModal
