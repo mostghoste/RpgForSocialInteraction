@@ -1,30 +1,29 @@
-<!-- src/routes/lobby/[code]/components/LobbyPending.svelte -->
 <script>
 	import { createEventDispatcher } from 'svelte';
+	import HostSettingsModal from '$lib/HostSettingsModal.svelte';
 	import Banner from '$lib/Banner.svelte';
 
+	// Props and local state
 	export let code;
-	export let lobbyState; // full state if needed
+	export let lobbyState;
 	export let players;
 	export let isHost;
 	export let roundLength;
 	export let roundCount;
 	export let guessTimer;
 	export let availableCollections;
-	export let selectedCollections; // array of collection IDs
+	export let selectedCollections;
 	export let availableCharacters;
 	export let newCharacterName;
 	export let newCharacterDescription;
 	export let newCharacterImage;
 
 	const dispatch = createEventDispatcher();
+	let showSettingsModal = false;
 
-	function handleUpdateSettings() {
-		dispatch('updateSettings', { roundLength, roundCount, guessTimer });
-	}
-
-	function handleUpdateCollections() {
-		dispatch('updateCollections', { collections: selectedCollections });
+	function handleModalUpdateSettings(detail) {
+		// Relay the updated settings event to the parent
+		dispatch('updateSettings', detail);
 	}
 
 	function handleStartGame() {
@@ -51,8 +50,9 @@
 <Banner>
 	<h2>Kambario kodas: {code}</h2>
 </Banner>
-<main class="flex h-full flex-col items-center justify-center overflow-y-scroll">
-	<div class="flex flex-col rounded-2xl bg-gray-300 p-4">
+
+<main class="flex h-full flex-col items-center justify-center gap-4 pt-16">
+	<div class="bg-surface-100-900 flex flex-col rounded-2xl p-4">
 		<p>Žaidėjai kambaryje:</p>
 		<ul>
 			{#each players as player}
@@ -71,94 +71,71 @@
 		</ul>
 	</div>
 
-	<div class="flex flex-col rounded-2xl bg-gray-300 p-4">
-		<h3 class="text-2xl font-semibold">Kambario nustatymai</h3>
-		<div class="flex">
-			<p class="text-nowrap">Raundo ilgis</p>
-			<span class="w-full"></span>
+	<div class="bg-surface-100-900 flex flex-col rounded-2xl p-4">
+		<h3 class="text-2xl font-semibold">Žaidimo nustatymai</h3>
+		<div class="flex justify-between">
+			<p>Raundo ilgis:</p>
 			<span>{roundLength}s</span>
 		</div>
-		<div class="flex">
-			<p class="text-nowrap">Raundų kiekis</p>
-			<span class="w-full"></span>
+		<div class="flex justify-between">
+			<p>Raundų kiekis:</p>
 			<span>{roundCount}</span>
 		</div>
-		<div class="flex">
-			<p class="text-nowrap">Laikas spėjimams</p>
-			<span class="w-full"></span>
+		<div class="flex justify-between">
+			<p>Laikas spėjimams:</p>
 			<span>{guessTimer}s</span>
 		</div>
-		<!-- {#if lobbyState.question_collections}
-			<h4>Pasirinktos klausimų kolekcijos:</h4>
-			<ul>
-				{#each lobbyState.question_collections as qc}
-					<li>{qc.name}</li>
-				{/each}
-			</ul>
-		{/if} -->
 	</div>
 
 	{#if isHost}
-		<div class="host-settings">
-			<h3>Nustatymai (Tik vedėjui)</h3>
-			<label>
-				Round Length (s):
-				<input type="number" bind:value={roundLength} min="1" />
-			</label>
-			<label>
-				Round Count:
-				<input type="number" bind:value={roundCount} min="1" />
-			</label>
-			<label>
-				Spėjimų laikas (s):
-				<input type="number" bind:value={guessTimer} min="1" />
-			</label>
-			<button class="border" on:click={handleUpdateSettings}>Atnaujinti nustatymus</button>
-
-			<h3>Klausimų kolekcijos</h3>
-			{#if availableCollections?.length > 0}
-				{#each availableCollections as collection}
-					<div>
-						<input
-							type="checkbox"
-							id="qc-{collection.id}"
-							value={collection.id}
-							bind:group={selectedCollections}
-						/>
-						<label for="qc-{collection.id}">{collection.name}</label>
-					</div>
-				{/each}
-				<button class="border" on:click={handleUpdateCollections}>Atnaujinti kolekcijas</button>
-			{:else}
-				<p>Nėra prieinamų klausimų kolekcijų.</p>
-			{/if}
-
-			<button class="border" on:click={handleStartGame}>Pradėti žaidimą</button>
-		</div>
+		<!-- Button to open host settings modal -->
+		<button class="btn preset-filled" on:click={() => (showSettingsModal = true)}>
+			Nustatymai
+		</button>
 	{/if}
 
-	<h3>Pasirinkite savo personažą</h3>
-	<div>
-		<h4>Pasirinkti iš esamų:</h4>
-		{#each availableCharacters as char}
-			<button on:click={() => handleSelectCharacter(char.id)}>
-				{#if char.image}
-					<img src={char.image} alt={char.name} width="100" />
-				{:else}
-					<img src="/fallback_character.jpg" alt="Fallback Character" width="100" />
-				{/if}
-				<span>{char.name}</span>
-			</button>
-		{/each}
-	</div>
+	{#if showSettingsModal}
+		<HostSettingsModal
+			{roundLength}
+			{roundCount}
+			{guessTimer}
+			{availableCollections}
+			{selectedCollections}
+			on:updateSettings={(e) => handleModalUpdateSettings(e.detail)}
+			on:close={() => (showSettingsModal = false)}
+		/>
+	{/if}
 
 	<div>
-		<h4>Sukurti naują personažą:</h4>
-		<input type="text" bind:value={newCharacterName} placeholder="Personažo vardas" />
-		<textarea bind:value={newCharacterDescription} placeholder="Aprašymas"></textarea>
-		<input type="file" bind:this={newCharacterImage} accept="image/*" />
-		<button on:click={handleCreateCharacter}>Sukurti ir pasirinkti</button>
+		<h3>Pasirinkite savo personažą</h3>
+		<div>
+			<h4>Pasirinkti iš esamų:</h4>
+			{#each availableCharacters as char}
+				<button on:click={() => handleSelectCharacter(char.id)} class="m-1 rounded border p-2">
+					{#if char.image}
+						<img src={char.image} alt={char.name} width="100" />
+					{:else}
+						<img src="/fallback_character.jpg" alt="Fallback Character" width="100" />
+					{/if}
+					<span>{char.name}</span>
+				</button>
+			{/each}
+		</div>
+		<div>
+			<h4>Sukurti naują personažą:</h4>
+			<input
+				type="text"
+				bind:value={newCharacterName}
+				placeholder="Personažo vardas"
+				class="input mb-2"
+			/>
+			<textarea bind:value={newCharacterDescription} placeholder="Aprašymas" class="textarea mb-2"
+			></textarea>
+			<input type="file" bind:this={newCharacterImage} accept="image/*" class="file-input mb-2" />
+			<button on:click={handleCreateCharacter} class="btn btn-primary">Sukurti ir pasirinkti</button
+			>
+		</div>
 	</div>
 
-	<button class="border" on:click={handleLeaveLobby}>Palikti kambarį</button>
+	<button class="btn border" on:click={handleLeaveLobby}>Palikti kambarį</button>
 </main>

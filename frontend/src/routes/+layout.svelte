@@ -10,7 +10,7 @@
 {#if browser}
 	<SvelteToast {options} />
 {/if}
-<div class="flex h-full w-full flex-col items-center justify-center bg-[#464646]">
+<div class="bg-surface-300-700 flex h-full w-full flex-col items-center justify-center">
 	<!-- <main class="flex h-full flex-col items-center justify-center">
 
 	</main> -->

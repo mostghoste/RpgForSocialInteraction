@@ -8,8 +8,6 @@
 @source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
 
 body {
-    height: 100vh;
     font-family: "Poppins", serif;
     font-style: normal;
-    background-color: #464646;
 }
