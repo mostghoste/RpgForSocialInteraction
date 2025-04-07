@@ -1,14 +1,27 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
+	import { Slider } from '@skeletonlabs/skeleton-svelte';
+
 	export let roundLength;
 	export let roundCount;
 	export let guessTimer;
 	export let availableCollections = [];
 	export let selectedCollections = [];
+
 	const dispatch = createEventDispatcher();
 
+	// Create slider state values from your numeric props.
+	let sliderRoundLength = [roundLength];
+	let sliderRoundCount = [roundCount];
+	let sliderGuessTimer = [guessTimer];
+
+	// Update the exported values when the slider changes.
+	$: roundLength = sliderRoundLength[0];
+	$: roundCount = sliderRoundCount[0];
+	$: guessTimer = sliderGuessTimer[0];
+
 	function handleSave() {
-		// Dispatch all updated settings (including selected collections)
+		// Dispatch updated settings along with selected question collections.
 		dispatch('updateSettings', { roundLength, roundCount, guessTimer, selectedCollections });
 		dispatch('close');
 	}
@@ -21,33 +34,68 @@
 <div class="bg-surface-100-900/75 fixed inset-0 z-50 flex items-center justify-center">
 	<div class="bg-surface-200-800 max-w-96 rounded-lg p-6 shadow">
 		<h2 class="mb-4 text-xl font-bold">Kambario nustatymai</h2>
-		<div class="mb-4">
-			<label class="mb-1 block">Raundo ilgis (s):</label>
-			<input
-				type="number"
-				bind:value={roundLength}
-				min="1"
-				class="w-full rounded border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+		<!-- Slider for Round Length -->
+		<div class="mb-10 flex flex-col gap-2">
+			<span class="flex items-start gap-2">
+				<label class="mb-1 block">Raundo ilgis:</label>
+				<span class="chip preset-filled-surface-400-600 -translate-y-0.5">{roundLength}s</span>
+			</span>
+			<Slider
+				value={sliderRoundLength}
+				min={10}
+				max={300}
+				step={5}
+				markers={[10, 60, 120, 180, 240, 300]}
+				name="roundLength"
+				onValueChange={(e) => (sliderRoundLength = e.value)}
+				meterBg="bg-primary-400"
+				thumbRingColor="ring-primary-400"
+				trackBg="bg-surface-300-700"
 			/>
 		</div>
-		<div class="mb-4">
-			<label class="mb-1 block">Raundų skaičius:</label>
-			<input
-				type="number"
-				bind:value={roundCount}
-				min="1"
-				class="w-full rounded border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+		<!-- Slider for Round Count -->
+		<div class="mb-10 flex flex-col gap-2">
+			<span class="flex items-start gap-2">
+				<label class="mb-1 block">Raundų skaičius:</label>
+				<span class="chip preset-filled-surface-400-600 -translate-y-0.5">{roundCount}</span>
+			</span>
+			<Slider
+				value={sliderRoundCount}
+				min={1}
+				max={10}
+				step={1}
+				markers={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}
+				name="roundCount"
+				onValueChange={(e) => (sliderRoundCount = e.value)}
+				meterBg="bg-primary-400"
+				thumbRingColor="ring-primary-400"
+				trackBg="bg-surface-300-700"
 			/>
 		</div>
-		<div class="mb-4">
-			<label class="mb-1 block">Laikas spėjimams (s):</label>
-			<input
-				type="number"
-				bind:value={guessTimer}
-				min="1"
-				class="w-full rounded border border-gray-300 p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+		<!-- Slider for Guess Timer -->
+		<div class="mb-10 flex flex-col gap-2">
+			<span class="flex items-start gap-2">
+				<label class="mb-1 block">Laikas spėjimams:</label>
+				<span class="chip preset-filled-surface-400-600 -translate-y-0.5">{guessTimer} s</span>
+			</span>
+			<Slider
+				value={sliderGuessTimer}
+				min={10}
+				max={300}
+				step={5}
+				markers={[10, 60, 120, 180, 240, 300]}
+				name="guessTimer"
+				onValueChange={(e) => (sliderGuessTimer = e.value)}
+				meterBg="bg-primary-400"
+				thumbRingColor="ring-primary-400"
+				trackBg="bg-surface-300-700"
 			/>
 		</div>
+
+		<!-- Checkbox selection for Question Collections -->
 		<div class="mb-4">
 			<h3 class="mb-2 text-lg font-semibold">Naudojami klausimai</h3>
 			{#if availableCollections.length > 0}
@@ -64,12 +112,14 @@
 					</div>
 				{/each}
 			{:else}
-				<p class="text-gray-500">Nėra prieinamų klausimų kolekcijų.</p>
+				<p class="">Nėra prieinamų klausimų kolekcijų.</p>
 			{/if}
 		</div>
+
+		<!-- Action Buttons -->
 		<div class="flex justify-end space-x-2">
-			<button on:click={handleSave} class="btn preset-filled-success-500"> Išsaugoti </button>
-			<button on:click={handleCancel} class="btn preset-filled-error-500"> Atšaukti </button>
+			<button on:click={handleSave} class="btn preset-filled-success-500">Išsaugoti</button>
+			<button on:click={handleCancel} class="btn preset-filled-error-500">Atšaukti</button>
 		</div>
 	</div>
 </div>
