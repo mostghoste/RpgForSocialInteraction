@@ -3,7 +3,7 @@
 	import HostSettingsModal from '$lib/HostSettingsModal.svelte';
 	import Banner from '$lib/Banner.svelte';
 	import { Avatar, FileUpload } from '@skeletonlabs/skeleton-svelte';
-	import { Settings } from '@lucide/svelte';
+	import { Settings, UserRoundPlus } from '@lucide/svelte';
 
 	// Props and local state
 	export let code;
@@ -88,7 +88,11 @@
 
 	<div class="bg-surface-100-900 relative flex flex-col rounded-2xl p-4">
 		{#if isHost}
-			<button class="btn absolute right-2" on:click={() => (showSettingsModal = true)}>
+			<button
+				title="Žaidimo nustatymai"
+				class="btn hover:preset-filled-surface-300-700 absolute right-2 top-2 p-2"
+				on:click={() => (showSettingsModal = true)}
+			>
 				<Settings />
 			</button>
 		{/if}
@@ -119,12 +123,15 @@
 		/>
 	{/if}
 
-	<h3 class="h5">Pasirink savo personažą</h3>
-	<div class="bg-surface-100-900 flex max-h-96 flex-col gap-2 rounded-2xl p-4">
-		<h4 class="h6">Egzistuojantys personažai:</h4>
+	<div class="bg-surface-100-900 relative flex max-h-96 flex-col gap-2 rounded-2xl p-4">
+		<h4 class="h6">Išsirink personažą:</h4>
+		<button class="btn hover:preset-filled-surface-300-700 absolute right-4 top-3 rounded-sm p-2">
+			<UserRoundPlus></UserRoundPlus>
+		</button>
 		<div class="flex h-full w-full flex-col gap-1 overflow-scroll">
 			{#each availableCharacters as char}
 				<button
+					title="Sukurti naują veikėją"
 					on:click={() => handleSelectCharacter(char.id)}
 					class="bg-surface-200-800 flex gap-4 rounded-2xl p-2"
 				>
