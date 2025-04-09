@@ -1,10 +1,10 @@
 // src/lib/toastConfig.js
 export const toastOptions = {
     error: {
-      theme: { '--toastBackground': 'red', '--toastColor': 'white' }
+      theme: { '--toastBackground': '#ee4044', '--toastColor': 'white' }
     },
     success: {
-      theme: { '--toastBackground': 'green', '--toastColor': 'white' }
+      theme: { '--toastBackground': '#60bb62', '--toastColor': 'white' }
     },
     info: {
       theme: { '--toastBackground': 'blue', '--toastColor': 'white' }

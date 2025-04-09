@@ -386,6 +386,8 @@
 		if (!res.ok) {
 			const data = await res.json().catch(() => ({}));
 			toast.push(data.error || 'Nepavyko pasirinkti personažo.', toastOptions.error);
+		} else {
+			toast.push('Personažas sėkmingai pasirinktas!', toastOptions.success);
 		}
 	}
 
@@ -411,6 +413,8 @@
 		if (!res.ok) {
 			const data = await res.json().catch(() => ({}));
 			toast.push(data.error || 'Nepavyko sukurti personažo.', toastOptions.error);
+		} else {
+			toast.push('Personažas sėkmingai sukurtas ir pasirinktas!', toastOptions.success);
 		}
 	}
 
