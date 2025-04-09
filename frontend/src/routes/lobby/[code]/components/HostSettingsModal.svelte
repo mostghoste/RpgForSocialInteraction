@@ -32,8 +32,8 @@
 	}
 </script>
 
-<div class="bg-surface-100-900/75 fixed inset-0 z-50 flex items-center justify-center">
-	<div class="bg-surface-200-800 max-w-96 rounded-lg p-6 shadow">
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+	<div class="bg-surface-100-900 max-w-96 rounded-lg p-6 shadow">
 		<div class="mb-4 flex items-center justify-between">
 			<h2 class="h5">Naujas personažas</h2>
 			<button on:click={closeModal} class="btn hover:preset-filled-surface-300-700 p-2">
