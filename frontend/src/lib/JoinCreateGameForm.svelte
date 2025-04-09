@@ -62,7 +62,7 @@
 </Banner>
 <main class="flex h-full items-center justify-center p-2">
 	<section
-		class="bg-surface-100-900 flex w-full flex-col items-center gap-2 rounded-2xl p-4 lg:max-w-3xl"
+		class="bg-surface-100-900 flex w-fit flex-col items-center gap-2 rounded-2xl p-4 lg:max-w-3xl"
 	>
 		<h1 class="h1">Sveikas atvykęs!</h1>
 		<p class="text-center">

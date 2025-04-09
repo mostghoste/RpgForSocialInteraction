@@ -13,12 +13,12 @@
 </script>
 
 <Banner>
-	<h2>Kambario {code} laukiamasis</h2>
+	<h2 class="h3 text-center">Kambario {code} laukiamasis</h2>
 </Banner>
 
 <main class="flex h-full flex-col items-center justify-center gap-2">
 	<h1 class="h1">Kas tu?</h1>
-	<p>Įvesk savo vartotojo vardą, kad prisijungtum prie kambario.</p>
+	<p class="text-center">Įvesk savo vartotojo vardą, kad prisijungtum prie kambario.</p>
 	<div class="flex flex-col gap-1">
 		<input
 			class="input text-center"
