@@ -1,6 +1,7 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 	import { Slider } from '@skeletonlabs/skeleton-svelte';
+	import { X } from '@lucide/svelte';
 
 	export let roundLength;
 	export let roundCount;
@@ -26,14 +27,19 @@
 		dispatch('close');
 	}
 
-	function handleCancel() {
+	function closeModal() {
 		dispatch('close');
 	}
 </script>
 
 <div class="bg-surface-100-900/75 fixed inset-0 z-50 flex items-center justify-center">
 	<div class="bg-surface-200-800 max-w-96 rounded-lg p-6 shadow">
-		<h2 class="mb-4 text-xl font-bold">Kambario nustatymai</h2>
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="h5">Naujas personažas</h2>
+			<button on:click={closeModal} class="btn hover:preset-filled-surface-300-700 p-2">
+				<X size="24" />
+			</button>
+		</div>
 
 		<!-- Slider for Round Length -->
 		<div class="mb-10 flex flex-col gap-2">
@@ -118,8 +124,8 @@
 
 		<!-- Action Buttons -->
 		<div class="flex justify-end space-x-2">
-			<button on:click={handleSave} class="btn preset-filled-success-500">Išsaugoti</button>
-			<button on:click={handleCancel} class="btn preset-filled-error-500">Atšaukti</button>
+			<button on:click={closeModal} class="btn preset-filled-error-400-600">Atšaukti</button>
+			<button on:click={handleSave} class="btn preset-filled-success-400-600">Išsaugoti</button>
 		</div>
 	</div>
 </div>

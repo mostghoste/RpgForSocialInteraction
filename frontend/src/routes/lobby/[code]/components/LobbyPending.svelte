@@ -1,6 +1,7 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
-	import HostSettingsModal from '$lib/HostSettingsModal.svelte';
+	import HostSettingsModal from './HostSettingsModal.svelte';
+	import CharacterUploadModal from './CharacterUploadModal.svelte';
 	import Banner from '$lib/Banner.svelte';
 	import { Avatar, FileUpload } from '@skeletonlabs/skeleton-svelte';
 	import { Settings, UserRoundPlus } from '@lucide/svelte';
@@ -22,6 +23,7 @@
 
 	const dispatch = createEventDispatcher();
 	let showSettingsModal = false;
+	let showCharacterModal = false;
 
 	function handleModalUpdateSettings(detail) {
 		// Relay the updated settings event to the parent
@@ -68,7 +70,7 @@
 	<h2 class="h3">Kambario kodas: {code}</h2>
 </Banner>
 
-<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll pt-48">
+<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
 	<div class="bg-surface-100-900 flex flex-col rounded-2xl p-4">
 		<h2 class="h6">Žaidėjai kambaryje:</h2>
 		<ul>
@@ -125,7 +127,10 @@
 
 	<div class="bg-surface-100-900 relative flex max-h-96 flex-col gap-2 rounded-2xl p-4">
 		<h4 class="h6">Išsirink personažą:</h4>
-		<button class="btn hover:preset-filled-surface-300-700 absolute right-4 top-3 rounded-sm p-2">
+		<button
+			class="btn hover:preset-filled-surface-300-700 absolute right-4 top-3 rounded-sm p-2"
+			on:click={() => (showCharacterModal = true)}
+		>
 			<UserRoundPlus></UserRoundPlus>
 		</button>
 		<div class="flex h-full w-full flex-col gap-1 overflow-scroll">
@@ -145,33 +150,20 @@
 			{/each}
 		</div>
 	</div>
-	<div class="bg-surface-100-900 flex max-h-96 flex-col gap-2 rounded-2xl p-4">
-		<h4 class="h6">Sukurk savo veikėją!</h4>
-		<!-- Use the FileUpload component with validation for only jpg/png images up to 5MB -->
-		<FileUpload
-			accept={{ 'image/jpeg': ['.jpeg', '.jpg'], 'image/png': ['.png'] }}
-			maxFileSize={1024 * 1024 * 5}
-			onFileChange={handleFileUpload}
-			onFileReject={handleFileReject}
-			class="mb-2"
+	{#if showCharacterModal}
+		<CharacterUploadModal
+			bind:newCharacterName
+			bind:newCharacterDescription
+			bind:newCharacterImage
+			on:createCharacter={(e) => {
+				handleCreateCharacter(e.detail);
+				showCharacterModal = false;
+			}}
+			on:close={() => (showCharacterModal = false)}
+			on:filechange={handleFileUpload}
+			on:filereject={handleFileReject}
 		/>
-		<input
-			type="text"
-			bind:value={newCharacterName}
-			placeholder="Personažo vardas"
-			class="input mb-2"
-		/>
-		<textarea bind:value={newCharacterDescription} placeholder="Aprašymas" class="textarea mb-2"
-		></textarea>
-
-		<button
-			on:click={handleCreateCharacter}
-			class="btn preset-filled-success-400-600"
-			disabled={!isCreateCharacterEnabled}
-		>
-			Sukurti ir pasirinkti
-		</button>
-	</div>
+	{/if}
 
 	<button class="btn preset-filled-error-400-600" on:click={handleLeaveLobby}
 		>Palikti kambarį</button
