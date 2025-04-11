@@ -2,6 +2,7 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 	import Banner from '$lib/Banner.svelte';
+	import { Send } from '@lucide/svelte';
 
 	export let API_URL;
 	export let currentRound;
@@ -94,7 +95,7 @@
 <main class="flex h-full flex-col items-center justify-center gap-4 overflow-y-scroll p-4">
 	<section class="bg-surface-100-900 h-full w-full max-w-2xl rounded-lg p-4">
 		<h3 class="mb-2 text-xl font-semibold">Pokalbio langas</h3>
-		<div class="flex max-h-72 flex-col gap-2 overflow-y-auto">
+		<div class="flex max-h-full flex-col gap-2 overflow-y-auto">
 			{#each displayedMessages as item}
 				{#if item.type === 'divider-start'}
 					<!-- Round start divider -->
@@ -115,26 +116,31 @@
 							{:else}
 								<img src="/fallback_character.jpg" alt="Fallback" width="40" class="mr-2" />
 							{/if}
-							<strong>{item.data.characterName}:</strong>
 						</div>
-						<div class="">{item.data.text}</div>
-						<div class="mt-1 text-xs">
-							{new Date(item.data.sentAt).toLocaleTimeString()}
+						<div>
+							<p><strong>{item.data.characterName}:</strong></p>
+							<p class="" title={new Date(item.data.sentAt).toLocaleTimeString()}>
+								{item.data.text}
+							</p>
 						</div>
 					</div>
 				{/if}
 			{/each}
 		</div>
-		<footer class="mt-4 flex items-center gap-2">
+		<footer class="flex">
 			<input
 				type="text"
 				bind:value={chatInput}
 				placeholder="Rašyk žinutę..."
 				on:keydown={(evt) => evt.key === 'Enter' && handleSendMessage()}
-				class="w-full rounded-3xl bg-[#E7E7E7] px-4 py-2 text-xl placeholder-gray-500 focus:outline-none"
+				class="placeholder-surface-500 bg-surface-100 text-surface-contrast-100 w-full rounded-l-3xl px-4 py-2 text-xl focus:outline-none"
 			/>
-			<button on:click={handleSendMessage} class="rounded-lg bg-amber-300 px-4 py-2 text-lg">
-				Siųsti
+			<button
+				on:click={handleSendMessage}
+				class="ig-btn bg-surface-100 rounded-r-3xl"
+				title="Siųsti žinutę"
+			>
+				<Send size={24} color="#8B3399" />
 			</button>
 		</footer>
 	</section>

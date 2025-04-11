@@ -4,7 +4,7 @@
 	import CharacterUploadModal from './CharacterUploadModal.svelte';
 	import Banner from '$lib/Banner.svelte';
 	import { Avatar, FileUpload } from '@skeletonlabs/skeleton-svelte';
-	import { Settings, UserRoundPlus } from '@lucide/svelte';
+	import { Settings, UserRoundPlus, LogOut } from '@lucide/svelte';
 
 	// Props and local state
 	export let code;
@@ -67,7 +67,18 @@
 </script>
 
 <Banner>
-	<h2 class="h3">Kambario kodas: {code}</h2>
+	<div class="flex w-full">
+		<button
+			class="btn btn-sm preset-filled-error-400-600"
+			title="Palikti kambarį"
+			on:click={handleLeaveLobby}
+		>
+			<LogOut size={20}></LogOut>
+			<span class="hidden sm:hidden md:block"> Palikti kambarį</span>
+		</button>
+		<h2 class="h3 w-full text-center">Kambario kodas: {code}</h2>
+		<span class="sm:w-16 md:w-48"></span>
+	</div>
 </Banner>
 
 <main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
@@ -172,8 +183,4 @@
 			on:filereject={handleFileReject}
 		/>
 	{/if}
-
-	<button class="btn preset-filled-error-400-600" on:click={handleLeaveLobby}
-		>Palikti kambarį</button
-	>
 </main>

@@ -62,26 +62,35 @@
 </Banner>
 <main class="flex h-full items-center justify-center p-2">
 	<section
-		class="bg-surface-100-900 flex w-fit flex-col items-center gap-2 rounded-2xl p-4 lg:max-w-3xl"
+		class="bg-surface-100-900 flex w-fit flex-col items-center gap-8 rounded-2xl p-4 lg:max-w-3xl"
 	>
-		<h1 class="h1">Sveikas atvykęs!</h1>
-		<p class="text-center">
-			Įvesk kambario kodą kad prisijungtum prie žaidimo, arba sukurk savo kambarį.
-		</p>
-		<div class="flex w-96 flex-col gap-1">
-			<input class="input text-center" type="text" bind:value={code} placeholder="Kambario kodas" />
-			<footer class="flex gap-1">
-				<button
-					class="btn preset-filled-primary-400-600 w-1/2"
-					on:click={createRoom}
-					disabled={loading}>Sukurti kambarį</button
-				>
-				<button
-					class="btn preset-filled-success-50-950 w-full"
-					on:click={joinRoom}
-					disabled={!code || loading}>Prisijungti</button
-				>
-			</footer>
+		<div class="flex flex-col gap-4 text-center">
+			<h1 class="h1">Sveikas atvykęs!</h1>
+			<p class="text-center">
+				Įvesk kambario kodą kad prisijungtum prie žaidimo, arba sukurk savo kambarį.
+			</p>
+		</div>
+		<div>
+			<div class="flex w-96 flex-col gap-1">
+				<input
+					class="input text-center"
+					type="text"
+					bind:value={code}
+					placeholder="Kambario kodas"
+				/>
+				<footer class="flex gap-1">
+					<button
+						class="btn preset-filled-primary-400-600 w-1/2"
+						on:click={createRoom}
+						disabled={loading}>Sukurti kambarį</button
+					>
+					<button
+						class="btn preset-filled-success-50-950 w-full"
+						on:click={joinRoom}
+						disabled={!code || loading}>Prisijungti</button
+					>
+				</footer>
+			</div>
 		</div>
 	</section>
 </main>
