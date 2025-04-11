@@ -8,20 +8,22 @@
 	export let participantId;
 	export let guessOptions;
 
+	// holds submitted guesses
 	export let guessMap = {}; // { [playerId]: characterId }
 
 	const dispatch = createEventDispatcher();
 
-	// Store the currently selected player and character for assigning a guess
+	// when both are chosen, a guess is automatically assigned and submitted.
 	let activePlayer = null;
 	let activeCharacter = null;
 
-	// When both a player and a character are selected,
-	// assign the guess and clear selections.
 	function assignGuess() {
 		if (activePlayer && activeCharacter) {
+			// Record the guess
 			guessMap[activePlayer] = activeCharacter.character_id;
-			// Reset selections after matching
+			// Automatically submit this guess immediately.
+			dispatch('submitGuesses', { guessMap });
+			// Clear the active selections so that the user can make additional matches.
 			activePlayer = null;
 			activeCharacter = null;
 		}
@@ -37,10 +39,7 @@
 		assignGuess();
 	}
 
-	function handleSubmitGuesses() {
-		dispatch('submitGuesses', { guessMap });
-	}
-
+	// Leave lobby action remains as before.
 	function handleLeaveLobby() {
 		dispatch('leaveLobby');
 	}
@@ -52,29 +51,29 @@
 	<h3>{guessTimeLeft}s</h3>
 </Banner>
 
-<main class="p-4">
+<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
 	<div class="flex flex-col gap-4 md:flex-row">
 		<!-- Players Column -->
-		<div class="flex-1">
-			<h3 class="mb-2 text-xl font-bold">Žaidėjai</h3>
+		<div class="flex flex-1 flex-col">
+			<h3 class="h3 mb-2 text-xl">Žaidėjai</h3>
 			{#each players as player (player.id)}
 				{#if String(player.id) !== String(participantId)}
-					<div
+					<button
 						class="player-card mb-2 cursor-pointer rounded border p-2 {activePlayer === player.id
-							? 'bg-blue-100'
+							? 'bg-surface-700-300 text-surface-contrast-700-300 scale-105 transition-all'
 							: ''}"
 						on:click={() => selectPlayer(player.id)}
 					>
 						<p><strong>{player.username}</strong></p>
 						{#if guessMap[player.id]}
-							<p class="text-sm text-gray-600">
+							<p class="text-sm">
 								Spėjimas:
 								{#each guessOptions.filter((opt) => opt.character_id === guessMap[player.id]) as guess}
 									<span>{guess.character_name}</span>
 								{/each}
 							</p>
 						{/if}
-					</div>
+					</button>
 				{/if}
 			{/each}
 		</div>
@@ -103,19 +102,9 @@
 			</div>
 		</div>
 	</div>
-
-	<!-- Action Buttons -->
-	<div class="mt-6 flex justify-center gap-4">
-		<button class="btn preset-filled-success" on:click={handleSubmitGuesses}>
-			Pateikti spėjimus
-		</button>
-	</div>
 </main>
 
 <style>
-	.player-card:hover {
-		background-color: #f0f0f0;
-	}
 	.character-card:hover {
 		transform: translateY(-2px);
 		transition: transform 0.1s ease-in-out;
