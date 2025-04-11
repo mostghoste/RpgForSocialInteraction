@@ -111,6 +111,14 @@
 			<p>Laikas spėjimams:</p>
 			<span>{guessTimer}s</span>
 		</div>
+		{#if isHost}
+			<!-- Start game button added for host -->
+			<div class="mt-4 flex justify-center">
+				<button class="btn preset-filled-success-400-600" on:click={handleStartGame}>
+					Pradėti žaidimą
+				</button>
+			</div>
+		{/if}
 	</div>
 
 	{#if showSettingsModal}
