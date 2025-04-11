@@ -325,6 +325,7 @@
 			roundLength = updated.round_length;
 			roundCount = updated.round_count;
 			guessTimer = updated.guess_timer;
+			toast.push('Nustatymai atnaujinti sėkmingai!', toastOptions.success);
 		} catch (err) {
 			console.error(err);
 			toast.push('Serverio klaida atnaujinant nustatymus.', toastOptions.error);
