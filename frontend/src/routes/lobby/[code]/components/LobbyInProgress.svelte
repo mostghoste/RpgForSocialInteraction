@@ -86,8 +86,8 @@
 		<h3 class="h3">Liko laiko: {timeLeft}s</h3>
 	{:else if currentRound?.round_number}
 		<h3 class="h3">{currentRound.round_number} raundas</h3>
-		<p>Klausimas: {currentRound.question}</p>
-		<p>Liko laiko: {timeLeft}s</p>
+		<p class="">{currentRound.question}</p>
+		<p class="text-sm">Liko laiko: {timeLeft}s</p>
 	{:else}
 		<p>Šiuo metu nėra aktyvaus raundo.</p>
 	{/if}
