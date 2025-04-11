@@ -25,6 +25,15 @@
 			type="text"
 			bind:value={guestUsername}
 			placeholder="Vartotojo vardas"
+			on:keydown={(e) => {
+				if (
+					e.key === 'Enter' &&
+					guestUsername.trim().length >= 3 &&
+					guestUsername.trim().length <= 20
+				) {
+					handleSubmit();
+				}
+			}}
 		/>
 		<button
 			class="btn preset-filled-primary-500"
