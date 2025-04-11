@@ -12,21 +12,29 @@
 
 	const dispatch = createEventDispatcher();
 
-	// Store the currently selected player for assigning a guess
+	// Store the currently selected player and character for assigning a guess
 	let activePlayer = null;
+	let activeCharacter = null;
+
+	// When both a player and a character are selected,
+	// assign the guess and clear selections.
+	function assignGuess() {
+		if (activePlayer && activeCharacter) {
+			guessMap[activePlayer] = activeCharacter.character_id;
+			// Reset selections after matching
+			activePlayer = null;
+			activeCharacter = null;
+		}
+	}
 
 	function selectPlayer(playerId) {
 		activePlayer = playerId;
+		assignGuess();
 	}
 
 	function selectCharacter(character) {
-		if (activePlayer) {
-			guessMap[activePlayer] = character.character_id;
-			activePlayer = null;
-		} else {
-			// Optionally, you can show a toast prompting the user to first choose a player.
-			alert('Pirma pasirinkite žaidėją, kuriam norite priskirti spėjimą.');
-		}
+		activeCharacter = character;
+		assignGuess();
 	}
 
 	function handleSubmitGuesses() {
@@ -77,7 +85,10 @@
 			<div class="grid grid-cols-2 gap-4 md:grid-cols-3">
 				{#each guessOptions as character (character.character_id)}
 					<div
-						class="character-card cursor-pointer rounded border p-2 hover:shadow-lg"
+						class="character-card cursor-pointer rounded border p-2 hover:shadow-lg {activeCharacter &&
+						activeCharacter.character_id === character.character_id
+							? 'bg-blue-100'
+							: ''}"
 						on:click={() => selectCharacter(character)}
 					>
 						<!-- Replace with an actual image if available -->
@@ -98,7 +109,6 @@
 		<button class="btn preset-filled-success" on:click={handleSubmitGuesses}>
 			Pateikti spėjimus
 		</button>
-		<button class="btn preset-filled-error" on:click={handleLeaveLobby}> Palikti kambarį </button>
 	</div>
 </main>
 
