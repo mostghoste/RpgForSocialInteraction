@@ -11,18 +11,16 @@
 
 	const dispatch = createEventDispatcher();
 
-	// Create slider state values from your numeric props.
+	// slider state values
 	let sliderRoundLength = [roundLength];
 	let sliderRoundCount = [roundCount];
 	let sliderGuessTimer = [guessTimer];
 
-	// Update the exported values when the slider changes.
 	$: roundLength = sliderRoundLength[0];
 	$: roundCount = sliderRoundCount[0];
 	$: guessTimer = sliderGuessTimer[0];
 
 	function handleSave() {
-		// Dispatch updated settings along with selected question collections.
 		dispatch('updateSettings', { roundLength, roundCount, guessTimer, selectedCollections });
 		dispatch('close');
 	}

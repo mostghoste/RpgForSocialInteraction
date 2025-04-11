@@ -295,7 +295,12 @@
 	}
 
 	async function updateSettings(event) {
-		const { roundLength: newRL, roundCount: newRC, guessTimer: newGT } = event.detail;
+		const {
+			roundLength: newRL,
+			roundCount: newRC,
+			guessTimer: newGT,
+			selectedCollections: newSC
+		} = event.detail;
 		try {
 			const secret = sessionStorage.getItem('participantSecret');
 			const res = await fetch(`${API_URL}/api/update_settings/`, {
@@ -307,7 +312,8 @@
 					secret,
 					round_length: newRL,
 					round_count: newRC,
-					guess_timer: newGT
+					guess_timer: newGT,
+					selectedCollections: newSC
 				})
 			});
 			if (!res.ok) {

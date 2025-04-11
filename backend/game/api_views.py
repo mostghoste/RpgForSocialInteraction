@@ -38,7 +38,7 @@ def create_room(request):
 @permission_classes([AllowAny])
 def join_room(request):
     code = request.data.get('code', '').strip()
-    participant = None  # define upfront
+    participant = None
 
     # Try reconnecting if participant_id and secret are provided.
     participant_id = request.data.get('participant_id')
@@ -64,7 +64,7 @@ def join_room(request):
             session = GameSession.objects.get(code=code)
         except GameSession.DoesNotExist:
             return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
-        # New joins are allowed only when the room is pending.
+        # New joins are allowed only when the room is in pending
         if session.status != 'pending':
             return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
         user = request.user if request.user.is_authenticated else None
@@ -98,6 +98,13 @@ def join_room(request):
                 guest_name=guest_username,
                 is_host=is_host_flag
             )
+
+        # If no question collections have been set yet, select all available ones
+        if session.question_collections.count() == 0:
+            all_collections = QuestionCollection.objects.all()
+            session.question_collections.set(all_collections)
+            session.save()
+            
     # Broadcast the updated lobby state.
     from .utils import broadcast_lobby_update
     broadcast_lobby_update(session)
@@ -200,17 +207,27 @@ def update_settings(request):
 
     session.round_length = round_length
     session.round_count = round_count
+
+    # If selected collections were sent in the request, update them. 
+    selected_ids = request.data.get('selectedCollections')
+    if selected_ids is not None:
+        # Assuming selected_ids is a list of collection ids.
+        from .models import QuestionCollection
+        valid_collections = QuestionCollection.objects.filter(id__in=selected_ids)
+        session.question_collections.set(valid_collections)
+
     session.save()
 
     from .utils import broadcast_lobby_update
     broadcast_lobby_update(session)
-
+    
     return Response({
          'code': session.code,
          'status': session.status,
          'round_length': session.round_length,
          'round_count': session.round_count,
-         'guess_timer': session.guess_timer
+         'guess_timer': session.guess_timer,
+         'question_collections': list(session.question_collections.values('id', 'name'))
     })
 
 @api_view(['POST'])
