@@ -23,7 +23,7 @@
 
 <Banner>
 	{#if currentRound.round_number}
-		<h3>Raundas {currentRound.round_number}</h3>
+		<h3 class="h3">{currentRound.round_number} raundas</h3>
 		<p>Klausimas: {currentRound.question}</p>
 		<p>Liko laiko: {timeLeft}s</p>
 	{:else}
@@ -75,5 +75,3 @@
 		<button on:click={handleSendMessage} style="padding: 0.5rem;">Siųsti</button>
 	</div>
 </div>
-
-<button class="border" on:click={handleLeaveLobby}>Palikti kambarį</button>

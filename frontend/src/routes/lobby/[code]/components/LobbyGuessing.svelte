@@ -25,8 +25,9 @@
 </script>
 
 <Banner>
-	<h2>Spėjimų fazė</h2>
-	<p>Liko laiko spėjimams: {guessTimeLeft}s</p>
+	<h2 class="h4">Spėjimų fazė</h2>
+	<p>Liko laiko spėjimams</p>
+	<h3>{guessTimeLeft}s</h3>
 </Banner>
 
 <div class="guessing-view">

@@ -13,15 +13,16 @@
 </script>
 
 <Banner>
-	<h2>Žaidimas baigtas!</h2>
+	<h2 class="h4">Žaidimas baigėsi!</h2>
 </Banner>
-
-<div class="completed-view">
-	<h3>Rezultatai:</h3>
+<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
+	<h3 class="h1">Rezultatai:</h3>
 	<ul>
 		{#each players as player}
 			<li>{player.username}: {player.points} taškai</li>
 		{/each}
 	</ul>
-	<button class="border" on:click={handleLeaveLobby}>Išeiti</button>
-</div>
+	<button class="btn preset-filled-primary-500" on:click={handleLeaveLobby}
+		>Noriu žaisti vėl!</button
+	>
+</main>
