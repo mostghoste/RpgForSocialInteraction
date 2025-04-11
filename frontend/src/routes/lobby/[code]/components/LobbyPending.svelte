@@ -69,7 +69,7 @@
 <Banner>
 	<div class="flex w-full">
 		<button
-			class="btn btn-sm preset-filled-error-400-600"
+			class="btn btn-sm preset-filled-primary-400-600 hover:scale-105 active:scale-95"
 			title="Palikti kambarį"
 			on:click={handleLeaveLobby}
 		>
@@ -103,7 +103,7 @@
 		{#if isHost}
 			<button
 				title="Žaidimo nustatymai"
-				class="btn hover:preset-filled-surface-300-700 absolute right-2 top-2 p-2"
+				class="btn hover:preset-filled-surface-300-700 absolute right-2 top-2 p-2 hover:scale-105 active:scale-95"
 				on:click={() => (showSettingsModal = true)}
 			>
 				<Settings />
@@ -125,7 +125,10 @@
 		{#if isHost}
 			<!-- Start game button added for host -->
 			<div class="mt-4 flex justify-center">
-				<button class="btn preset-filled-success-400-600" on:click={handleStartGame}>
+				<button
+					class="btn preset-filled-success-400-600 hover:scale-105 active:scale-95"
+					on:click={handleStartGame}
+				>
 					Pradėti žaidimą
 				</button>
 			</div>
@@ -147,7 +150,7 @@
 	<div class="bg-surface-100-900 relative flex max-h-96 flex-col gap-2 rounded-2xl p-4">
 		<h4 class="h6">Išsirink personažą:</h4>
 		<button
-			class="btn hover:preset-filled-surface-300-700 absolute right-4 top-3 rounded-sm p-2"
+			class="btn hover:preset-filled-surface-300-700 absolute right-4 top-3 rounded-sm p-2 hover:scale-105 active:scale-95"
 			on:click={() => (showCharacterModal = true)}
 		>
 			<UserRoundPlus></UserRoundPlus>
