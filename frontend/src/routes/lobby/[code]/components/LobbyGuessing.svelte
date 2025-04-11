@@ -29,33 +29,34 @@
 	<p>Liko laiko spėjimams</p>
 	<h3>{guessTimeLeft}s</h3>
 </Banner>
+<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
+	<div>
+		<h2>Atspėk draugus! 👀</h2>
+		<p>Pasirink, kurį personažą, manai, žaidžia kiekvienas iš kitų žaidėjų.</p>
 
-<div class="guessing-view">
-	<h2>Atspėk draugus! 👀</h2>
-	<p>Pasirink, kurį personažą, manai, žaidžia kiekvienas iš kitų žaidėjų.</p>
+		<div class="guessing-panel">
+			{#each players as player}
+				{#if String(player.id) !== String(participantId)}
+					<div class="guessing-card">
+						<p><strong>{player.username}</strong></p>
+						<select
+							bind:value={guessMap[player.id]}
+							on:change={(e) => handleChangeGuess(player.id, e.target.value)}
+						>
+							<option value="" disabled selected>Pasirink personažą</option>
+							{#each guessOptions as option}
+								<option value={option.character_id}>{option.character_name}</option>
+							{/each}
+						</select>
+					</div>
+				{/if}
+			{/each}
+		</div>
 
-	<div class="guessing-panel">
-		{#each players as player}
-			{#if String(player.id) !== String(participantId)}
-				<div class="guessing-card">
-					<p><strong>{player.username}</strong></p>
-					<select
-						bind:value={guessMap[player.id]}
-						on:change={(e) => handleChangeGuess(player.id, e.target.value)}
-					>
-						<option value="" disabled selected>Pasirink personažą</option>
-						{#each guessOptions as option}
-							<option value={option.character_id}>{option.character_name}</option>
-						{/each}
-					</select>
-				</div>
-			{/if}
-		{/each}
+		<button class="border" on:click={handleSubmitGuesses} disabled={guessTimeLeft === 0}>
+			Pateikti spėjimus
+		</button>
+
+		<button class="border" on:click={handleLeaveLobby}>Palikti kambarį</button>
 	</div>
-
-	<button class="border" on:click={handleSubmitGuesses} disabled={guessTimeLeft === 0}>
-		Pateikti spėjimus
-	</button>
-
-	<button class="border" on:click={handleLeaveLobby}>Palikti kambarį</button>
-</div>
+</main>

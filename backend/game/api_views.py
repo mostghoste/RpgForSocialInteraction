@@ -249,16 +249,15 @@ def leave_room(request):
 
     was_host = participant.is_host
 
-    # If game is in progress, mark the participant as inactive, otherwise delete.
-    if session.status == 'in_progress':
+    if session.status == 'pending':
+         participant.delete()
+    else:
          participant.is_active = False
          participant.save()
-    else:
-         participant.delete()
 
     remaining = session.participants.filter(is_active=True)
     if remaining.exists():
-         # If the leaving participant was the host, transfer host privileges
+         # If the leaving participant was the host, assign host privileges to the oldest active participant.
          if was_host:
              oldest = remaining.order_by('joined_at').first()
              oldest.is_host = True
@@ -267,9 +266,17 @@ def leave_room(request):
          broadcast_lobby_update(session)
          return Response({'message': 'Išėjote iš kambario.'})
     else:
-         # If no active participants remain, delete the session.
-         session.delete()
-         return Response({'message': 'Jūs buvote paskutinis kambaryje. Kambarys ištrintas.'})
+         # If no active participants remain and the session is pending, delete the session.
+         # For non-pending sessions (i.e. ongoing or completed), you may prefer to keep the session
+         # so that the game results remain visible.
+         if session.status == 'pending':
+             session.delete()
+             return Response({'message': 'Išėjote iš kambario.'})
+         else:
+             from .utils import broadcast_lobby_update
+             broadcast_lobby_update(session)
+             return Response({'message': 'Išėjote iš kambario.'})
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
