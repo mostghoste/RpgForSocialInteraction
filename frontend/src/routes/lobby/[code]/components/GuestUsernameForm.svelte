@@ -1,11 +1,16 @@
 <!-- src/routes/lobby/[code]/components/GuestUsernameForm.svelte -->
 <script>
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import Banner from '$lib/Banner.svelte';
 	const dispatch = createEventDispatcher();
 
 	export let code;
 	let guestUsername = '';
+	let usernameInput;
+	// On component mount, focus the input field
+	onMount(() => {
+		usernameInput && usernameInput.focus();
+	});
 
 	function handleSubmit() {
 		dispatch('submitGuestUsername', { guestUsername });
@@ -25,6 +30,7 @@
 			type="text"
 			bind:value={guestUsername}
 			placeholder="Vartotojo vardas"
+			bind:this={usernameInput}
 			on:keydown={(e) => {
 				if (
 					e.key === 'Enter' &&
