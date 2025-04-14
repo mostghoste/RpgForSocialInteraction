@@ -44,10 +44,11 @@
 		class="bg-surface-100-900 flex h-full w-full flex-col gap-4 p-2 md:max-w-2xl md:rounded-lg md:p-4"
 	>
 		<h3 class="mb-2 text-xl font-semibold">Pokalbio langas</h3>
-		<div class="flex max-h-full flex-col gap-2 overflow-y-auto">
+		<div class="flex max-h-full flex-1 flex-col gap-2 overflow-y-auto">
 			{#each chatMessages as msg (msg.id)}
 				{#if msg.system}
 					<!-- System message -->
+					<hr class="hr mt-2" />
 					<div class="text-center text-sm">
 						{@html msg.text}
 					</div>
