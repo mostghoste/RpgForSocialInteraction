@@ -48,7 +48,9 @@
 </script>
 
 <Banner variant={hasSubmittedMessage ? 'success' : 'default'}>
-	{#if hasSubmittedMessage}
+	{#if currentRound && timeLeft === 0}
+		<h3 class="h3">Pradedamas sekantis raundas...</h3>
+	{:else if hasSubmittedMessage}
 		<h3 class="h3">Liko laiko: {timeLeft}s</h3>
 	{:else if currentRound?.round_number}
 		<h3 class="h3">{currentRound.round_number} raundas</h3>
