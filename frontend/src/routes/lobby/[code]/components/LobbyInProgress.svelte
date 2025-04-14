@@ -11,6 +11,12 @@
 	export let chatInput;
 
 	let hasSubmittedMessage = false;
+	let prevRoundNumber = null;
+	$: if (currentRound && currentRound.round_number !== prevRoundNumber) {
+		// Reset when new round starts
+		hasSubmittedMessage = false;
+		prevRoundNumber = currentRound.round_number;
+	}
 	let chatContainer;
 
 	const dispatch = createEventDispatcher();
@@ -33,7 +39,7 @@
 		if (chatContainer && chatMessages && chatMessages.length !== previousMessageCount) {
 			const distanceFromBottom =
 				chatContainer.scrollHeight - (chatContainer.scrollTop + chatContainer.clientHeight);
-			if (distanceFromBottom < 400) {
+			if (distanceFromBottom < 4200) {
 				chatContainer.scrollTop = chatContainer.scrollHeight;
 			}
 			previousMessageCount = chatMessages.length;
