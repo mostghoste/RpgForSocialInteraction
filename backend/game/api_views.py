@@ -542,8 +542,9 @@ def start_game(request):
     if question:
         send_system_message(
             new_round,
-            f"Round {round_number} prasidėjo. Klausimas: {question.text}"
+            f"<p><strong>{new_round.round_number} raundas</strong></p><p>{new_round.question.text if new_round.question else 'Nėra klausimo.'}</p>"
         )
+
 
     # Broadcast round update so clients can display the question, round number, and time left.
     broadcast_round_update(session.code, new_round)

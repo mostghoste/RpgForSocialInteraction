@@ -46,8 +46,8 @@
 			{#each chatMessages as msg (msg.id)}
 				{#if msg.system}
 					<!-- System message: Render as a divider or banner -->
-					<div class="my-2 text-center text-sm italic text-red-600">
-						{msg.text}
+					<div class="text-surface-100 text-center text-sm">
+						{@html msg.text}
 					</div>
 				{:else}
 					<!-- Regular chat message -->

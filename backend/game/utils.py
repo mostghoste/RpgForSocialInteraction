@@ -100,7 +100,8 @@ def check_and_advance_rounds():
         if latest_round:
             if latest_round.end_time <= now:
                 # Send a round-end system message.
-                send_system_message(latest_round, f"Raundas {latest_round.round_number} pasibaigė.")
+                # send_system_message(latest_round, f"Raundas {latest_round.round_number} pasibaigė.")
+                pass
             else:
                 # The current round is still ongoing.
                 print(f"⏳ Round {latest_round.round_number} in session {session.code} is still ongoing.")
@@ -135,8 +136,7 @@ def check_and_advance_rounds():
 
         # Send a system message for round start.
         send_system_message(new_round,
-            f"Raundas {new_round.round_number} prasidėjo. " +
-            (f"Klausimas: {new_round.question.text}" if new_round.question else "Nėra klausimo.")
+            f"<p><strong>{new_round.round_number} raundas</strong></p><p>{new_round.question.text if new_round.question else 'Nėra klausimo.'}</p>"
         )
 
         # Broadcast round and lobby updates.
