@@ -5,7 +5,7 @@ from datetime import timedelta
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.utils import timezone
-from .models import GameSession, Round
+from .models import GameSession, Round, Message
 
 def broadcast_lobby_update(session):
     channel_layer = get_channel_layer()
@@ -96,16 +96,19 @@ def check_and_advance_rounds():
             .order_by('-round_number')
             .first()
         )
-        # First round is created when host starts the game so this is redundant
-        if not latest_round:
-            print(f"🆕 No rounds yet for session {session.code}. Starting round 1.")
-            next_round_number = 1
-        else:
-            if latest_round.end_time > now:
+        # If there is a round and its end_time has passed, mark it as ended.
+        if latest_round:
+            if latest_round.end_time <= now:
+                # Send a round-end system message.
+                send_system_message(latest_round, f"Raundas {latest_round.round_number} pasibaigė.")
+            else:
+                # The current round is still ongoing.
                 print(f"⏳ Round {latest_round.round_number} in session {session.code} is still ongoing.")
                 continue
-            next_round_number = latest_round.round_number + 1
+        # Compute the next round number.
+        next_round_number = (latest_round.round_number + 1) if latest_round else 1
 
+        # Check if all rounds have been played.
         if next_round_number > session.round_count:
             print(f"✅ Session {session.code} finished all rounds. Moving to 'guessing'.")
             session.status = 'guessing'
@@ -128,6 +131,40 @@ def check_and_advance_rounds():
             round_number=next_round_number,
             end_time=end_time
         )
-        print(f"🌀 Created round {next_round_number} in session {session.code}")
+        print(f"🌀 Created round {new_round.round_number} in session {session.code}")
+
+        # Send a system message for round start.
+        send_system_message(new_round,
+            f"Raundas {new_round.round_number} prasidėjo. " +
+            (f"Klausimas: {new_round.question.text}" if new_round.question else "Nėra klausimo.")
+        )
+
+        # Broadcast round and lobby updates.
         broadcast_round_update(session.code, new_round)
         broadcast_lobby_update(session)
+
+
+# Used to send system messages in chat, like the beginning and end of a round
+def send_system_message(round_obj, text):
+    message = Message.objects.create(
+        participant=None,
+        round=round_obj,
+        text=text,
+        message_type='system'
+    )
+    channel_layer = get_channel_layer()
+    data = {
+        'type': 'chat_update',
+        'message': {
+            'id': message.id,
+            'text': message.text,
+            'sentAt': message.sent_at.isoformat(),
+            'system': True,
+            'roundNumber': round_obj.round_number if round_obj else None,
+            'question': round_obj.question.text if (round_obj and round_obj.question) else ""
+        }
+    }
+    async_to_sync(channel_layer.group_send)(
+        f'lobby_{round_obj.game_session.code}',
+        {'type': 'lobby_update', 'data': data}
+    )

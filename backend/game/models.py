@@ -149,8 +149,17 @@ class Message(models.Model):
     )
     text = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
+    MESSAGE_TYPE_CHOICES = (
+        ('chat', 'Chat'),
+        ('system', 'System'),
+    )
+    message_type = models.CharField(
+        max_length=10, choices=MESSAGE_TYPE_CHOICES, default='chat'
+    )
 
     def __str__(self):
+        if self.message_type == 'system':
+            return f"System Message: {self.text[:50]}"
         if self.participant:
             if self.participant.user:
                 name = self.participant.user.username

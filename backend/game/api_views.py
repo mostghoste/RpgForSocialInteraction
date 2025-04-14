@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from .models import GameSession, Participant, QuestionCollection, Message, Round
 from django.utils import timezone
 from django.db.models import F
-from .utils import broadcast_chat_message, broadcast_lobby_update, broadcast_round_update
+from .utils import broadcast_chat_message, broadcast_lobby_update, broadcast_round_update, send_system_message
 
 def generate_room_code(length=6):
     return ''.join(random.choices(string.ascii_uppercase, k=length))
@@ -120,16 +120,23 @@ def join_room(request):
 
     messages = []
     for msg in Message.objects.filter(round__game_session=session).order_by('sent_at'):
+        if msg.participant is not None and msg.participant.assigned_character:
+            character_image = msg.participant.assigned_character.image.url if msg.participant.assigned_character.image else None
+            character_name = msg.participant.assigned_character.name
+        else:
+            character_image = None
+            character_name = "System" if msg.message_type == "system" else None
+
         messages.append({
+            'id': msg.id,
             'text': msg.text,
             'sentAt': msg.sent_at.isoformat(),
             'roundNumber': msg.round.round_number,
-            'characterImage': msg.participant.assigned_character.image.url
-                            if msg.participant.assigned_character and msg.participant.assigned_character.image
-                            else None,
-            'characterName': msg.participant.assigned_character.name
-                            if msg.participant.assigned_character else None,
+            'system': (msg.message_type == 'system'),
+            'characterImage': character_image,
+            'characterName': character_name,
         })
+
 
     collections_list = list(session.question_collections.values('id', 'name'))
 
@@ -531,6 +538,12 @@ def start_game(request):
         start_time=start_time,
         end_time=end_time
     )
+
+    if question:
+        send_system_message(
+            new_round,
+            f"Round {round_number} prasidėjo. Klausimas: {question.text}"
+        )
 
     # Broadcast round update so clients can display the question, round number, and time left.
     broadcast_round_update(session.code, new_round)
