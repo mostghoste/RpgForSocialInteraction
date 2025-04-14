@@ -1,6 +1,6 @@
 <!-- src/routes/lobby/[code]/components/LobbyInProgress.svelte -->
 <script>
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, afterUpdate } from 'svelte';
 	import Banner from '$lib/Banner.svelte';
 	import { Send } from '@lucide/svelte';
 	import { Avatar } from '@skeletonlabs/skeleton-svelte';
@@ -11,6 +11,7 @@
 	export let chatInput;
 
 	let hasSubmittedMessage = false;
+	let chatContainer;
 
 	const dispatch = createEventDispatcher();
 
@@ -25,6 +26,19 @@
 	function handleLeaveLobby() {
 		dispatch('leaveLobby');
 	}
+
+	// Auto-scroll to the bottom of chat when new message is sent
+	let previousMessageCount = 0;
+	afterUpdate(() => {
+		if (chatContainer && chatMessages && chatMessages.length !== previousMessageCount) {
+			const distanceFromBottom =
+				chatContainer.scrollHeight - (chatContainer.scrollTop + chatContainer.clientHeight);
+			if (distanceFromBottom < 400) {
+				chatContainer.scrollTop = chatContainer.scrollHeight;
+			}
+			previousMessageCount = chatMessages.length;
+		}
+	});
 </script>
 
 <Banner variant={hasSubmittedMessage ? 'success' : 'default'}>
@@ -44,7 +58,7 @@
 		class="bg-surface-100-900 flex h-full w-full flex-col gap-4 p-2 md:max-w-2xl md:rounded-lg md:p-4"
 	>
 		<h3 class="mb-2 text-xl font-semibold">Pokalbio langas</h3>
-		<div class="flex max-h-full flex-1 flex-col gap-2 overflow-y-auto">
+		<div bind:this={chatContainer} class="flex max-h-full flex-1 flex-col gap-2 overflow-y-auto">
 			{#each chatMessages as msg (msg.id)}
 				{#if msg.system}
 					<!-- System message -->
