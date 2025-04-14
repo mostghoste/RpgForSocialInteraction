@@ -3,8 +3,8 @@
 	import { createEventDispatcher } from 'svelte';
 	import Banner from '$lib/Banner.svelte';
 	import { Send } from '@lucide/svelte';
+	import { Avatar } from '@skeletonlabs/skeleton-svelte';
 
-	export let API_URL;
 	export let currentRound;
 	export let timeLeft;
 	export let chatMessages;
@@ -27,41 +27,46 @@
 	}
 </script>
 
-<!-- Use a different Banner variant if the user has already sent a message -->
 <Banner variant={hasSubmittedMessage ? 'success' : 'default'}>
 	{#if hasSubmittedMessage}
 		<h3 class="h3">Liko laiko: {timeLeft}s</h3>
 	{:else if currentRound?.round_number}
 		<h3 class="h3">{currentRound.round_number} raundas</h3>
-		<p class="">{currentRound.question}</p>
+		<p class="text-center">{currentRound.question}</p>
 		<p class="text-sm">Liko laiko: {timeLeft}s</p>
 	{:else}
 		<p>Šiuo metu nėra aktyvaus raundo.</p>
 	{/if}
 </Banner>
-<main class="flex h-full flex-col items-center justify-center gap-4 overflow-y-scroll p-4">
-	<section class="bg-surface-100-900 h-full w-full max-w-2xl rounded-lg p-4">
+
+<main class="flex h-full flex-col items-center justify-center gap-4 overflow-y-scroll md:p-4">
+	<section
+		class="bg-surface-100-900 flex h-full w-full flex-col gap-4 p-2 md:max-w-2xl md:rounded-lg md:p-4"
+	>
 		<h3 class="mb-2 text-xl font-semibold">Pokalbio langas</h3>
 		<div class="flex max-h-full flex-col gap-2 overflow-y-auto">
 			{#each chatMessages as msg (msg.id)}
 				{#if msg.system}
-					<!-- System message: Render as a divider or banner -->
-					<div class="text-surface-100 text-center text-sm">
+					<!-- System message -->
+					<div class="text-center text-sm">
 						{@html msg.text}
 					</div>
 				{:else}
 					<!-- Regular chat message -->
-					<div class="rounded-md border p-2">
-						<div class="mb-1 flex items-center">
-							{#if msg.characterImage}
-								<img src="{API_URL}{msg.characterImage}" alt="Char" width="40" class="mr-2" />
-							{:else}
-								<img src="/fallback_character.jpg" alt="Fallback" width="40" class="mr-2" />
-							{/if}
-						</div>
-						<div>
-							<p><strong>{msg.characterName}:</strong></p>
-							<p title={new Date(msg.sentAt).toLocaleTimeString()}>{msg.text}</p>
+					<div class="flex w-full gap-2">
+						<Avatar
+							src={msg.characterImage ? msg.characterImage : '/fallback_character.jpg'}
+							name={msg.characterName}
+						></Avatar>
+						<div class="flex-1">
+							<div
+								class="max-w-5/6 bg-surface-900-100 text-surface-contrast-900-100 w-fit break-all rounded-xl rounded-bl-md px-4 py-2"
+							>
+								<p><strong>{msg.characterName}</strong></p>
+								<p class="text-wrap" title={new Date(msg.sentAt).toLocaleTimeString()}>
+									{msg.text}
+								</p>
+							</div>
 						</div>
 					</div>
 				{/if}
