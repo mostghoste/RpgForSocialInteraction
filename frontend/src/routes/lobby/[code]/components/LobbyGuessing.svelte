@@ -14,17 +14,15 @@
 
 	const dispatch = createEventDispatcher();
 
-	// when both are chosen, a guess is automatically assigned and submitted.
+	// when both are chosen, a guess is assigned and submitted
 	let activePlayer = null;
 	let activeCharacter = null;
 
 	function assignGuess() {
 		if (activePlayer && activeCharacter) {
-			// Record the guess
 			guessMap[activePlayer] = activeCharacter.character_id;
-			// Automatically submit this guess immediately.
 			dispatch('submitGuesses', { guessMap });
-			// Clear the active selections so that the user can make additional matches.
+
 			activePlayer = null;
 			activeCharacter = null;
 		}
@@ -40,19 +38,27 @@
 		assignGuess();
 	}
 
-	// Leave lobby action remains as before.
 	function handleLeaveLobby() {
 		dispatch('leaveLobby');
 	}
+
+	$: remainingGuesses = players.filter(
+		(player) => String(player.id) !== String(participantId) && !guessMap[player.id]
+	).length;
 </script>
 
 <Banner>
-	<h2 class="h4">Metas spėjimams!</h2>
-	<p>Tau dar reikia atlikti 3 spėjimus</p>
+	{#if remainingGuesses > 0}
+		<h2 class="h4">Metas spėjimams!</h2>
+		<p>
+			Tau dar reikia atlikti {remainingGuesses}
+			{remainingGuesses === 1 ? 'spėjimą' : 'spėjimus'}
+		</p>
+	{/if}
 	<h3>{guessTimeLeft}s</h3>
 </Banner>
 
-<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
+<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll p-2">
 	<div class="flex flex-col gap-4 md:flex-row">
 		<!-- Players -->
 		<div class="bg-surface-100-900 flex flex-1 flex-col gap-2 rounded-2xl p-4">
