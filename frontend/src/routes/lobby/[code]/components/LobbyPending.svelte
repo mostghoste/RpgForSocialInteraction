@@ -81,59 +81,63 @@
 	</div>
 </Banner>
 
-<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
-	<div class="bg-surface-100-900 flex flex-col rounded-2xl p-4">
-		<h2 class="h6">Žaidėjai kambaryje:</h2>
-		<ul>
-			{#each players as player}
-				<li>
-					{#if String(player.id) === String(lobbyState.participant_id)}
-						<strong>{player.username}</strong>
-					{:else}
-						{player.username}
-					{/if}
-					<span title="Kambario vadas">{player.is_host ? ' 👑' : ''}</span>
-					<span title="Išsirinko veikėją">{player.characterSelected ? ' ✅' : ''}</span>
-				</li>
-			{/each}
-		</ul>
-	</div>
+<main
+	class="flex h-full w-full max-w-3xl flex-col items-center justify-center gap-4 overflow-y-scroll p-2"
+>
+	<section class="flex w-full flex-col gap-4 md:flex-row">
+		<div class="bg-surface-100-900 flex w-full flex-1 flex-col rounded-2xl p-4">
+			<h2 class="h6">Žaidėjai kambaryje:</h2>
+			<ul>
+				{#each players as player}
+					<li>
+						{#if String(player.id) === String(lobbyState.participant_id)}
+							<strong>{player.username}</strong>
+						{:else}
+							{player.username}
+						{/if}
+						<span title="Kambario vadas">{player.is_host ? ' 👑' : ''}</span>
+						<span title="Išsirinko veikėją">{player.characterSelected ? ' ✅' : ''}</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
 
-	<div class="bg-surface-100-900 relative flex flex-col rounded-2xl p-4">
-		{#if isHost}
-			<button
-				title="Žaidimo nustatymai"
-				class="btn hover:preset-filled-surface-300-700 absolute right-2 top-2 p-2 hover:scale-105 active:scale-95"
-				on:click={() => (showSettingsModal = true)}
-			>
-				<Settings />
-			</button>
-		{/if}
-		<h3 class="h6 {isHost ? 'pr-12' : ''}">Žaidimo nustatymai</h3>
-		<div class="flex justify-between">
-			<p>Raundo ilgis:</p>
-			<span>{roundLength}s</span>
-		</div>
-		<div class="flex justify-between">
-			<p>Raundų kiekis:</p>
-			<span>{roundCount}</span>
-		</div>
-		<div class="flex justify-between">
-			<p>Laikas spėjimams:</p>
-			<span>{guessTimer}s</span>
-		</div>
-		{#if isHost}
-			<!-- Start game button added for host -->
-			<div class="mt-4 flex justify-center">
+		<div class="bg-surface-100-900 relative flex w-full flex-1 flex-col rounded-2xl p-4">
+			{#if isHost}
 				<button
-					class="btn preset-filled-success-400-600 hover:scale-105 active:scale-95"
-					on:click={handleStartGame}
+					title="Žaidimo nustatymai"
+					class="btn hover:preset-filled-surface-300-700 absolute right-2 top-2 p-2 hover:scale-105 active:scale-95"
+					on:click={() => (showSettingsModal = true)}
 				>
-					Pradėti žaidimą
+					<Settings />
 				</button>
+			{/if}
+			<h3 class="h6 {isHost ? 'pr-12' : ''}">Žaidimo nustatymai</h3>
+			<div class="flex justify-between">
+				<p>Raundo ilgis:</p>
+				<span>{roundLength}s</span>
 			</div>
-		{/if}
-	</div>
+			<div class="flex justify-between">
+				<p>Raundų kiekis:</p>
+				<span>{roundCount}</span>
+			</div>
+			<div class="flex justify-between">
+				<p>Laikas spėjimams:</p>
+				<span>{guessTimer}s</span>
+			</div>
+			{#if isHost}
+				<!-- Start game button added for host -->
+				<div class="mt-4 flex justify-center">
+					<button
+						class="btn preset-filled-success-400-600 hover:scale-105 active:scale-95"
+						on:click={handleStartGame}
+					>
+						Pradėti žaidimą
+					</button>
+				</div>
+			{/if}
+		</div>
+	</section>
 
 	{#if showSettingsModal}
 		<HostSettingsModal
@@ -147,7 +151,7 @@
 		/>
 	{/if}
 
-	<div class="bg-surface-100-900 relative flex max-h-96 flex-col gap-2 rounded-2xl p-4">
+	<div class="bg-surface-100-900 relative flex max-h-96 w-full flex-col gap-2 rounded-2xl p-4">
 		<h4 class="h6">Išsirink personažą:</h4>
 		<button
 			class="btn hover:preset-filled-surface-300-700 absolute right-4 top-3 rounded-sm p-2 hover:scale-105 active:scale-95"
@@ -164,9 +168,9 @@
 				>
 					<Avatar src={char.image ? char.image : '/fallback_character.jpg'} name={char.name}
 					></Avatar>
-					<div class="flex flex-col justify-start">
+					<div class="flex flex-1 flex-col justify-start">
 						<p class="text-start font-bold">{char.name}</p>
-						<p class="">{char.description}</p>
+						<p class="text-start">{char.description}</p>
 					</div>
 				</button>
 			{/each}
