@@ -61,7 +61,9 @@
 	{/if}
 </Banner>
 
-<main class="flex h-full flex-col items-center justify-center gap-4 overflow-y-scroll md:p-4">
+<main
+	class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll md:p-4"
+>
 	<section
 		class="bg-surface-100-900 flex h-full w-full flex-col gap-4 p-2 md:max-w-2xl md:rounded-lg md:p-4"
 	>
