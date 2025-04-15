@@ -74,7 +74,7 @@
 					>
 						<p><strong>{player.username}</strong></p>
 						{#if guessMap[player.id]}
-							<p class="text-sm">
+							<p class="text-primary-200 text-sm">
 								{#each guessOptions.filter((opt) => opt.character_id === guessMap[player.id]) as guess}
 									<span>{guess.character_name}</span>
 								{/each}

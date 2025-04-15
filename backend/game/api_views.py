@@ -615,23 +615,42 @@ def send_chat_message(request):
 @permission_classes([AllowAny])
 def available_guess_options(request):
     code = request.query_params.get('code', '').strip()
-    if not code:
-        return Response({'error': 'Prašome įvesti kambario kodą.'}, status=400)
+    participant_id = request.query_params.get('participant_id', '').strip()
+    provided_secret = request.query_params.get('secret', '').strip()
+
+    if not code or not participant_id or not provided_secret:
+        return Response(
+            {'error': 'Prašome įvesti kambario kodą, dalyvio ID ir slaptažodį.'},
+            status=400
+        )
+
     try:
         session = GameSession.objects.get(code=code)
     except GameSession.DoesNotExist:
         return Response({'error': 'Kambarys nerastas.'}, status=404)
     
     if session.status != 'guessing':
-        return Response({'error': 'Spėjimų pasirinkimai prieinami tik spėjimų fazėje.'}, status=400)
+        return Response(
+            {'error': 'Spėjimų pasirinkimai prieinami tik spėjimų fazėje.'},
+            status=400
+        )
     
-    # Get unique assigned characters
+    try:
+        participant = session.participants.get(id=participant_id)
+    except Participant.DoesNotExist:
+        return Response({'error': 'Dalyvis nerastas.'}, status=404)
+    
+    if participant.secret != provided_secret:
+        return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+
     assigned_chars = (
         session.participants
         .filter(assigned_character__isnull=False)
+        .exclude(id=participant.id)
         .values('assigned_character__id', 'assigned_character__name', 'assigned_character__image')
         .distinct()
     )
+    
     options = []
     for char in assigned_chars:
         options.append({

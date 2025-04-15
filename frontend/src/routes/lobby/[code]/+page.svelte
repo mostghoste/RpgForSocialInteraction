@@ -452,8 +452,9 @@
 	async function fetchGuessOptions() {
 		try {
 			const res = await fetch(
-				`${API_URL}/api/available_guess_options/?code=${encodeURIComponent(code)}`
+				`${API_URL}/api/available_guess_options/?code=${encodeURIComponent(code)}&participant_id=${participantId}&secret=${participantSecret}`
 			);
+
 			if (res.ok) {
 				guessOptions = await res.json();
 			} else {
