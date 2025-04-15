@@ -58,27 +58,25 @@
 </script>
 
 <Banner>
-	<h1 class="h2 text-center">Role playing game for social interaction</h1>
+	<h1 class="h3 text-center">Role playing game for social interaction</h1>
 </Banner>
 <main class="flex h-full items-center justify-center p-2">
 	<section
-		class="bg-surface-100-900 flex w-fit flex-col items-center gap-8 rounded-2xl p-4 lg:max-w-3xl"
+		class="bg-surface-100-900 flex w-fit flex-col items-center gap-4 rounded-2xl p-4 lg:max-w-3xl"
 	>
-		<div class="flex flex-col gap-4 text-center">
-			<h1 class="h1">Sveikas atvykęs!</h1>
-			<p class="text-center">
-				Įvesk kambario kodą kad prisijungtum prie žaidimo, arba sukurk savo kambarį.
-			</p>
+		<div class="flex flex-col gap-2">
+			<h1 class="h2">Sveikas atvykęs!</h1>
+			<p>Įvesk kambario kodą kad prisijungtum prie žaidimo, arba sukurk savo kambarį.</p>
 		</div>
 		<div>
-			<div class="flex w-96 flex-col gap-1">
+			<div class="flex w-96 flex-col gap-2">
 				<input
 					class="input text-center"
 					type="text"
 					bind:value={code}
 					placeholder="Kambario kodas"
 				/>
-				<footer class="flex gap-1">
+				<footer class="flex gap-2">
 					<button
 						class="btn preset-filled-primary-400-600 w-1/2"
 						on:click={createRoom}

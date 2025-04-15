@@ -50,12 +50,12 @@
 <Banner>
 	{#if remainingGuesses > 0}
 		<h2 class="h4">Metas spėjimams!</h2>
-		<p>
+		<p class="h3">
 			Tau dar reikia atlikti {remainingGuesses}
 			{remainingGuesses === 1 ? 'spėjimą' : 'spėjimus'}
 		</p>
 	{/if}
-	<h3>{guessTimeLeft}s</h3>
+	<h3 class="h4">{guessTimeLeft}s</h3>
 </Banner>
 
 <main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll p-2">

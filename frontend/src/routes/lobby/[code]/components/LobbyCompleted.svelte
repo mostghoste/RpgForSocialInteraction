@@ -13,7 +13,7 @@
 </script>
 
 <Banner>
-	<h2 class="h4">Žaidimas baigėsi!</h2>
+	<h2 class="h3">Žaidimas baigėsi!</h2>
 </Banner>
 <main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
 	<h3 class="h1">Rezultatai:</h3>

@@ -55,7 +55,7 @@
 	{:else if currentRound?.round_number}
 		<h3 class="h3">{currentRound.round_number} raundas</h3>
 		<p class="text-center">{currentRound.question}</p>
-		<p class="text-sm">Liko laiko: {timeLeft}s</p>
+		<p class="h4">{timeLeft}s</p>
 	{:else}
 		<p>Šiuo metu nėra aktyvaus raundo.</p>
 	{/if}
