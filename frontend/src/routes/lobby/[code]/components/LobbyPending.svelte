@@ -154,6 +154,7 @@
 	<div class="bg-surface-100-900 relative flex max-h-96 w-full flex-col gap-2 rounded-2xl p-4">
 		<h4 class="h6">Išsirink personažą:</h4>
 		<button
+			title="Sukurti naują veikėją"
 			class="btn hover:preset-filled-surface-300-700 absolute right-4 top-3 rounded-sm p-2 hover:scale-105 active:scale-95"
 			on:click={() => (showCharacterModal = true)}
 		>
@@ -162,7 +163,6 @@
 		<div class="flex h-full w-full flex-col gap-1 overflow-scroll">
 			{#each availableCharacters as char}
 				<button
-					title="Sukurti naują veikėją"
 					on:click={() => handleSelectCharacter(char.id)}
 					class="bg-surface-200-800 flex gap-4 rounded-2xl p-2"
 				>
