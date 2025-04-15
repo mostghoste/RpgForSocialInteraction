@@ -2,6 +2,7 @@
 <script>
 	import { createEventDispatcher } from 'svelte';
 	import Banner from '$lib/Banner.svelte';
+	import { Avatar } from '@skeletonlabs/skeleton-svelte';
 
 	export let guessTimeLeft;
 	export let players;
@@ -46,28 +47,28 @@
 </script>
 
 <Banner>
-	<h2 class="h4">Spėjimų fazė</h2>
-	<p>Liko laiko spėjimams</p>
+	<h2 class="h4">Metas spėjimams!</h2>
+	<p>Tau dar reikia atlikti 3 spėjimus</p>
 	<h3>{guessTimeLeft}s</h3>
 </Banner>
 
 <main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
 	<div class="flex flex-col gap-4 md:flex-row">
-		<!-- Players Column -->
-		<div class="flex flex-1 flex-col">
+		<!-- Players -->
+		<div class="bg-surface-100-900 flex flex-1 flex-col gap-2 rounded-2xl p-4">
 			<h3 class="h3 mb-2 text-xl">Žaidėjai</h3>
 			{#each players as player (player.id)}
 				{#if String(player.id) !== String(participantId)}
 					<button
-						class="player-card mb-2 cursor-pointer rounded border p-2 {activePlayer === player.id
-							? 'bg-surface-700-300 text-surface-contrast-700-300 scale-105 transition-all'
+						class="bg-surface-200-800 border-primary-900-100 box-border h-16 rounded-xl p-2 transition-all hover:scale-105 {activePlayer ===
+						player.id
+							? 'scale-105 border'
 							: ''}"
 						on:click={() => selectPlayer(player.id)}
 					>
 						<p><strong>{player.username}</strong></p>
 						{#if guessMap[player.id]}
 							<p class="text-sm">
-								Spėjimas:
 								{#each guessOptions.filter((opt) => opt.character_id === guessMap[player.id]) as guess}
 									<span>{guess.character_name}</span>
 								{/each}
@@ -78,35 +79,26 @@
 			{/each}
 		</div>
 
-		<!-- Characters Column -->
-		<div class="flex-1">
+		<!-- Characters -->
+		<div class="bg-surface-100-900 flex-1 gap-2 rounded-2xl p-4">
 			<h3 class="mb-2 text-xl font-bold">Personažai</h3>
 			<div class="grid grid-cols-2 gap-4 md:grid-cols-3">
 				{#each guessOptions as character (character.character_id)}
-					<div
-						class="character-card cursor-pointer rounded border p-2 hover:shadow-lg {activeCharacter &&
+					<button
+						class="bg-surface-200-800 border-primary-900-100 box-border flex flex-col items-center justify-center rounded-xl p-2 transition-all hover:scale-105 {activeCharacter &&
 						activeCharacter.character_id === character.character_id
-							? 'bg-blue-100'
+							? 'scale-105 border'
 							: ''}"
 						on:click={() => selectCharacter(character)}
 					>
-						<!-- Replace with an actual image if available -->
-						<img
+						<Avatar
 							src={character.image || '/fallback_character.jpg'}
-							alt={character.character_name}
-							class="h-16 w-full object-cover"
-						/>
-						<p class="mt-1 text-center text-sm">{character.character_name}</p>
-					</div>
+							name={character.character_name}
+						></Avatar>
+						<p class="text-center font-semibold">{character.character_name}</p>
+					</button>
 				{/each}
 			</div>
 		</div>
 	</div>
 </main>
-
-<style>
-	.character-card:hover {
-		transform: translateY(-2px);
-		transition: transform 0.1s ease-in-out;
-	}
-</style>
