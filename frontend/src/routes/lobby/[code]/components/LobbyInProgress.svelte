@@ -49,7 +49,7 @@
 
 <Banner variant={hasSubmittedMessage ? 'success' : 'default'}>
 	{#if currentRound && timeLeft === 0}
-		<h3 class="h3">Pradedamas sekantis raundas...</h3>
+		<h3 class="h3 text-center">Pradedamas sekantis raundas...</h3>
 	{:else if hasSubmittedMessage}
 		<h3 class="h3">Liko laiko: {timeLeft}s</h3>
 	{:else if currentRound?.round_number}
@@ -65,7 +65,6 @@
 	<section
 		class="bg-surface-100-900 flex h-full w-full flex-col gap-4 p-2 md:max-w-2xl md:rounded-lg md:p-4"
 	>
-		<h3 class="mb-2 text-xl font-semibold">Pokalbio langas</h3>
 		<div bind:this={chatContainer} class="flex max-h-full flex-1 flex-col gap-2 overflow-y-auto">
 			{#each chatMessages as msg (msg.id)}
 				{#if msg.system}
@@ -76,7 +75,7 @@
 					</div>
 				{:else}
 					<!-- Regular chat message -->
-					<div class="flex w-full gap-2">
+					<div class="flex w-full items-end gap-2">
 						<Avatar
 							src={msg.characterImage ? msg.characterImage : '/fallback_character.jpg'}
 							name={msg.characterName}
