@@ -653,10 +653,13 @@ def available_guess_options(request):
     
     options = []
     for char in assigned_chars:
+        image_url = char['assigned_character__image']
+        if image_url and not image_url.startswith('/'):
+            image_url = '/media/' + image_url
         options.append({
             'character_id': char['assigned_character__id'],
             'character_name': char['assigned_character__name'],
-            'character_image': char['assigned_character__image'] if char['assigned_character__image'] else None
+            'character_image': image_url if image_url else None
         })
     
     return Response(options)

@@ -98,7 +98,7 @@
 						on:click={() => selectCharacter(character)}
 					>
 						<Avatar
-							src={character.image || '/fallback_character.jpg'}
+							src={character.character_image || '/fallback_character.jpg'}
 							name={character.character_name}
 						></Avatar>
 						<p class="text-center font-semibold">{character.character_name}</p>
