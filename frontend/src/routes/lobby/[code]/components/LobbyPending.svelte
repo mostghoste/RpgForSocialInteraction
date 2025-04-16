@@ -51,7 +51,7 @@
 	}
 
 	function handleFileUpload(event) {
-		let file = event.acceptedFiles[0];
+		const { file } = event.detail;
 		newCharacterImage = file;
 	}
 

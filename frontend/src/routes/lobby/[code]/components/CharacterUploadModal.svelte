@@ -11,7 +11,6 @@
 	const dispatch = createEventDispatcher();
 
 	function handleFileUpload(event) {
-		console.log(event);
 		const file = event.acceptedFiles[0];
 		newCharacterImage = file;
 		dispatch('filechange', { file });
