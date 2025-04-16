@@ -5,7 +5,7 @@ from datetime import timedelta
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.utils import timezone
-from .models import GameSession, Round, Message
+from .models import GameSession, Round, Message, Guess
 
 def broadcast_lobby_update(session):
     channel_layer = get_channel_layer()
@@ -13,6 +13,7 @@ def broadcast_lobby_update(session):
 
     players = []
     host_id = None
+
     for part in session.participants.all().order_by('joined_at'):
         if part.is_host:
             host_id = part.id
@@ -24,6 +25,17 @@ def broadcast_lobby_update(session):
         }
         if session.status == 'completed':
             player_data['points'] = part.points
+            if part.assigned_character:
+                player_data['assigned_character'] = {
+                    'name': part.assigned_character.name,
+                    'image': part.assigned_character.image.url if part.assigned_character.image else None,
+                }
+            else:
+                player_data['assigned_character'] = None
+            player_data['correctGuesses'] = Guess.objects.filter(guessed_participant=part, is_correct=True).count()
+        else:
+            player_data['assigned_character'] = None
+
         players.append(player_data)
 
     collections_list = list(session.question_collections.values('id', 'name'))
@@ -43,7 +55,6 @@ def broadcast_lobby_update(session):
         group_name,
         {'type': 'lobby_update', 'data': data}
     )
-
 
 def broadcast_chat_message(room_code, message_obj):
     channel_layer = get_channel_layer()
