@@ -91,7 +91,7 @@
 			<div class="grid grid-cols-2 gap-4 md:grid-cols-3">
 				{#each guessOptions as character (character.character_id)}
 					<button
-						class="bg-surface-200-800 border-primary-900-100 box-border flex flex-col items-center justify-center rounded-xl p-2 transition-all hover:scale-105 {activeCharacter &&
+						class="bg-surface-200-800 border-primary-900-100 box-border flex flex-col items-center justify-start rounded-xl p-2 transition-all hover:scale-105 {activeCharacter &&
 						activeCharacter.character_id === character.character_id
 							? 'scale-105 border'
 							: ''}"
