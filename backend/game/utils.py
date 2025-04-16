@@ -33,6 +33,15 @@ def broadcast_lobby_update(session):
             else:
                 player_data['assigned_character'] = None
             player_data['correctGuesses'] = Guess.objects.filter(guessed_participant=part, is_correct=True).count()
+            guesses_qs = Guess.objects.filter(guessed_participant=part)
+            guesses = []
+            for guess in guesses_qs:
+                guesses.append({
+                    'guesser_id': guess.guesser.id if guess.guesser else None,
+                    'guessed_character_name': guess.guessed_character.name,
+                    'is_correct': guess.is_correct,
+                })
+            player_data['guesses'] = guesses
         else:
             player_data['assigned_character'] = None
 
@@ -55,6 +64,7 @@ def broadcast_lobby_update(session):
         group_name,
         {'type': 'lobby_update', 'data': data}
     )
+
 
 def broadcast_chat_message(room_code, message_obj):
     channel_layer = get_channel_layer()

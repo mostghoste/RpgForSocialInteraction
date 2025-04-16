@@ -548,5 +548,5 @@
 		on:leaveLobby={leaveLobby}
 	/>
 {:else if lobbyState.status === 'completed'}
-	<LobbyCompleted {players} on:leaveLobby={leaveLobby} />
+	<LobbyCompleted {players} currentUserId={participantId} on:leaveLobby={leaveLobby} />
 {/if}
