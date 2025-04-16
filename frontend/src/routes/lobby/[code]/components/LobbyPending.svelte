@@ -5,6 +5,8 @@
 	import Banner from '$lib/Banner.svelte';
 	import { Avatar, FileUpload } from '@skeletonlabs/skeleton-svelte';
 	import { Settings, UserRoundPlus, LogOut } from '@lucide/svelte';
+	import { toast } from '@zerodevx/svelte-toast';
+	import { toastOptions } from '$lib/toastConfig';
 
 	// Props and local state
 	export let code;
@@ -55,8 +57,8 @@
 		newCharacterImage = file;
 	}
 
-	function handleFileReject(event) {
-		console.error('Netinkamas failas:', event.detail);
+	function handleFileReject() {
+		toast.push('Nepavyko įkelti failo.', toastOptions.error);
 	}
 
 	$: isCreateCharacterEnabled =
