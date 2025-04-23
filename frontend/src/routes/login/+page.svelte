@@ -92,7 +92,11 @@
 		</button>
 	</div>
 
-	<div class="flex w-96 flex-col gap-2">
+	<!-- wrap in form -->
+	<form
+		class="flex w-96 flex-col gap-2"
+		on:submit|preventDefault={() => (activeTab === 'login' ? login() : register())}
+	>
 		<input type="text" bind:value={username} placeholder="Vartotojo vardas" class="input" />
 		{#if username && !validUsername}
 			<p class="text-sm text-red-500">4–30 simbolių: raidės, skaičiai arba @ . + - _</p>
@@ -110,12 +114,13 @@
 			{/if}
 		{/if}
 
+		<!-- now Enter anywhere submits -->
 		<button
+			type="submit"
 			class="btn preset-filled-primary-400-600 mt-4 w-full"
 			disabled={!canSubmit}
-			on:click={activeTab === 'login' ? login : register}
 		>
 			{activeTab === 'login' ? 'Prisijungti' : 'Registruotis'}
 		</button>
-	</div>
+	</form>
 </section>

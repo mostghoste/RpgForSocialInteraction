@@ -77,7 +77,7 @@
 
 <Banner>
 	<div class="relative flex w-full items-center justify-between">
-		<span class="sm:w-16 md:w-48"></span>
+		<span class="w-20 lg:w-32"></span>
 		<h1 class="h3 text-center">Role playing game for social interaction</h1>
 
 		{#if $user}
