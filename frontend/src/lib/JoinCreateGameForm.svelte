@@ -4,13 +4,14 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import { toastOptions } from '$lib/toastConfig';
 	import Banner from '$lib/Banner.svelte';
-	import { user } from '$lib/stores/auth';
+	import { user, clearTokens } from '$lib/stores/auth';
 	import { User } from '@lucide/svelte';
 
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 	let code = '';
 	let loading = false;
+	let showMenu = false;
 
 	async function createRoom() {
 		loading = true;
@@ -58,17 +59,50 @@
 			loading = false;
 		}
 	}
+
+	function logout() {
+		clearTokens();
+		toast.push('Atsijungta', toastOptions.success);
+		goto('/login');
+	}
+
+	// close menu when clicking outside
+	function handleClickOutside(event) {
+		if (!event.target.closest('.user-menu-container')) {
+			showMenu = false;
+		}
+	}
 </script>
 
+<svelte:window on:click={handleClickOutside} />
+
 <Banner>
-	<div class="flex w-full items-center justify-between">
+	<div class="relative flex w-full items-center justify-between">
 		<span class="sm:w-16 md:w-48"></span>
 		<h1 class="h3 text-center">Role playing game for social interaction</h1>
 
 		{#if $user}
-			<button class="btn preset-filled-primary-500 flex items-center justify-center gap-1 text-sm"
-				><User size={24}></User><span class="hidden lg:block">{$user.username}</span>
-			</button>
+			<div class="user-menu-container">
+				<button
+					class="btn preset-filled-primary-500 flex items-center gap-1 text-sm"
+					on:click={() => (showMenu = !showMenu)}
+				>
+					<User size={20} />
+					<span class="hidden lg:block">{$user.username}</span>
+				</button>
+
+				{#if showMenu}
+					<div
+						class="bg-surface-100-900 absolute right-0 z-10 mt-2 flex w-48 flex-col gap-2 rounded-lg p-3 shadow-lg"
+					>
+						<p class="text-center text-sm">Sveikas, <strong>{$user.username}</strong>!</p>
+						<hr />
+						<button class="btn preset-filled-error-400-600 text-sm" on:click={logout}>
+							Atsijungti
+						</button>
+					</div>
+				{/if}
+			</div>
 		{:else}
 			<button class="btn preset-filled-primary-400-600" on:click={() => goto('/login')}>
 				Prisijungti
@@ -97,13 +131,17 @@
 					<button
 						class="btn preset-filled-primary-400-600 w-1/2"
 						on:click={createRoom}
-						disabled={loading}>Sukurti kambarį</button
+						disabled={loading}
 					>
+						Sukurti kambarį
+					</button>
 					<button
 						class="btn preset-filled-success-50-950 w-full"
 						on:click={joinRoom}
-						disabled={!code || loading}>Prisijungti</button
+						disabled={!code || loading}
 					>
+						Prisijungti
+					</button>
 				</footer>
 			</div>
 		</div>
