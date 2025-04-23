@@ -62,8 +62,7 @@
 
 	function logout() {
 		clearTokens();
-		toast.push('Atsijungta', toastOptions.success);
-		goto('/login');
+		toast.push('Sėkmingai atsijungta!', toastOptions.success);
 	}
 
 	// close menu when clicking outside
