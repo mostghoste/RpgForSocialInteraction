@@ -5,6 +5,9 @@
 	import { browser } from '$app/environment';
 	import { toast } from '@zerodevx/svelte-toast';
 	import { toastOptions } from '$lib/toastConfig';
+	import { apiFetch } from '$lib/api';
+	import { user } from '$lib/stores/auth';
+	import { get } from 'svelte/store';
 
 	// Child components
 	import GuestUsernameForm from './components/GuestUsernameForm.svelte';
@@ -14,43 +17,50 @@
 	import LobbyCompleted from './components/LobbyCompleted.svelte';
 
 	export let data;
-	const API_URL = import.meta.env.VITE_API_BASE_URL;
+	const { needsUsername, roomCode, lobbyState: initialState } = data;
 
-	// Main reactive data
-	let needsUsername = data.needsUsername;
-	let code = needsUsername ? data.roomCode : data.lobbyState.code;
-	let lobbyState = needsUsername ? {} : data.lobbyState;
-	let players = needsUsername ? [] : lobbyState.players || [];
+	// local reactive copies
+	let needsUsernameLocal = needsUsername;
+	let code = needsUsernameLocal ? roomCode : initialState.code;
+	let lobbyState = needsUsernameLocal ? {} : { ...initialState };
+	let players = !needsUsernameLocal ? lobbyState.players || [] : [];
 
-	// Credentials
-	let participantId = lobbyState?.participant_id;
-	let participantSecret = lobbyState?.secret;
+	// participant creds
+	let participantId = lobbyState.participant_id;
+	let participantSecret = lobbyState.secret;
 
 	if (browser) {
-		if (participantId) sessionStorage.setItem('participantId', participantId);
-		else participantId = sessionStorage.getItem('participantId');
+		// clear old creds if we switched rooms
+		const storedRoom = sessionStorage.getItem('roomCode');
+		if (storedRoom !== code) {
+			sessionStorage.removeItem('participantId');
+			sessionStorage.removeItem('participantSecret');
+		}
+		// remember current room
+		sessionStorage.setItem('roomCode', code);
 
-		if (participantSecret) sessionStorage.setItem('participantSecret', participantSecret);
-		else participantSecret = sessionStorage.getItem('participantSecret');
+		// load any already‐stored creds
+		if (!participantId) participantId = sessionStorage.getItem('participantId');
+		if (!participantSecret) participantSecret = sessionStorage.getItem('participantSecret');
 	}
 
+	// lobby settings
 	$: isHost = lobbyState.is_host || false;
 	let roundLength = lobbyState?.round_length || 60;
 	let roundCount = lobbyState?.round_count || 3;
 	let guessTimer = lobbyState?.guess_timer || 60;
 
+	// for host
 	let availableCollections = [];
-	let selectedCollections = lobbyState?.question_collections
-		? lobbyState.question_collections.map((qc) => qc.id)
-		: [];
+	let selectedCollections = lobbyState.question_collections?.map((q) => q.id) || [];
 	let availableCharacters = [];
 	let newCharacterName = '';
 	let newCharacterDescription = '';
-	let newCharacterImage;
+	let newCharacterImage = null;
 
+	// chat & rounds
 	let chatMessages = lobbyState.messages || [];
 	let chatInput = '';
-
 	let currentRound = lobbyState.current_round || {
 		round_number: null,
 		question: '',
@@ -59,51 +69,80 @@
 	let timeLeft = 0;
 	let timerInterval;
 
+	// guessing phase
 	let guessOptions = [];
 	let guessMap = {};
 	let guessTimeLeft = 0;
 	let guessTimerInterval;
 
+	// WS + heartbeat
 	let socket;
 	let heartbeatInterval;
 
 	onMount(() => {
-		const storedRoom = sessionStorage.getItem('roomCode');
-		if (storedRoom !== code) {
-			sessionStorage.removeItem('participantId');
-			sessionStorage.removeItem('participantSecret');
-		}
+		const isLoggedIn = !!get(user);
 
-		if (sessionStorage.getItem('participantId') && sessionStorage.getItem('participantSecret')) {
+		if (isLoggedIn) {
+			// Authenticated user: auto‐join via token
+			joinAsAuthenticated();
+		} else if (!needsUsernameLocal && participantId && participantSecret) {
+			// We already have a participantId/secret in sessionStorage
 			rejoinRoom();
 		} else {
+			// For guests, or first‐time visitors
 			connectWebSocket();
 		}
-		fetchAvailableCharacters();
 
+		fetchAvailableCollections();
+		fetchAvailableCharacters();
 		timerInterval = setInterval(updateTimeLeft, 1000);
 		guessTimerInterval = setInterval(updateGuessTimeLeft, 1000);
 	});
 
 	onDestroy(() => {
-		if (heartbeatInterval) clearInterval(heartbeatInterval);
-		if (socket) socket.close();
 		clearInterval(timerInterval);
 		clearInterval(guessTimerInterval);
+		if (heartbeatInterval) clearInterval(heartbeatInterval);
+		if (socket) socket.close();
 	});
 
-	function connectWebSocket() {
-		if (socket && socket.readyState === WebSocket.OPEN) return;
-
-		let baseUrl = API_URL || 'http://localhost:8000';
-		if (baseUrl.startsWith('https://')) {
-			baseUrl = baseUrl.replace('https://', 'wss://');
-		} else if (baseUrl.startsWith('http://')) {
-			baseUrl = baseUrl.replace('http://', 'ws://');
+	async function joinAsAuthenticated() {
+		try {
+			const res = await apiFetch('/api/join_room/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ code })
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				toast.push(
+					err.error ?? 'Nepavyko prisijungti kaip prisijungęs vartotojas.',
+					toastOptions.error
+				);
+				return setTimeout(() => goto('/'), 2000);
+			}
+			const data = await res.json();
+			lobbyState = data;
+			players = data.players || [];
+			participantId = data.participant_id;
+			participantSecret = data.secret;
+			sessionStorage.setItem('participantId', participantId);
+			sessionStorage.setItem('participantSecret', participantSecret);
+			needsUsernameLocal = false;
+			connectWebSocket();
+			if (data.is_host) fetchAvailableCollections();
+		} catch (err) {
+			console.error(err);
+			toast.push('Serverio klaida prisijungiant kaip vartotojas.', toastOptions.error);
 		}
+	}
 
-		socket = new WebSocket(`${baseUrl}/ws/lobby/${code}/`);
-
+	function connectWebSocket() {
+		if (socket?.readyState === WebSocket.OPEN) return;
+		let base = import.meta.env.VITE_API_BASE_URL;
+		if (base.startsWith('https://')) base = base.replace('https://', 'wss://');
+		else if (base.startsWith('http://')) base = base.replace('http://', 'ws://');
+		socket = new WebSocket(`${base}/ws/lobby/${code}/`);
 		socket.onopen = () => {
 			heartbeatInterval = setInterval(() => {
 				if (socket.readyState === WebSocket.OPEN) {
@@ -111,138 +150,117 @@
 				}
 			}, 15000);
 		};
-
-		socket.onerror = (event) => {
-			console.error('WebSocket error:', event);
+		socket.onerror = () => {
 			toast.push('Nepavyko prisijungti prie WS.', toastOptions.error);
 		};
-
-		socket.onmessage = (event) => {
-			const data = JSON.parse(event.data);
-			if (data.status) lobbyState.status = data.status;
-			if (data.players) players = data.players;
-			if (data.round_length && data.round_count) {
-				roundLength = data.round_length;
-				roundCount = data.round_count;
+		socket.onmessage = ({ data }) => {
+			const msg = JSON.parse(data);
+			if (msg.status) lobbyState.status = msg.status;
+			if (msg.players) players = msg.players;
+			if (msg.round_length && msg.round_count) {
+				roundLength = msg.round_length;
+				roundCount = msg.round_count;
 			}
-			if (data.guess_timer !== undefined) guessTimer = data.guess_timer;
-			if (data.guess_deadline !== undefined) lobbyState.guess_deadline = data.guess_deadline;
-			if (data.question_collections) {
-				lobbyState.question_collections = data.question_collections;
-				selectedCollections = data.question_collections.map((qc) => qc.id);
+			if (msg.guess_timer !== undefined) guessTimer = msg.guess_timer;
+			if (msg.guess_deadline !== undefined) lobbyState.guess_deadline = msg.guess_deadline;
+			if (msg.question_collections) {
+				lobbyState.question_collections = msg.question_collections;
+				selectedCollections = msg.question_collections.map((q) => q.id);
 			}
-			if (data.host_id !== undefined) {
-				isHost = parseInt(data.host_id) === parseInt(participantId);
+			if (msg.host_id !== undefined) {
+				isHost = +msg.host_id === +participantId;
 				if (isHost) fetchAvailableCollections();
 			}
-			if (data.type === 'chat_update' && data.message) {
-				chatMessages = [...chatMessages, data.message];
+			if (msg.type === 'chat_update' && msg.message) {
+				chatMessages = [...chatMessages, msg.message];
 			}
-			if (data.type === 'round_update' && data.round) {
-				currentRound = data.round;
-				if (data.status) {
-					lobbyState.status = data.status;
-				}
+			if (msg.type === 'round_update' && msg.round) {
+				currentRound = msg.round;
+				if (msg.status) lobbyState.status = msg.status;
 			}
 		};
-
-		socket.onclose = (event) => {
-			console.log('WebSocket disconnected:', event.code, event.reason);
-		};
+		socket.onclose = () => {};
 	}
 
 	async function rejoinRoom() {
 		try {
-			const storedId = sessionStorage.getItem('participantId');
-			const storedSecret = sessionStorage.getItem('participantSecret');
-			const res = await fetch(`${API_URL}/api/join_room/`, {
+			const res = await apiFetch('/api/join_room/', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ code, participant_id: storedId, secret: storedSecret })
+				body: JSON.stringify({ code, participant_id: participantId, secret: participantSecret })
 			});
-			if (res.ok) {
-				const data = await res.json();
-				lobbyState = data;
-				players = data.players || [];
-				roundLength = data.round_length || 60;
-				roundCount = data.round_count || 3;
-				guessTimer = data.guess_timer || 60;
-				participantId = data.participant_id;
-				participantSecret = data.secret;
-				sessionStorage.setItem('participantId', participantId);
-				sessionStorage.setItem('participantSecret', participantSecret);
-				if (data.current_round) currentRound = data.current_round;
-				if (data.messages) chatMessages = data.messages;
-				if (data.question_collections) {
-					selectedCollections = data.question_collections.map((qc) => qc.id);
-				}
-				connectWebSocket();
-				isHost = data.is_host;
-				if (isHost) fetchAvailableCollections();
-				needsUsername = false;
-			} else {
-				const errorData = await res.json().catch(() => ({}));
-				toast.push(errorData.error || 'Nepavyko atkurti ryšio.', toastOptions.error);
-				setTimeout(() => goto('/'), 3000);
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				toast.push(err.error ?? 'Nepavyko atkurti ryšio.', toastOptions.error);
+				return setTimeout(() => goto('/'), 3000);
 			}
-		} catch (err) {
-			console.error(err);
-			toast.push('Serverio klaida bandant atkurti ryšį.', toastOptions.error);
+			const data = await res.json();
+			lobbyState = data;
+			players = data.players || [];
+			roundLength = data.round_length || 60;
+			roundCount = data.round_count || 3;
+			guessTimer = data.guess_timer || 60;
+			participantId = data.participant_id;
+			participantSecret = data.secret;
+			sessionStorage.setItem('participantId', participantId);
+			sessionStorage.setItem('participantSecret', participantSecret);
+			if (data.current_round) currentRound = data.current_round;
+			if (data.messages) chatMessages = data.messages;
+			if (data.question_collections)
+				selectedCollections = data.question_collections.map((q) => q.id);
+			connectWebSocket();
+			isHost = data.is_host;
+			if (isHost) fetchAvailableCollections();
+			needsUsernameLocal = false;
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
 			setTimeout(() => goto('/'), 3000);
 		}
 	}
 
 	async function fetchAvailableCollections() {
 		try {
-			const res = await fetch(`${API_URL}/api/available_collections/`);
-			if (res.ok) {
-				availableCollections = await res.json();
-			}
-		} catch (err) {
-			console.error('Error fetching available collections:', err);
-		}
+			const res = await apiFetch('/api/available_collections/');
+			if (res.ok) availableCollections = await res.json();
+		} catch {}
 	}
 
 	async function fetchAvailableCharacters() {
 		try {
-			const res = await fetch(`${API_URL}/api/available_characters/`);
-			if (res.ok) {
-				availableCharacters = await res.json();
-			}
-		} catch (error) {
-			console.error('Error fetching characters', error);
-		}
+			const res = await apiFetch('/api/available_characters/');
+			if (res.ok) availableCharacters = await res.json();
+		} catch {}
 	}
 
 	function updateTimeLeft() {
 		if (currentRound.end_time) {
-			const endTime = new Date(currentRound.end_time);
-			timeLeft = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+			const end = new Date(currentRound.end_time);
+			timeLeft = Math.max(0, Math.floor((end - Date.now()) / 1000));
 		}
 	}
-
 	function updateGuessTimeLeft() {
 		if (lobbyState.guess_deadline) {
-			const deadline = new Date(lobbyState.guess_deadline);
-			guessTimeLeft = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+			const dl = new Date(lobbyState.guess_deadline);
+			guessTimeLeft = Math.max(0, Math.floor((dl - Date.now()) / 1000));
 		}
 	}
 
 	async function submitGuestUsername(event) {
 		const { guestUsername } = event.detail;
 		if (!guestUsername) {
-			toast.push('Prašome įvesti vartotojo vardą.', toastOptions.error);
+			toast.push('Įveskite vardą.', toastOptions.error);
 			return;
 		}
 		try {
-			const res = await fetch(`${API_URL}/api/join_room/`, {
+			const res = await apiFetch('/api/join_room/', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ code, guest_username: guestUsername })
 			});
 			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				toast.push(data.error ?? 'Nepavyko prisijungti.', toastOptions.error);
+				const err = await res.json().catch(() => ({}));
+				toast.push(err.error ?? 'Nepavyko prisijungti.', toastOptions.error);
 				return;
 			}
 			const data = await res.json();
@@ -250,239 +268,205 @@
 			players = data.players || [];
 			participantId = data.participant_id;
 			participantSecret = data.secret;
-			if (browser && participantId) {
-				sessionStorage.setItem('participantId', participantId);
-				sessionStorage.setItem('participantSecret', participantSecret);
-				sessionStorage.setItem('roomCode', code);
-			}
-			isHost = data.is_host || false;
-			roundLength = data.round_length || 60;
-			roundCount = data.round_count || 3;
-			guessTimer = data.guess_timer || 60;
-			if (data.question_collections) {
-				selectedCollections = data.question_collections.map((qc) => qc.id);
-			}
-			needsUsername = false;
+			sessionStorage.setItem('participantId', participantId);
+			sessionStorage.setItem('participantSecret', participantSecret);
+			needsUsernameLocal = false;
 			connectWebSocket();
-			if (isHost) fetchAvailableCollections();
+			if (data.is_host) fetchAvailableCollections();
 		} catch (err) {
 			console.error(err);
-			toast.push('Serverio klaida bandant prisijungti prie kambario.', toastOptions.error);
+			toast.push('Serverio klaida prisijungiant į kambarį.', toastOptions.error);
 		}
 	}
 
 	async function leaveLobby() {
 		try {
-			const secret = sessionStorage.getItem('participantSecret');
-			const res = await fetch(`${API_URL}/api/leave_room/`, {
+			const res = await apiFetch('/api/leave_room/', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ code, participant_id: participantId, secret })
+				body: JSON.stringify({ code, participant_id: participantId, secret: participantSecret })
 			});
 			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				toast.push(data.error || 'Nepavyko išeiti iš kambario.', toastOptions.error);
-				return;
+				const err = await res.json().catch(() => ({}));
+				return toast.push(err.error ?? 'Nepavyko išeiti.', toastOptions.error);
 			}
 			sessionStorage.removeItem('participantId');
 			sessionStorage.removeItem('participantSecret');
 			goto('/');
-		} catch (err) {
-			console.error(err);
-			toast.push('Serverio klaida bandant išeiti iš kambario.', toastOptions.error);
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
 		}
 	}
 
-	async function updateSettings(event) {
-		const {
-			roundLength: newRL,
-			roundCount: newRC,
-			guessTimer: newGT,
-			selectedCollections: newSC
-		} = event.detail;
+	async function updateSettings(e) {
+		const { roundLength: rL, roundCount: rC, guessTimer: gT, selectedCollections: sC } = e.detail;
 		try {
-			const secret = sessionStorage.getItem('participantSecret');
-			const res = await fetch(`${API_URL}/api/update_settings/`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					code,
-					participant_id: participantId,
-					secret,
-					round_length: newRL,
-					round_count: newRC,
-					guess_timer: newGT,
-					selectedCollections: newSC
-				})
-			});
-			if (!res.ok) {
-				const data = await res.json();
-				toast.push(data.error || 'Nepavyko atnaujinti nustatymų.', toastOptions.error);
-				return;
-			}
-			const updated = await res.json();
-			roundLength = updated.round_length;
-			roundCount = updated.round_count;
-			guessTimer = updated.guess_timer;
-			toast.push('Nustatymai atnaujinti sėkmingai!', toastOptions.success);
-		} catch (err) {
-			console.error(err);
-			toast.push('Serverio klaida atnaujinant nustatymus.', toastOptions.error);
-		}
-	}
-
-	async function updateCollections(event) {
-		try {
-			const secret = sessionStorage.getItem('participantSecret');
-			const res = await fetch(`${API_URL}/api/update_question_collections/`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					code,
-					participant_id: participantId,
-					secret,
-					collections: event.detail.collections
-				})
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				toast.push(data.error || 'Nepavyko atnaujinti kolekcijų.', toastOptions.error);
-				return;
-			}
-			const updated = await res.json();
-			lobbyState.question_collections = updated.question_collections;
-		} catch (err) {
-			console.error(err);
-			toast.push('Serverio klaida atnaujinant kolekcijas.', toastOptions.error);
-		}
-	}
-
-	async function startGame() {
-		try {
-			const secret = sessionStorage.getItem('participantSecret');
-			const res = await fetch(`${API_URL}/api/start_game/`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ code, participant_id: participantId, secret })
-			});
-			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				toast.push(data.error || 'Nepavyko pradėti žaidimo.', toastOptions.error);
-				return;
-			}
-		} catch (err) {
-			console.error(err);
-			toast.push('Serverio klaida pradedant žaidimą.', toastOptions.error);
-		}
-	}
-
-	async function selectCharacter(event) {
-		const { characterId } = event.detail;
-		const secret = sessionStorage.getItem('participantSecret');
-		const res = await fetch(`${API_URL}/api/select_character/`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
-				code,
-				participant_id: participantId,
-				secret,
-				character_id: characterId
-			})
-		});
-		if (!res.ok) {
-			const data = await res.json().catch(() => ({}));
-			toast.push(data.error || 'Nepavyko pasirinkti personažo.', toastOptions.error);
-		} else {
-			toast.push('Personažas sėkmingai pasirinktas!', toastOptions.success);
-		}
-	}
-
-	async function createCharacter(event) {
-		const { name, description, image } = event.detail;
-		if (!name) {
-			toast.push('Įveskite personažo vardą.', toastOptions.error);
-			return;
-		}
-		const secret = sessionStorage.getItem('participantSecret');
-		const formData = new FormData();
-		formData.append('code', code);
-		formData.append('participant_id', participantId);
-		formData.append('secret', secret);
-		formData.append('name', name);
-		formData.append('description', description || '');
-		if (image) formData.append('image', image);
-
-		const res = await fetch(`${API_URL}/api/create_character/`, {
-			method: 'POST',
-			body: formData
-		});
-		if (!res.ok) {
-			const data = await res.json().catch(() => ({}));
-			toast.push(data.error || 'Nepavyko sukurti personažo.', toastOptions.error);
-		} else {
-			toast.push('Personažas sėkmingai sukurtas ir pasirinktas!', toastOptions.success);
-		}
-	}
-
-	async function sendChatMessage(event) {
-		const { text } = event.detail;
-		const trimmed = text.trim();
-		if (!trimmed) return;
-		try {
-			const res = await fetch(`${API_URL}/api/send_chat_message/`, {
+			const res = await apiFetch('/api/update_settings/', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					code,
 					participant_id: participantId,
 					secret: participantSecret,
-					text: trimmed
+					round_length: rL,
+					round_count: rC,
+					guess_timer: gT,
+					selectedCollections: sC
 				})
 			});
 			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				toast.push(data.error || 'Nepavyko išsiųsti žinutės.', toastOptions.error);
+				const err = await res.json().catch(() => ({}));
+				return toast.push(err.error ?? 'Nepavyko atnaujinti.', toastOptions.error);
 			}
-		} catch (err) {
-			console.error(err);
-			toast.push('Serverio klaida siunčiant žinutę.', toastOptions.error);
+			const upd = await res.json();
+			roundLength = upd.round_length;
+			roundCount = upd.round_count;
+			guessTimer = upd.guess_timer;
+			toast.push('Nustatymai atnaujinti!', toastOptions.success);
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
+		}
+	}
+
+	async function updateCollections(e) {
+		try {
+			const res = await apiFetch('/api/update_question_collections/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret: participantSecret,
+					collections: e.detail.collections
+				})
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				return toast.push(err.error ?? 'Nepavyko atnaujinti kolekcijų.', toastOptions.error);
+			}
+			const upd = await res.json();
+			lobbyState.question_collections = upd.question_collections;
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
+		}
+	}
+
+	async function startGame() {
+		try {
+			const res = await apiFetch('/api/start_game/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ code, participant_id: participantId, secret: participantSecret })
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				toast.push(err.error ?? 'Nepavyko pradėti žaidimo.', toastOptions.error);
+			}
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
+		}
+	}
+
+	async function selectCharacter(e) {
+		const { characterId } = e.detail;
+		try {
+			const res = await apiFetch('/api/select_character/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret: participantSecret,
+					character_id: characterId
+				})
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				toast.push(err.error ?? 'Nepavyko pasirinkti personažo.', toastOptions.error);
+			} else {
+				toast.push('Personažas pasirinktas!', toastOptions.success);
+			}
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
+		}
+	}
+
+	async function createCharacter(e) {
+		const { name, description, image } = e.detail;
+		if (!name) return toast.push('Įveskite vardą.', toastOptions.error);
+		const form = new FormData();
+		form.append('code', code);
+		form.append('participant_id', participantId);
+		form.append('secret', participantSecret);
+		form.append('name', name);
+		form.append('description', description || '');
+		if (image) form.append('image', image);
+		try {
+			const res = await apiFetch('/api/create_character/', { method: 'POST', body: form });
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				toast.push(err.error ?? 'Nepavyko sukurti personažo.', toastOptions.error);
+			} else {
+				toast.push('Personažas sukurtas!', toastOptions.success);
+			}
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
+		}
+	}
+
+	async function sendChatMessage(e) {
+		const text = e.detail.text.trim();
+		if (!text) return;
+		try {
+			const res = await apiFetch('/api/send_chat_message/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret: participantSecret,
+					text
+				})
+			});
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				toast.push(err.error ?? 'Nepavyko siųsti žinutės.', toastOptions.error);
+			}
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
 		}
 	}
 
 	async function fetchGuessOptions() {
 		try {
-			const res = await fetch(
-				`${API_URL}/api/available_guess_options/?code=${encodeURIComponent(code)}&participant_id=${participantId}&secret=${participantSecret}`
-			);
-
-			if (res.ok) {
-				guessOptions = await res.json();
-			} else {
-				console.error('Nepavyko gauti kitų žaidėjų veikėjų.');
-			}
-		} catch (err) {
-			console.error('Nepavyko gauti kitų žaidėjų veikėjų:', err);
-		}
+			const url = `/api/available_guess_options/?code=${encodeURIComponent(code)}&participant_id=${participantId}&secret=${participantSecret}`;
+			const res = await apiFetch(url);
+			if (res.ok) guessOptions = await res.json();
+		} catch {}
 	}
 
-	$: if (lobbyState.status === 'guessing') {
-		fetchGuessOptions();
-	}
+	$: if (lobbyState.status === 'guessing') fetchGuessOptions();
 
 	async function submitGuesses() {
 		const guessesArray = [];
-		for (const player of players) {
-			if (String(player.id) === String(participantId)) continue;
-			const guessedCharId = guessMap[player.id];
-			if (guessedCharId) {
+		for (const p of players) {
+			if (`${p.id}` === `${participantId}`) continue;
+			const g = guessMap[p.id];
+			if (g)
 				guessesArray.push({
-					guessed_participant_id: player.id,
-					guessed_character_id: parseInt(guessedCharId, 10)
+					guessed_participant_id: p.id,
+					guessed_character_id: +g
 				});
-			}
 		}
 		try {
-			const res = await fetch(`${API_URL}/api/submit_guesses/`, {
+			const res = await apiFetch('/api/submit_guesses/', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -493,17 +477,17 @@
 				})
 			});
 			if (!res.ok) {
-				const data = await res.json().catch(() => ({}));
-				toast.push(data.error || 'Nepavyko pateikti spėjimų.', toastOptions.error);
+				const err = await res.json().catch(() => ({}));
+				toast.push(err.error ?? 'Nepavyko pateikti spėjimų.', toastOptions.error);
 			}
-		} catch (err) {
-			console.error(err);
-			toast.push('Serverio klaida teikiant spėjimus.', toastOptions.error);
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida.', toastOptions.error);
 		}
 	}
 </script>
 
-{#if needsUsername}
+{#if needsUsernameLocal && !$user}
 	<GuestUsernameForm {code} on:submitGuestUsername={submitGuestUsername} />
 {:else if lobbyState.status === 'pending'}
 	<LobbyPending
@@ -529,7 +513,6 @@
 	/>
 {:else if lobbyState.status === 'in_progress'}
 	<LobbyInProgress
-		{API_URL}
 		{currentRound}
 		{timeLeft}
 		{chatMessages}

@@ -1,35 +1,34 @@
 import { redirect } from '@sveltejs/kit';
 
-export async function load({ params, request, fetch, locals }) {
+export async function load({ params, fetch, locals }) {
   const code = params.code;
+  const base = import.meta.env.VITE_API_BASE_URL;
 
-  // Verify the room exists.
-  const verifyRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/verify_room/?code=${encodeURIComponent(code)}`, { method: 'GET' });
-  if (!verifyRes.ok) {
+  // verify exists
+  const verify = await fetch(`${base}/api/verify_room/?code=${encodeURIComponent(code)}`);
+  if (!verify.ok) throw redirect(303, '/');
+  const info = await verify.json();
+  if (!['pending','in_progress','guessing'].includes(info.status)) {
     throw redirect(303, '/');
   }
-  const verifyData = await verifyRes.json();
-  if (!['pending', 'in_progress', 'guessing'].includes(verifyData.status)) {
-    throw redirect(303, '/');
-  }
 
-  // If authenticated, join automatically.
+  // if logged in, auto‐join
   if (locals.user) {
-    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/join_room/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const join = await fetch(`${base}/api/join_room/`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ code })
     });
-    if (!res.ok) throw redirect(303, '/');
-    const lobbyState = await res.json();
+    if (!join.ok) throw redirect(303, '/');
+    const lobbyState = await join.json();
     return { lobbyState, needsUsername: false };
   }
 
-  // For unauthenticated users:
-  // If the room is pending, require a guest username.
-  if (verifyData.status === 'pending') {
+  // unauthenticated: if room is pending, ask for guest name
+  if (info.status === 'pending') {
     return { roomCode: code, needsUsername: true };
   }
-  // Otherwise (if the game is already underway) let the client try to rejoin.
-  return { lobbyState: verifyData, needsUsername: false };
+
+  // otherwise let client restore
+  return { lobbyState: info, needsUsername: false };
 }

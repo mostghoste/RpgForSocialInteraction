@@ -1,4 +1,4 @@
-# game/consumers.py
+# backend/game/consumers.py
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import GameSession, Participant
@@ -21,7 +21,10 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             return
 
         participants = await sync_to_async(list)(
-            session.participants.all().order_by('joined_at').select_related('assigned_character')
+            session.participants
+                   .all()
+                   .order_by('joined_at')
+                   .select_related('assigned_character', 'user')
         )
 
         players = []
@@ -30,21 +33,26 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             if part.user:
                 username = part.user.username
             else:
-                username = part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
+                username = (
+                    part.guest_name
+                    if part.guest_name
+                    else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
+                )
             if part.is_host:
                 username += " 👑"
                 host_id = part.id
-            # Now this check won't trigger a new DB query.
+
             character_selected = part.assigned_character is not None
             players.append({
                 'id': part.id,
                 'username': username,
-                'characterSelected': character_selected,
+                'characterSelected': character_selected
             })
 
         collections = await sync_to_async(list)(
             session.question_collections.values('id', 'name')
         )
+
         data = {
             'code': session.code,
             'players': players,
@@ -52,7 +60,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             'status': session.status,
             'round_length': session.round_length,
             'round_count': session.round_count,
-            'question_collections': collections,
+            'question_collections': collections
         }
         await self.send(text_data=json.dumps(data))
 
@@ -69,9 +77,9 @@ class LobbyConsumer(AsyncWebsocketConsumer):
                     participant.last_seen = timezone.now()
                     await sync_to_async(participant.save)()
                 except Participant.DoesNotExist:
-                    print("ERROR: Couldn't find the participant to update.")
+                    pass
             return
-        
+
     async def lobby_update(self, event):
-        data = event['data']
-        await self.send(text_data=json.dumps(data))
+        # All lobby updates (chat, round, general) come through here
+        await self.send(text_data=json.dumps(event['data']))

@@ -27,131 +27,147 @@ def create_room(request):
 
     session = GameSession.objects.create(code=code)
     
-    return Response({
-        'code': session.code,
-        'status': session.status,
-        'round_length': session.round_length,
-        'round_count': session.round_count,
-    })
+    if request.user and request.user.is_authenticated:
+        participant = Participant.objects.create(
+            user=request.user,
+            game_session=session,
+            is_host=True
+        )
+
+    resp = {
+         'code': session.code,
+         'status': session.status,
+         'round_length': session.round_length,
+         'round_count': session.round_count,
+         }
+    
+    if request.user and request.user.is_authenticated:
+        resp.update({
+            'participant_id': participant.id,
+            'secret': participant.secret,
+            'is_host': participant.is_host,
+        })
+        
+    return Response(resp)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def join_room(request):
     code = request.data.get('code', '').strip()
-    participant = None
+    if not code:
+        return Response({'error': 'Kambario kodas privalomas.'}, status=400)
+    try:
+        session = GameSession.objects.get(code=code)
+    except GameSession.DoesNotExist:
+        return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
 
-    # Try reconnecting if participant_id and secret are provided.
+    participant = None
     participant_id = request.data.get('participant_id')
     provided_secret = request.data.get('secret', '').strip()
 
-    if participant_id and provided_secret:
-        try:
-            session = GameSession.objects.get(code=code)
-        except GameSession.DoesNotExist:
-            return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
+    # 1) If user is logged in and NO credentials passed, auto-join or rejoin by User:
+    if request.user and request.user.is_authenticated and not participant_id:
+        participant, created = Participant.objects.get_or_create(
+            user=request.user,
+            game_session=session,
+            defaults={'is_host': session.participants.count() == 0}
+        )
+        # On first join, if no question collections set, grab them all
+        if created and session.question_collections.count() == 0:
+            all_cols = QuestionCollection.objects.all()
+            session.question_collections.set(all_cols)
+            session.save()
+
+    # 2) Reconnect flow if participant_id & secret supplied:
+    if not participant and participant_id and provided_secret:
         try:
             participant = session.participants.get(id=participant_id)
-        except Participant.DoesNotExist:
-            participant = None
-        if participant:
             if participant.secret != provided_secret:
                 return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
-            # Rejoin successful.
-        # Fall through to new join flow if participant not found.
-    
+        except Participant.DoesNotExist:
+            return Response({'error': 'Dalyvis nerastas.'}, status=404)
+
+    # 3) Guest/new-join
     if not participant:
-        try:
-            session = GameSession.objects.get(code=code)
-        except GameSession.DoesNotExist:
-            return Response({'error': 'Kambarys su tokiu kodu neegzistuoja.'}, status=404)
-        # New joins are allowed only when the room is in pending
+        # only allow joins in pending 
         if session.status != 'pending':
             return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
+
         user = request.user if request.user.is_authenticated else None
-        guest_username = None
-        if not user:
-            guest_username = request.data.get('guest_username', '').strip()
+        guest_username = None if user else request.data.get('guest_username', '').strip()
         name_to_join = user.username if user else guest_username
         if not name_to_join:
             return Response({'error': 'Prašome įvesti vartotojo vardą.'}, status=400)
-        # Check for duplicate names (case-insensitive).
-        existing_names = []
-        for part in session.participants.all():
-            if part.user:
-                existing_names.append(part.user.username.lower())
-            elif part.guest_name:
-                existing_names.append(part.guest_name.lower())
-        if name_to_join.lower() in existing_names:
-            return Response({'error': 'Toks vartotojo vardas jau naudojamas kambaryje.'}, status=400)
-        is_host_flag = (session.participants.count() == 0)
+
+        # duplicate‐name check only for guests
+        if not user:
+            existing = [p.guest_name.lower() for p in session.participants.all() if p.guest_name]
+            if name_to_join.lower() in existing:
+                return Response({'error': 'Toks vartotojo vardas jau naudojamas kambaryje.'}, status=400)
+
+        is_host = (session.participants.count() == 0)
         if user:
-            participant, created = Participant.objects.get_or_create(
+            participant, _ = Participant.objects.get_or_create(
                 user=user,
                 game_session=session,
-                defaults={'is_host': is_host_flag}
+                defaults={'is_host': is_host}
             )
         else:
+            import uuid
             participant = Participant.objects.create(
-                user=None,
-                game_session=session,
                 guest_identifier=str(uuid.uuid4()),
                 guest_name=guest_username,
-                is_host=is_host_flag
+                game_session=session,
+                is_host=is_host
             )
-
-        # If no question collections have been set yet, select all available ones
+        # assign collections on first join
         if session.question_collections.count() == 0:
-            all_collections = QuestionCollection.objects.all()
-            session.question_collections.set(all_collections)
+            session.question_collections.set(QuestionCollection.objects.all())
             session.save()
-            
-    # Broadcast the updated lobby state.
-    from .utils import broadcast_lobby_update
-    broadcast_lobby_update(session)
-    players = []
-    for part in session.participants.all():
-        players.append({
-            'id': part.id,
-            'username': part.user.username if part.user else (part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")),
-            'characterSelected': part.assigned_character is not None,
-            'is_host': part.is_host,
-        })
 
+    # Broadcast and build the response payload
+    broadcast_lobby_update(session)
+
+    players = []
+    for p in session.participants.all().order_by('joined_at'):
+        players.append({
+            'id': p.id,
+            'username': p.user.username if p.user else p.guest_name,
+            'characterSelected': p.assigned_character is not None,
+            'is_host': p.is_host,
+        })
 
     messages = []
     for msg in Message.objects.filter(round__game_session=session).order_by('sent_at'):
-        if msg.participant is not None and msg.participant.assigned_character:
-            character_image = msg.participant.assigned_character.image.url if msg.participant.assigned_character.image else None
-            character_name = msg.participant.assigned_character.name
+        if msg.participant and msg.participant.assigned_character:
+            char = msg.participant.assigned_character
+            character_image = char.image.url if char.image else None
+            character_name = char.name
         else:
             character_image = None
             character_name = "System" if msg.message_type == "system" else None
-
         messages.append({
             'id': msg.id,
             'text': msg.text,
             'sentAt': msg.sent_at.isoformat(),
             'roundNumber': msg.round.round_number,
-            'system': (msg.message_type == 'system'),
+            'system': msg.message_type == 'system',
             'characterImage': character_image,
             'characterName': character_name,
         })
 
-
     collections_list = list(session.question_collections.values('id', 'name'))
 
-    # If the session is in progress include current round information.
     current_round = None
     if session.status == 'in_progress':
-        from django.utils import timezone
-        current_round_obj = session.rounds.filter(end_time__gt=timezone.now()).order_by('-round_number').first()
-        if current_round_obj:
+        cur = session.rounds.filter(end_time__gt=timezone.now()).order_by('-round_number').first()
+        if cur:
             current_round = {
-                'round_number': current_round_obj.round_number,
-                'question': current_round_obj.question.text if current_round_obj.question else '',
-                'end_time': current_round_obj.end_time.isoformat(),
+                'round_number': cur.round_number,
+                'question': cur.question.text if cur.question else '',
+                'end_time': cur.end_time.isoformat(),
             }
-    
+
     return Response({
         'code': session.code,
         'status': session.status,
