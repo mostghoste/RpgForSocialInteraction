@@ -9,6 +9,7 @@ Pillow
 psycopg2-binary
 whitenoise
 djangorestframework
+djangorestframework-simplejwt
 django-cors-headers
 celery>=5.3
 django-celery-beat>=2.5
