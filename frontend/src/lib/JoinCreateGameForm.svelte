@@ -4,6 +4,8 @@
 	import { toast } from '@zerodevx/svelte-toast';
 	import { toastOptions } from '$lib/toastConfig';
 	import Banner from '$lib/Banner.svelte';
+	import { user } from '$lib/stores/auth';
+
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 	let code = '';
@@ -59,6 +61,11 @@
 
 <Banner>
 	<h1 class="h3 text-center">Role playing game for social interaction</h1>
+	{#if $user}
+		<h1 class="h3 text-center">Hello {$user.username}!</h1>
+	{:else}
+		<button>Log in</button>
+	{/if}
 </Banner>
 <main class="flex h-full items-center justify-center p-2">
 	<section
