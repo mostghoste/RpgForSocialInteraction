@@ -5,6 +5,7 @@
 	import { toastOptions } from '$lib/toastConfig';
 	import Banner from '$lib/Banner.svelte';
 	import { user } from '$lib/stores/auth';
+	import { User } from '@lucide/svelte';
 
 	const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -60,15 +61,22 @@
 </script>
 
 <Banner>
-	<h1 class="h3 text-center">Role playing game for social interaction</h1>
-	{#if $user}
-		<h1 class="h3 text-center">Sveiki, {$user.username}!</h1>
-	{:else}
-		<button class="btn preset-filled-primary-400-600" on:click={() => goto('/login')}>
-			Prisijungti
-		</button>
-	{/if}
+	<div class="flex w-full items-center justify-between">
+		<span class="sm:w-16 md:w-48"></span>
+		<h1 class="h3 text-center">Role playing game for social interaction</h1>
+
+		{#if $user}
+			<button class="btn preset-filled-primary-500 flex items-center justify-center gap-1 text-sm"
+				><User size={24}></User><span class="hidden lg:block">{$user.username}</span>
+			</button>
+		{:else}
+			<button class="btn preset-filled-primary-400-600" on:click={() => goto('/login')}>
+				Prisijungti
+			</button>
+		{/if}
+	</div>
 </Banner>
+
 <main class="flex h-full items-center justify-center p-2">
 	<section
 		class="bg-surface-100-900 flex w-fit flex-col items-center gap-4 rounded-2xl p-4 lg:max-w-3xl"

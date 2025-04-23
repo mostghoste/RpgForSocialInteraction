@@ -100,7 +100,7 @@
 
 		<input type="password" bind:value={password} placeholder="Slaptažodis" class="input" />
 		{#if password && !validPassword}
-			<p class="text-sm text-red-500">Slaptažodis turi būti bent 8 simbolių</p>
+			<p class="text-sm text-red-500">Slaptažodis turi būti bent 8 simbolių ilgio</p>
 		{/if}
 
 		{#if activeTab === 'register'}
