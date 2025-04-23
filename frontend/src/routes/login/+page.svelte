@@ -1,6 +1,6 @@
 <!-- src/routes/login/+page.svelte -->
 <script>
-	import { setTokens, clearTokens } from '$lib/stores/auth';
+	import { setTokens } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { toast } from '@zerodevx/svelte-toast';
 	import { toastOptions } from '$lib/toastConfig';
@@ -8,14 +8,23 @@
 
 	let activeTab = 'login';
 
-	// form fields
 	let username = '';
 	let password = '';
 	let email = '';
-	let error = '';
+
+	const usernameRe = /^[A-Za-z0-9@.+\-_]{4,30}$/;
+	const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+	$: validUsername = usernameRe.test(username);
+	$: validPassword = password.length >= 8;
+	$: validEmail = activeTab === 'register' ? emailRe.test(email) : true;
+	$: canSubmit =
+		activeTab === 'login'
+			? validUsername && validPassword
+			: validUsername && validPassword && validEmail;
 
 	async function login() {
-		error = '';
+		if (!canSubmit) return;
 		try {
 			const res = await fetch(`${API_URL}/api/token/`, {
 				method: 'POST',
@@ -23,111 +32,90 @@
 				body: JSON.stringify({ username, password })
 			});
 			if (!res.ok) {
-				error = 'Neteisingi prisijungimo duomenys';
+				const err = await res.json().catch(() => ({}));
+				toast.push(err.detail ?? 'Neteisingi prisijungimo duomenys', toastOptions.error);
 				return;
 			}
 			const data = await res.json();
 			setTokens(data);
+			toast.push('Sėkmingai prisijungta!', toastOptions.success);
 			goto('/');
 		} catch {
-			error = 'Serverio klaida prisijungiant';
+			toast.push('Serverio klaida prisijungiant', toastOptions.error);
 		}
 	}
 
 	async function register() {
-		error = '';
+		if (!canSubmit) return;
 		try {
 			const res = await fetch(`${API_URL}/api/register/`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ username, password /* , email */ })
+				body: JSON.stringify({ username, password, email })
 			});
 			if (!res.ok) {
 				const data = await res.json().catch(() => ({}));
-				error = data.username?.[0] || data.password?.[0] || 'Nepavyko registruotis';
+				const msg =
+					data.username?.[0] || data.password?.[0] || data.email?.[0] || 'Nepavyko registruotis';
+				toast.push(msg, toastOptions.error);
 				return;
 			}
+			toast.push('Sėkmingai užsiregistruota!', toastOptions.success);
 			await login();
 		} catch {
-			error = 'Serverio klaida registruojantis';
+			toast.push('Serverio klaida registruojantis', toastOptions.error);
 		}
 	}
 </script>
 
-<div class="bg-surface-100-900 mx-auto mt-10 max-w-md rounded p-6 shadow">
-	<div class="tabs">
+<section
+	class="bg-surface-100-900 mx-auto mt-12 flex w-fit flex-col items-center gap-4 rounded-2xl p-4 lg:max-w-3xl"
+>
+	<div class="flex w-full gap-4">
 		<button
-			class="tab {activeTab === 'login' ? 'active' : ''}"
+			class="text-md border-b-2 pb-2 focus:outline-none"
+			class:border-primary-500={activeTab === 'login'}
+			class:border-transparent={activeTab !== 'login'}
+			class:font-semibold={activeTab === 'login'}
 			on:click={() => (activeTab = 'login')}
 		>
 			Prisijungti
 		</button>
 		<button
-			class="tab {activeTab === 'register' ? 'active' : ''}"
+			class="text-md border-b-2 pb-2 focus:outline-none"
+			class:border-primary-500={activeTab === 'register'}
+			class:border-transparent={activeTab !== 'register'}
+			class:font-semibold={activeTab === 'register'}
 			on:click={() => (activeTab = 'register')}
 		>
 			Registruotis
 		</button>
 	</div>
 
-	{#if activeTab === 'login'}
-		<h2 class="mb-4 text-2xl">Prisijungimas</h2>
-	{:else}
-		<h2 class="mb-4 text-2xl">Registracija</h2>
-	{/if}
+	<div class="flex w-96 flex-col gap-2">
+		<input type="text" bind:value={username} placeholder="Vartotojo vardas" class="input" />
+		{#if username && !validUsername}
+			<p class="text-sm text-red-500">4–30 simbolių: raidės, skaičiai arba @ . + - _</p>
+		{/if}
 
-	{#if error}
-		<p class="mb-2 text-red-500">{error}</p>
-	{/if}
-
-	<div class="flex flex-col gap-4">
-		<input
-			type="text"
-			placeholder="Vartotojo vardas"
-			bind:value={username}
-			class="rounded border p-2"
-		/>
-		<input
-			type="password"
-			placeholder="Slaptažodis"
-			bind:value={password}
-			class="rounded border p-2"
-		/>
+		<input type="password" bind:value={password} placeholder="Slaptažodis" class="input" />
+		{#if password && !validPassword}
+			<p class="text-sm text-red-500">Slaptažodis turi būti bent 8 simbolių</p>
+		{/if}
 
 		{#if activeTab === 'register'}
-			<!-- optional extra fields, e.g. email -->
-			<!--
-		<input
-		  type="email"
-		  placeholder="El. paštas"
-		  bind:value={email}
-		  class="border p-2 rounded"
-		/>
-		-->
+			<input type="email" bind:value={email} placeholder="El. paštas" class="input" />
+			{#if email && !validEmail}
+				<p class="text-sm text-red-500">Neteisingo formato el. paštas</p>
+			{/if}
 		{/if}
 
 		<button
-			class="btn preset-filled-primary-400-600 mt-2"
+			class="btn preset-filled-primary-400-600 mt-4 w-full"
+			disabled={!canSubmit}
 			on:click={activeTab === 'login' ? login : register}
 		>
 			{activeTab === 'login' ? 'Prisijungti' : 'Registruotis'}
 		</button>
 	</div>
-</div>
-
-<style>
-	.tabs {
-		display: flex;
-		gap: 1rem;
-		margin-bottom: 1rem;
-	}
-	.tab {
-		padding: 0.5rem 1rem;
-		cursor: pointer;
-		border-bottom: 2px solid transparent;
-	}
-	.tab.active {
-		border-color: var(--color-primary-500);
-		font-weight: bold;
-	}
-</style>
+</section>
