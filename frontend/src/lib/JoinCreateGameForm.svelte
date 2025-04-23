@@ -62,9 +62,11 @@
 <Banner>
 	<h1 class="h3 text-center">Role playing game for social interaction</h1>
 	{#if $user}
-		<h1 class="h3 text-center">Hello {$user.username}!</h1>
+		<h1 class="h3 text-center">Sveiki, {$user.username}!</h1>
 	{:else}
-		<button>Log in</button>
+		<button class="btn preset-filled-primary-400-600" on:click={() => goto('/login')}>
+			Prisijungti
+		</button>
 	{/if}
 </Banner>
 <main class="flex h-full items-center justify-center p-2">
