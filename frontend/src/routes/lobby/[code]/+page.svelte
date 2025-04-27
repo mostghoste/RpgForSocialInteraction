@@ -17,10 +17,10 @@
 	import LobbyCompleted from './components/LobbyCompleted.svelte';
 
 	export let data;
-	const { needsUsername, roomCode, lobbyState: initialState } = data;
+	const { roomCode, lobbyState: initialState } = data;
 
 	// local reactive copies
-	let needsUsernameLocal = needsUsername;
+	let needsUsernameLocal = false;
 	let code = needsUsernameLocal ? roomCode : initialState.code;
 	let lobbyState = needsUsernameLocal ? {} : { ...initialState };
 	let players = !needsUsernameLocal ? lobbyState.players || [] : [];
@@ -36,12 +36,19 @@
 			sessionStorage.removeItem('participantId');
 			sessionStorage.removeItem('participantSecret');
 		}
-		// remember current room
 		sessionStorage.setItem('roomCode', code);
 
 		// load any already‐stored creds
-		if (!participantId) participantId = sessionStorage.getItem('participantId');
-		if (!participantSecret) participantSecret = sessionStorage.getItem('participantSecret');
+		const storedId = sessionStorage.getItem('participantId');
+		const storedSecret = sessionStorage.getItem('participantSecret');
+		if (storedId && storedSecret) {
+			participantId = storedId;
+			participantSecret = storedSecret;
+			needsUsernameLocal = false; // we already have a guest identity
+		} else if (!get(user) && initialState.status === 'pending') {
+			// first‐time guest in a pending room needs to pick a name
+			needsUsernameLocal = true;
+		}
 	}
 
 	// lobby settings
@@ -487,7 +494,7 @@
 	}
 </script>
 
-{#if needsUsernameLocal && !$user}
+{#if needsUsernameLocal && !get(user)}
 	<GuestUsernameForm {code} on:submitGuestUsername={submitGuestUsername} />
 {:else if lobbyState.status === 'pending'}
 	<LobbyPending

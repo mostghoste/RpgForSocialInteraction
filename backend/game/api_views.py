@@ -99,11 +99,18 @@ def join_room(request):
         if not name_to_join:
             return Response({'error': 'Prašome įvesti vartotojo vardą.'}, status=400)
 
-        # duplicate‐name check only for guests
-        if not user:
-            existing = [p.guest_name.lower() for p in session.participants.all() if p.guest_name]
-            if name_to_join.lower() in existing:
-                return Response({'error': 'Toks vartotojo vardas jau naudojamas kambaryje.'}, status=400)
+        # duplicate‐name check
+        existing_names = []
+        for p in session.participants.all():
+            if p.user and p.user.username:
+                existing_names.append(p.user.username.lower())
+            elif p.guest_name:
+                existing_names.append(p.guest_name.lower())
+        if name_to_join.lower() in existing_names:
+            return Response(
+                {'error': 'Toks vartotojo vardas jau naudojamas kambaryje.'},
+                status=400
+            )
 
         is_host = (session.participants.count() == 0)
         if user:
