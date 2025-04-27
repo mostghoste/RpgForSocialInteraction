@@ -1,6 +1,8 @@
 # game/urls.py
 
-from django.urls import path
+from django.urls import path, include
+from rest_framework import routers
+from .api_viewsets import QuestionCollectionViewSet, QuestionViewSet
 from .api_views import (
     create_room,
     join_room,
@@ -19,7 +21,11 @@ from .api_views import (
     available_guess_options
 )
 
-urlpatterns = [
+router = routers.DefaultRouter()
+router.register(r'question_collections', QuestionCollectionViewSet, basename='questioncollection')
+router.register(r'questions', QuestionViewSet, basename='question')
+
+urlpatterns = router.urls + [
     path('create_room/', create_room, name='create_room'),
     path('join_room/', join_room, name='join_room'),
     path('update_settings/', update_settings, name='update_settings'),

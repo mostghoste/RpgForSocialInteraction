@@ -5,9 +5,9 @@ from datetime import timedelta
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .models import GameSession, Participant, QuestionCollection, Message, Round
+from .models import GameSession, Participant, QuestionCollection, Message, Round, Character
 from django.utils import timezone
-from django.db.models import F
+from django.db.models import F, Q
 from .utils import broadcast_chat_message, broadcast_lobby_update, broadcast_round_update, send_system_message
 
 def generate_room_code(length=6):
@@ -397,8 +397,12 @@ def update_question_collections(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def available_collections(request):
-    collections = QuestionCollection.objects.all().values('id', 'name')
-    return Response(list(collections))
+    user = request.user if request.user.is_authenticated else None
+    qs = QuestionCollection.objects.filter(
+        Q(created_by=user) | Q(created_by__isnull=True)
+    ).values('id', 'name')
+    return Response(list(qs))
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -496,8 +500,11 @@ def create_character(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def available_characters(request):
-    from .models import Character
-    characters = Character.objects.filter(creator__username="mostghoste").values('id', 'name', 'description', 'image')
+    user = request.user if request.user.is_authenticated else None
+    characters = Character.objects.filter(
+        Q(is_public=True)
+        | Q(creator=user)
+    ).values('id','name','description','image')
     return Response(list(characters))
 
 
