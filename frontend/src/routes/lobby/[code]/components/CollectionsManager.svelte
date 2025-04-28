@@ -1,5 +1,7 @@
 <script>
 	import { user } from '$lib/stores/auth';
+	import { toast } from '@zerodevx/svelte-toast';
+	import { toastOptions } from '$lib/toastConfig';
 	import { onMount, createEventDispatcher } from 'svelte';
 	import { apiFetch } from '$lib/api';
 	import { Accordion, Segment } from '@skeletonlabs/skeleton-svelte';
@@ -34,52 +36,70 @@
 	// Create a new collection
 	async function createCollection() {
 		if (!newName.trim()) return;
-		const res = await apiFetch('/api/question_collections/', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ name: newName, description: newDescription })
-		});
-		if (res.ok) {
+		try {
+			const res = await apiFetch('/api/question_collections/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ name: newName, description: newDescription })
+			});
+			if (!res.ok) throw new Error();
 			const created = await res.json();
 			collections = [created, ...collections];
 			newName = '';
 			newDescription = '';
+			toast.push('Kolekcija sukurta sėkmingai!', toastOptions.success);
+		} catch {
+			toast.push('Nepavyko sukurti kolekcijos.', toastOptions.error);
 		}
 	}
 
 	// Delete a collection
 	async function deleteCollection(id) {
 		if (!confirm('Ar tikrai nori ištrinti šią klausimų kolekciją?')) return;
-		const res = await apiFetch(`/api/question_collections/${id}/`, { method: 'DELETE' });
-		if (res.ok) {
+		try {
+			const res = await apiFetch(`/api/question_collections/${id}/`, { method: 'DELETE' });
+			if (!res.ok) throw new Error();
 			collections = collections.filter((c) => c.id !== id);
 			value = value.filter((v) => v !== id.toString());
 			selectedCollections = selectedCollections.filter((c) => c !== id);
+			toast.push('Kolekcija ištrinta.', toastOptions.success);
+		} catch {
+			toast.push('Nepavyko ištrinti kolekcijos.', toastOptions.error);
 		}
 	}
 
 	// Add a new question to a collection
 	async function addQuestion(collectionId, text) {
 		if (!text.trim()) return;
-		const res = await apiFetch(`/api/question_collections/${collectionId}/add_question/`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ text })
-		});
-		if (res.ok) {
+		try {
+			const res = await apiFetch(`/api/question_collections/${collectionId}/add_question/`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ text })
+			});
+			if (!res.ok) throw new Error();
 			const newQ = await res.json();
 			const col = collections.find((c) => c.id === collectionId);
 			col.questions = [...col.questions, newQ];
 			col.newQText = '';
+			toast.push('Klausimas pridėtas.', toastOptions.success);
+		} catch {
+			toast.push('Nepavyko pridėti klausimo.', toastOptions.error);
 		}
 	}
 
 	// Delete a question
 	async function deleteQuestion(questionId) {
-		await apiFetch(`/api/questions/${questionId}/`, { method: 'DELETE' });
-		collections.forEach((c) => {
-			c.questions = c.questions.filter((q) => q.id !== questionId);
-		});
+		try {
+			const res = await apiFetch(`/api/questions/${questionId}/`, { method: 'DELETE' });
+			if (!res.ok) throw new Error();
+			collections.forEach((c) => {
+				c.questions = c.questions.filter((q) => q.id !== questionId);
+			});
+			toast.push('Klausimas ištrintas.', toastOptions.success);
+		} catch {
+			toast.push('Nepavyko ištrinti klausimo.', toastOptions.error);
+		}
 	}
 
 	// Derive collections based on filterType
@@ -112,6 +132,7 @@
 		</Segment>
 	</div>
 </div>
+
 <div class="flex max-h-[60vh] min-h-[60vh] flex-col justify-between gap-4 overflow-y-auto p-4">
 	{#if filteredCollections.length === 0}
 		<p class="text-surface-500 text-center italic">
@@ -158,7 +179,7 @@
 												<td>{i + 1}</td>
 												<td>{q.text}</td>
 												<td class="text-right">
-													{#if !col.is_standard}
+													{#if $user && !col.is_standard}
 														<button
 															on:click={() => deleteQuestion(q.id)}
 															class="btn btn-sm"
@@ -197,13 +218,12 @@
 						{/if}
 
 						<div class="mb-2 flex">
-							{#if !col.is_standard}
+							{#if $user && !col.is_standard}
 								<button
 									on:click={() => deleteCollection(col.id)}
 									class="btn btn-sm preset-filled-error-500"
 								>
-									<IconTrash size={16} />
-									Ištrinti kolekciją
+									<IconTrash size={16} /> Ištrinti kolekciją
 								</button>
 							{/if}
 						</div>
@@ -213,15 +233,16 @@
 			{/each}
 		</Accordion>
 	{/if}
+
 	{#if $user}
 		<div class="flex flex-col gap-2">
 			<h4 class="h5">Nauja klausimų kolekcija</h4>
 			<div class="flex flex-col gap-2 sm:flex-row">
 				<input class="input" placeholder="Pavadinimas" bind:value={newName} />
 				<input class="input" placeholder="Aprašymas" bind:value={newDescription} />
-				<button class="btn preset-filled-primary-500" on:click={createCollection}
-					><IconAdd size={16} /> Sukurti</button
-				>
+				<button class="btn preset-filled-primary-500" on:click={createCollection}>
+					<IconAdd size={16} /> Sukurti
+				</button>
 			</div>
 		</div>
 	{/if}
