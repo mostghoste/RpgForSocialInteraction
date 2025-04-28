@@ -1,18 +1,26 @@
 <script>
 	import { onMount, createEventDispatcher } from 'svelte';
 	import { apiFetch } from '$lib/api';
-	import { Accordion } from '@skeletonlabs/skeleton-svelte';
+	import { Accordion, Segment } from '@skeletonlabs/skeleton-svelte';
+
+	// Icons
+	import IconAll from '@lucide/svelte/icons/layers';
+	import IconStandard from '@lucide/svelte/icons/book-open';
+	import IconUser from '@lucide/svelte/icons/user';
 
 	export let selectedCollections = [];
 
 	let collections = [];
 	let newName = '';
 	let newDescription = '';
-	let value = []; // track open panels by their `value`
+	let value = [];
 
 	const dispatch = createEventDispatcher();
 
-	// Load all of the host’s collections (plus public)
+	// Filter state: 'all', 'standard', 'mine'
+	let filterType = 'all';
+
+	// Load all collections
 	onMount(async () => {
 		const res = await apiFetch('/api/question_collections/');
 		if (res.ok) {
@@ -42,8 +50,8 @@
 		const res = await apiFetch(`/api/question_collections/${id}/`, { method: 'DELETE' });
 		if (res.ok) {
 			collections = collections.filter((c) => c.id !== id);
-			// also remove it from the open panels if it was open
 			value = value.filter((v) => v !== id.toString());
+			selectedCollections = selectedCollections.filter((c) => c !== id);
 		}
 	}
 
@@ -70,65 +78,92 @@
 			c.questions = c.questions.filter((q) => q.id !== questionId);
 		});
 	}
+
+	// Derive collections based on filterType
+	$: filteredCollections = collections.filter((col) => {
+		if (filterType === 'all') return true;
+		if (filterType === 'standard') return col.is_standard;
+		if (filterType === 'mine') return col.is_mine;
+		return true;
+	});
 </script>
 
 <div class="flex max-h-[60vh] flex-col gap-4 overflow-y-auto p-4">
-	<!-- new‐collection form (unchanged) -->
+	<Segment
+		name="collection-filter"
+		value={filterType}
+		onValueChange={(e) => (filterType = e.value)}
+		class="mb-4"
+	>
+		<Segment.Item value="all">
+			<IconAll class="mr-1 inline-block" /> Visi klausimai
+		</Segment.Item>
+		<Segment.Item value="standard">
+			<IconStandard class="mr-1 inline-block" /> Standartiniai klausimai
+		</Segment.Item>
+		<Segment.Item value="mine">
+			<IconUser class="mr-1 inline-block" /> Mano klausimai
+		</Segment.Item>
+	</Segment>
+
 	<div class="flex gap-2">
 		<input type="text" placeholder="Pavadinimas" bind:value={newName} class="input flex-1" />
 		<input type="text" placeholder="Aprašymas" bind:value={newDescription} class="input flex-2" />
 		<button on:click={createCollection} class="btn preset-filled">Sukurti</button>
 	</div>
 
-	<Accordion collapsible {value} onValueChange={(e) => (value = e.value)}>
-		{#each collections as col (col.id)}
-			<Accordion.Item value={col.id.toString()}>
-				{#snippet control()}
-					<div class="flex items-center">
-						<input
-							type="checkbox"
-							id="qc-{col.id}"
-							class="checkbox mr-4"
-							bind:group={selectedCollections}
-							value={col.id}
-							on:click|stopPropagation
-						/>
-						<div>
-							<h3 class="font-bold">{col.name}</h3>
-							<p>{col.description}</p>
+	{#if filteredCollections.length === 0}
+		<p class="text-surface-500 text-center italic">Pagal pasirinktus kriterijus klausimų nerasta</p>
+	{:else}
+		<Accordion collapsible {value} onValueChange={(e) => (value = e.value)}>
+			{#each filteredCollections as col (col.id)}
+				<Accordion.Item value={col.id.toString()}>
+					{#snippet control()}
+						<div class="flex items-center">
+							<input
+								type="checkbox"
+								id="qc-{col.id}"
+								class="checkbox mr-4"
+								bind:group={selectedCollections}
+								value={col.id}
+								on:click|stopPropagation
+							/>
+							<div>
+								<h3 class="font-bold">{col.name}</h3>
+								<p class="text-surface-600-400 text-sm">{col.description}</p>
+							</div>
 						</div>
-					</div>
-				{/snippet}
-				{#snippet panel()}
-					<!-- delete collection button -->
-					<div class="mb-2 flex justify-end">
-						<button on:click={() => deleteCollection(col.id)} class="btn-sm error">
-							Ištrinti kolekciją
-						</button>
-					</div>
-					<!-- existing questions list and add‐question UI -->
-					<ul class="mb-2 list-disc pl-4">
-						{#each col.questions as q (q.id)}
-							<li class="flex items-center justify-between">
-								<span>{q.text}</span>
-								<button on:click={() => deleteQuestion(q.id)} class="btn-sm error">×</button>
-							</li>
-						{/each}
-					</ul>
-					<div class="flex gap-2">
-						<input
-							type="text"
-							placeholder="Naujas klausimas"
-							bind:value={col.newQText}
-							class="input flex-1"
-						/>
-						<button on:click={() => addQuestion(col.id, col.newQText)} class="btn-sm">
-							Pridėti
-						</button>
-					</div>
-				{/snippet}
-			</Accordion.Item>
-			<hr class="hr" />
-		{/each}
-	</Accordion>
+					{/snippet}
+
+					{#snippet panel()}
+						<div class="mb-2 flex justify-end">
+							<button on:click={() => deleteCollection(col.id)} class="btn-sm error">
+								Ištrinti kolekciją
+							</button>
+						</div>
+						<ul class="mb-2 list-disc space-y-1 pl-4">
+							{#each col.questions as q (q.id)}
+								<li class="flex items-center justify-between">
+									<span>{q.text}</span>
+									<button on:click={() => deleteQuestion(q.id)} class="btn-sm error">×</button>
+								</li>
+							{/each}
+						</ul>
+						<div class="flex gap-2">
+							<input
+								type="text"
+								placeholder="Naujas klausimas"
+								bind:value={col.newQText}
+								class="input flex-1"
+							/>
+							<button on:click={() => addQuestion(col.id, col.newQText)} class="btn-sm">
+								Pridėti
+							</button>
+						</div>
+					{/snippet}
+				</Accordion.Item>
+				<hr class="hr" />
+			{/each}
+		</Accordion>
+	{/if}
 </div>
