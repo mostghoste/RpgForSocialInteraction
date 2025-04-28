@@ -88,9 +88,10 @@
 						<input
 							type="checkbox"
 							id="qc-{col.id}"
-							class="mr-2"
+							class="checkbox mr-4"
 							bind:group={selectedCollections}
 							value={col.id}
+							on:click|stopPropagation
 						/>
 						<div>
 							<h3 class="font-bold">{col.name}</h3>
