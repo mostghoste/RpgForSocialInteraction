@@ -187,7 +187,10 @@
 									bind:value={col.newQText}
 									class="input flex-1"
 								/>
-								<button on:click={() => addQuestion(col.id, col.newQText)}>
+								<button
+									class="btn preset-filled-primary-500"
+									on:click={() => addQuestion(col.id, col.newQText)}
+								>
 									<IconAdd size={16} /> Pridėti
 								</button>
 							</div>
@@ -216,7 +219,9 @@
 			<div class="flex flex-col gap-2 sm:flex-row">
 				<input class="input" placeholder="Pavadinimas" bind:value={newName} />
 				<input class="input" placeholder="Aprašymas" bind:value={newDescription} />
-				<button class="btn preset-filled-primary-500" on:click={createCollection}>Sukurti</button>
+				<button class="btn preset-filled-primary-500" on:click={createCollection}
+					><IconAdd size={16} /> Sukurti</button
+				>
 			</div>
 		</div>
 	{/if}
