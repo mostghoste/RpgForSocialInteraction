@@ -1,4 +1,5 @@
 <script>
+	import { user } from '$lib/stores/auth';
 	import { onMount, createEventDispatcher } from 'svelte';
 	import { apiFetch } from '$lib/api';
 	import { Accordion, Segment } from '@skeletonlabs/skeleton-svelte';
@@ -90,41 +91,39 @@
 	});
 </script>
 
-<div class="flex max-h-[60vh] flex-col gap-4 overflow-y-auto p-4">
-	<div>
-		<p class="text-surface-contrast-500 mb-1 ml-2 text-sm">Rodomos klausimų kolekcijos:</p>
-		<div class="flex flex-col">
-			<Segment
-				name="collection-filter"
-				value={filterType}
-				onValueChange={(e) => (filterType = e.value)}
-				class="mb-4"
-			>
-				<Segment.Item value="all">
-					<IconAll class="mr-1 inline-block" size={20} /> Visos
-				</Segment.Item>
-				<Segment.Item value="standard">
-					<IconStandard class="mr-1 inline-block" size={20} /> Standartinės
-				</Segment.Item>
-				<Segment.Item value="mine">
-					<IconUser class="mr-1 inline-block" size={20} /> Mano
-				</Segment.Item>
-			</Segment>
-		</div>
+<div>
+	<p class="h5 mb-2 ml-2">Klausimų kolekcijos</p>
+	<div class="flex flex-col">
+		<Segment
+			name="collection-filter"
+			value={filterType}
+			onValueChange={(e) => (filterType = e.value)}
+			class="mb-4"
+		>
+			<Segment.Item value="all">
+				<IconAll class="mr-1 inline-block" size={20} /> Visos
+			</Segment.Item>
+			<Segment.Item value="standard">
+				<IconStandard class="mr-1 inline-block" size={20} /> Standartinės
+			</Segment.Item>
+			<Segment.Item value="mine" disabled={!$user}>
+				<IconUser class="mr-1 inline-block" size={20} /> Mano
+			</Segment.Item>
+		</Segment>
 	</div>
-
-	<div class="flex gap-2">
-		<input type="text" placeholder="Pavadinimas" bind:value={newName} class="input flex-1" />
-		<input type="text" placeholder="Aprašymas" bind:value={newDescription} class="input flex-2" />
-		<button on:click={createCollection} class="btn preset-filled">Sukurti</button>
-	</div>
-
+</div>
+<div class="flex max-h-[60vh] min-h-[60vh] flex-col justify-between gap-4 overflow-y-auto p-4">
 	{#if filteredCollections.length === 0}
-		<p class="text-surface-500 text-center italic">Pagal pasirinktus kriterijus klausimų nerasta</p>
+		<p class="text-surface-500 text-center italic">
+			Pagal pasirinktus kriterijus klausimų kolekcijų nerasta
+		</p>
 	{:else}
 		<Accordion collapsible {value} onValueChange={(e) => (value = e.value)}>
 			{#each filteredCollections as col (col.id)}
-				<Accordion.Item value={col.id.toString()}>
+				<Accordion.Item
+					value={col.id.toString()}
+					controlClasses="hover:bg-surface-950 hover:text-surface-contrast-50-950"
+				>
 					{#snippet control()}
 						<div class="flex items-center">
 							<input
@@ -180,21 +179,19 @@
 							</p>
 						{/if}
 
-						<div class="mb-4 flex gap-2">
-							<input
-								type="text"
-								placeholder="Naujas klausimas"
-								bind:value={col.newQText}
-								class="input flex-1"
-							/>
-							<button
-								on:click={() => addQuestion(col.id, col.newQText)}
-								class="btn btn-sm preset-filled-primary-500"
-							>
-								<IconAdd size={16} />
-								Pridėti
-							</button>
-						</div>
+						{#if $user && !col.is_standard}
+							<div class="mb-4 flex gap-2">
+								<input
+									type="text"
+									placeholder="Naujas klausimas"
+									bind:value={col.newQText}
+									class="input flex-1"
+								/>
+								<button on:click={() => addQuestion(col.id, col.newQText)}>
+									<IconAdd size={16} /> Pridėti
+								</button>
+							</div>
+						{/if}
 
 						<div class="mb-2 flex">
 							{#if !col.is_standard}
@@ -212,5 +209,15 @@
 				<hr class="hr" />
 			{/each}
 		</Accordion>
+	{/if}
+	{#if $user}
+		<div class="flex flex-col gap-2">
+			<h4 class="h5">Nauja klausimų kolekcija</h4>
+			<div class="flex flex-col gap-2 sm:flex-row">
+				<input class="input" placeholder="Pavadinimas" bind:value={newName} />
+				<input class="input" placeholder="Aprašymas" bind:value={newDescription} />
+				<button class="btn preset-filled-primary-500" on:click={createCollection}>Sukurti</button>
+			</div>
+		</div>
 	{/if}
 </div>
