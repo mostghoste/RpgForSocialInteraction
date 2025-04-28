@@ -89,9 +89,11 @@
 			});
 			if (!res.ok) throw new Error();
 			const newQ = await res.json();
-			const col = collections.find((c) => c.id === collectionId);
-			col.questions = [...col.questions, newQ];
-			col.newQText = '';
+
+			collections = collections.map((c) =>
+				c.id === collectionId ? { ...c, questions: [...c.questions, newQ], newQText: '' } : c
+			);
+
 			toast.push('Klausimas pridėtas.', toastOptions.success);
 		} catch {
 			toast.push('Nepavyko pridėti klausimo.', toastOptions.error);
@@ -101,19 +103,22 @@
 	// Delete a question
 	async function deleteQuestion(questionId) {
 		try {
-			const res = await apiFetch(`/api/questions/${questionId}/`, { method: 'DELETE' });
-			// attempt to parse error body
+			const res = await apiFetch(`/api/questions/${questionId}/`, {
+				method: 'DELETE'
+			});
 			const errData = await res.json().catch(() => ({}));
-
 			if (!res.ok) {
 				const msg = errData.error || errData.detail || 'Nepavyko ištrinti klausimo.';
 				toast.push(msg, toastOptions.error);
 				return;
 			}
 
-			collections.forEach((c) => {
-				c.questions = c.questions.filter((q) => q.id !== questionId);
-			});
+			// rebuild the entire collections array so Svelte re-renders
+			collections = collections.map((c) => ({
+				...c,
+				questions: c.questions.filter((q) => q.id !== questionId)
+			}));
+
 			toast.push('Klausimas ištrintas.', toastOptions.success);
 		} catch (err) {
 			toast.push(err.message || 'Nepavyko ištrinti klausimo.', toastOptions.error);
