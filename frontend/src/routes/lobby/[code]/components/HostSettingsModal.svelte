@@ -4,7 +4,6 @@
 	import { createEventDispatcher } from 'svelte';
 	import { X, Settings, CircleHelp } from '@lucide/svelte';
 
-	// Props
 	let {
 		roundLength: initialRoundLength,
 		roundCount: initialRoundCount,
@@ -14,18 +13,17 @@
 
 	const dispatch = createEventDispatcher();
 
-	// Slider state as signals
+	// Sliders
 	let sliderRoundLength = $state([initialRoundLength]);
 	let sliderRoundCount = $state([initialRoundCount]);
 	let sliderGuessTimer = $state([initialGuessTimer]);
 
-	// Derived values instead of reactive statements
 	let roundLength = $derived(sliderRoundLength[0]);
 	let roundCount = $derived(sliderRoundCount[0]);
 	let guessTimer = $derived(sliderGuessTimer[0]);
 
 	// Tabs state
-	let activeTab = $state('gamesettings');
+	let activeTab = $state('gamesettings'); // gamesettings | questions
 
 	function handleSave() {
 		dispatch('updateSettings', { roundLength, roundCount, guessTimer, selectedCollections });
@@ -41,10 +39,14 @@
 	<div class="bg-surface-100-900 max-w-[80vw] rounded-lg p-6 shadow">
 		<Tabs value={activeTab} onValueChange={(e) => (activeTab = e.value)} fluid>
 			{#snippet list()}
-				<Tabs.Control value="gamesettings"
+				<Tabs.Control
+					value="gamesettings"
+					labelBase="p-2 px-4 flex items-center gap-2 justify-center font-semibold"
 					>{#snippet lead()}<Settings size={20} />{/snippet}Nustatymai</Tabs.Control
 				>
-				<Tabs.Control value="questions"
+				<Tabs.Control
+					value="questions"
+					labelBase="p-2 px-4 flex items-center gap-2 justify-center font-semibold"
 					>{#snippet lead()}<CircleHelp size={20} />{/snippet}Klausimai</Tabs.Control
 				>
 			{/snippet}
@@ -119,13 +121,6 @@
 				</Tabs.Panel>
 
 				<Tabs.Panel value="questions">
-					<!-- <div class="mb-4 flex items-center justify-between">
-						<h2 class="h5">Klausimai</h2>
-						<button on:click={closeModal} class="btn hover:preset-filled-surface-300-700 p-2">
-							<X size="24" />
-						</button>
-					</div> -->
-
 					<div class="mb-4 overflow-y-auto">
 						<CollectionsManager bind:selectedCollections />
 					</div>
