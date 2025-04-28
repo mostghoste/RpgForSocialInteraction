@@ -143,24 +143,42 @@
 					{/snippet}
 
 					{#snippet panel()}
-						<div class="mb-2 flex">
-							<button
-								on:click={() => deleteCollection(col.id)}
-								class="btn btn-sm preset-filled-error-500"
-							>
-								<IconTrash size={16} />
-								Ištrinti kolekciją
-							</button>
-						</div>
-						<ul class="mb-2 space-y-1 pl-4">
-							{#each col.questions as q (q.id)}
-								<li class="flex items-center justify-between">
-									<span>{q.text}</span>
-									<button on:click={() => deleteQuestion(q.id)} class="btn-sm error">×</button>
-								</li>
-							{/each}
-						</ul>
-						<div class="flex gap-2">
+						{#if col.questions.length > 0}
+							<div class="table-wrap mb-2">
+								<table class="table w-full caption-bottom">
+									<thead>
+										<tr>
+											<th class="w-8">Id</th>
+											<th>Klausimas</th>
+											<th></th>
+										</tr>
+									</thead>
+									<tbody class="[&>tr]:hover:preset-tonal-surface">
+										{#each col.questions as q, i (q.id)}
+											<tr>
+												<td>{i + 1}</td>
+												<td>{q.text}</td>
+												<td class="text-right">
+													<button
+														on:click={() => deleteQuestion(q.id)}
+														class="btn btn-sm"
+														title="Ištrinti klausimą"
+													>
+														<IconTrash size={16} />
+													</button>
+												</td>
+											</tr>
+										{/each}
+									</tbody>
+								</table>
+							</div>
+						{:else}
+							<p class="mb-4 text-center text-sm">
+								Ši klausimų kolekcija dar tuščia. Metas sukurti klausimą!
+							</p>
+						{/if}
+
+						<div class="mb-4 flex gap-2">
 							<input
 								type="text"
 								placeholder="Naujas klausimas"
@@ -173,6 +191,16 @@
 							>
 								<IconAdd size={16} />
 								Pridėti
+							</button>
+						</div>
+
+						<div class="mb-2 flex">
+							<button
+								on:click={() => deleteCollection(col.id)}
+								class="btn btn-sm preset-filled-error-500"
+							>
+								<IconTrash size={16} />
+								Ištrinti kolekciją
 							</button>
 						</div>
 					{/snippet}
