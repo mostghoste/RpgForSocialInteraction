@@ -543,7 +543,7 @@ def start_game(request):
         collection.questions.filter(is_deleted=False).count()
         for collection in live_cols
     )
-    if total_questions <= session.round_count:
+    if total_questions < session.round_count:
          return Response({'error': 'Klausimų kolekcijose nepakanka klausimų pagal nurodytą raundų skaičių.'}, status=400)
 
     # All checks passed; change game status.
