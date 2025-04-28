@@ -3,6 +3,8 @@
 	import { apiFetch } from '$lib/api';
 	import { Accordion } from '@skeletonlabs/skeleton-svelte';
 
+	export let selectedCollections = [];
+
 	let collections = [];
 	let newName = '';
 	let newDescription = '';
@@ -70,38 +72,48 @@
 	}
 </script>
 
-<div class="flex max-h-[80vh] flex-col gap-4 overflow-y-auto p-4">
-	<h2 class="h5">Klausimai</h2>
-
-	<!-- New collection form -->
+<div class="flex max-h-[60vh] flex-col gap-4 overflow-y-auto p-4">
+	<!-- new‐collection form (unchanged) -->
 	<div class="flex gap-2">
 		<input type="text" placeholder="Pavadinimas" bind:value={newName} class="input flex-1" />
 		<input type="text" placeholder="Aprašymas" bind:value={newDescription} class="input flex-2" />
 		<button on:click={createCollection} class="btn preset-filled">Sukurti</button>
 	</div>
 
-	<Accordion type="multiple" {value} onValueChange={(e) => (value = e.value)}>
+	<Accordion collapsible {value} onValueChange={(e) => (value = e.value)}>
 		{#each collections as col (col.id)}
 			<Accordion.Item value={col.id.toString()}>
 				{#snippet control()}
-					<strong>{col.name}</strong> — {col.description}
+					<div class="flex items-center">
+						<input
+							type="checkbox"
+							id="qc-{col.id}"
+							class="mr-2"
+							bind:group={selectedCollections}
+							value={col.id}
+						/>
+						<div>
+							<h3 class="font-bold">{col.name}</h3>
+							<p>{col.description}</p>
+						</div>
+					</div>
 				{/snippet}
 				{#snippet panel()}
+					<!-- delete collection button -->
 					<div class="mb-2 flex justify-end">
 						<button on:click={() => deleteCollection(col.id)} class="btn-sm error">
 							Ištrinti kolekciją
 						</button>
 					</div>
-
+					<!-- existing questions list and add‐question UI -->
 					<ul class="mb-2 list-disc pl-4">
 						{#each col.questions as q (q.id)}
 							<li class="flex items-center justify-between">
 								<span>{q.text}</span>
-								<button on:click={() => deleteQuestion(q.id)} class="btn-sm error"> × </button>
+								<button on:click={() => deleteQuestion(q.id)} class="btn-sm error">×</button>
 							</li>
 						{/each}
 					</ul>
-
 					<div class="flex gap-2">
 						<input
 							type="text"
@@ -118,6 +130,4 @@
 			<hr class="hr" />
 		{/each}
 	</Accordion>
-
-	<button on:click={() => dispatch('close')} class="btn-secondary mt-4"> Uždaryti </button>
 </div>

@@ -8,14 +8,13 @@
 	export let roundLength;
 	export let roundCount;
 	export let guessTimer;
-	export let availableCollections = [];
 	export let selectedCollections = [];
 
 	const dispatch = createEventDispatcher();
 
 	let activeTab = 'gamesettings'; // 'gamesettings' | 'questions'
 
-	// slider state values
+	// sliders
 	let sliderRoundLength = [roundLength];
 	let sliderRoundCount = [roundCount];
 	let sliderGuessTimer = [guessTimer];
@@ -35,7 +34,7 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-	<div class="bg-surface-100-900 max-w-96 rounded-lg p-6 shadow">
+	<div class="bg-surface-100-900 max-w-[80vw] rounded-lg p-6 shadow">
 		<div class="tabs">
 			<button
 				class="btn preset-filled-primary-500"
@@ -117,34 +116,28 @@
 				/>
 			</div>
 
-			<!-- Checkbox selection for Question Collections -->
-			<div class="mb-4">
-				<h3 class="mb-2 text-lg font-semibold">Naudojami klausimai</h3>
-				{#if availableCollections.length > 0}
-					{#each availableCollections as collection}
-						<div class="mb-1 flex items-center">
-							<input
-								type="checkbox"
-								id="qc-{collection.id}"
-								value={collection.id}
-								bind:group={selectedCollections}
-								class="mr-2"
-							/>
-							<label for="qc-{collection.id}">{collection.name}</label>
-						</div>
-					{/each}
-				{:else}
-					<p class="">Nėra prieinamų klausimų kolekcijų.</p>
-				{/if}
-			</div>
-
 			<!-- Action Buttons -->
 			<div class="flex justify-end space-x-2">
 				<button on:click={closeModal} class="btn preset-filled-error-400-600">Atšaukti</button>
 				<button on:click={handleSave} class="btn preset-filled-success-400-600">Išsaugoti</button>
 			</div>
 		{:else}
-			<CollectionsManager on:close={() => dispatch('close')} />
+			<!-- Questions tab -->
+			<div class="mb-4 flex items-center justify-between">
+				<h2 class="h5">Klausimai</h2>
+				<button on:click={closeModal} class="btn hover:preset-filled-surface-300-700 p-2">
+					<X size="24" />
+				</button>
+			</div>
+
+			<div class="mb-4 overflow-y-auto">
+				<CollectionsManager bind:selectedCollections />
+			</div>
+
+			<div class="flex justify-end space-x-2">
+				<button on:click={closeModal} class="btn preset-filled-error-400-600">Atšaukti</button>
+				<button on:click={handleSave} class="btn preset-filled-success-400-600">Išsaugoti</button>
+			</div>
 		{/if}
 	</div>
 </div>
