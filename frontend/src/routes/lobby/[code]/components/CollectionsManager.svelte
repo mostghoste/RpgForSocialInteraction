@@ -7,6 +7,8 @@
 	import IconAll from '@lucide/svelte/icons/layers';
 	import IconStandard from '@lucide/svelte/icons/book-open';
 	import IconUser from '@lucide/svelte/icons/user';
+	import IconTrash from '@lucide/svelte/icons/trash';
+	import IconAdd from '@lucide/svelte/icons/square-pen';
 
 	export let selectedCollections = [];
 
@@ -46,7 +48,7 @@
 
 	// Delete a collection
 	async function deleteCollection(id) {
-		if (!confirm('Really delete this collection?')) return;
+		if (!confirm('Ar tikrai nori ištrinti šią klausimų kolekciją?')) return;
 		const res = await apiFetch(`/api/question_collections/${id}/`, { method: 'DELETE' });
 		if (res.ok) {
 			collections = collections.filter((c) => c.id !== id);
@@ -141,12 +143,16 @@
 					{/snippet}
 
 					{#snippet panel()}
-						<div class="mb-2 flex justify-end">
-							<button on:click={() => deleteCollection(col.id)} class="btn-sm error">
+						<div class="mb-2 flex">
+							<button
+								on:click={() => deleteCollection(col.id)}
+								class="btn btn-sm preset-filled-error-500"
+							>
+								<IconTrash size={16} />
 								Ištrinti kolekciją
 							</button>
 						</div>
-						<ul class="mb-2 list-disc space-y-1 pl-4">
+						<ul class="mb-2 space-y-1 pl-4">
 							{#each col.questions as q (q.id)}
 								<li class="flex items-center justify-between">
 									<span>{q.text}</span>
@@ -161,7 +167,11 @@
 								bind:value={col.newQText}
 								class="input flex-1"
 							/>
-							<button on:click={() => addQuestion(col.id, col.newQText)} class="btn-sm">
+							<button
+								on:click={() => addQuestion(col.id, col.newQText)}
+								class="btn btn-sm preset-filled-primary-500"
+							>
+								<IconAdd size={16} />
 								Pridėti
 							</button>
 						</div>
