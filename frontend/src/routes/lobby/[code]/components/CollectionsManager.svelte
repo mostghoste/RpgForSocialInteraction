@@ -56,15 +56,25 @@
 	// Delete a collection
 	async function deleteCollection(id) {
 		if (!confirm('Ar tikrai nori ištrinti šią klausimų kolekciją?')) return;
+
 		try {
 			const res = await apiFetch(`/api/question_collections/${id}/`, { method: 'DELETE' });
-			if (!res.ok) throw new Error();
+			// attempt to parse error body (if any)
+			const errData = await res.json().catch(() => ({}));
+
+			if (!res.ok) {
+				const msg = errData.error || errData.detail || 'Nepavyko ištrinti kolekcijos.';
+				toast.push(msg, toastOptions.error);
+				return;
+			}
+
+			// on success, remove locally
 			collections = collections.filter((c) => c.id !== id);
 			value = value.filter((v) => v !== id.toString());
 			selectedCollections = selectedCollections.filter((c) => c !== id);
 			toast.push('Kolekcija ištrinta.', toastOptions.success);
-		} catch {
-			toast.push('Nepavyko ištrinti kolekcijos.', toastOptions.error);
+		} catch (err) {
+			toast.push(err.message || 'Nepavyko ištrinti kolekcijos.', toastOptions.error);
 		}
 	}
 
@@ -92,13 +102,21 @@
 	async function deleteQuestion(questionId) {
 		try {
 			const res = await apiFetch(`/api/questions/${questionId}/`, { method: 'DELETE' });
-			if (!res.ok) throw new Error();
+			// attempt to parse error body
+			const errData = await res.json().catch(() => ({}));
+
+			if (!res.ok) {
+				const msg = errData.error || errData.detail || 'Nepavyko ištrinti klausimo.';
+				toast.push(msg, toastOptions.error);
+				return;
+			}
+
 			collections.forEach((c) => {
 				c.questions = c.questions.filter((q) => q.id !== questionId);
 			});
 			toast.push('Klausimas ištrintas.', toastOptions.success);
-		} catch {
-			toast.push('Nepavyko ištrinti klausimo.', toastOptions.error);
+		} catch (err) {
+			toast.push(err.message || 'Nepavyko ištrinti klausimo.', toastOptions.error);
 		}
 	}
 
