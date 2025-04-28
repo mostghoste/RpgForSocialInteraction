@@ -228,6 +228,7 @@
 								/>
 								<button
 									class="btn preset-filled-primary-500"
+									disabled={!col.newQText?.trim()}
 									on:click={() => addQuestion(col.id, col.newQText)}
 								>
 									<IconAdd size={16} /> Pridėti
@@ -258,7 +259,11 @@
 			<div class="flex flex-col gap-2 sm:flex-row">
 				<input class="input" placeholder="Pavadinimas" bind:value={newName} />
 				<input class="input" placeholder="Aprašymas" bind:value={newDescription} />
-				<button class="btn preset-filled-primary-500" on:click={createCollection}>
+				<button
+					class="btn preset-filled-primary-500"
+					disabled={!newName.trim()}
+					on:click={createCollection}
+				>
 					<IconAdd size={16} /> Sukurti
 				</button>
 			</div>
