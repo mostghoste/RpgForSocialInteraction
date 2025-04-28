@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import QuestionCollection, Question
@@ -21,15 +21,20 @@ class QuestionCollectionViewSet(viewsets.ModelViewSet):
             if user.is_authenticated:
                 return QuestionCollection.objects.filter(
                     Q(created_by=user) | Q(created_by__isnull=True)
-                )
+                ).filter(is_deleted=False)
             # anonymous only public
-            return QuestionCollection.objects.filter(created_by__isnull=True)
+            return QuestionCollection.objects.filter(created_by__isnull=True, is_deleted=False)
 
         # retrieve/update/destroy: only your own
-        return QuestionCollection.objects.filter(created_by=self.request.user)
+        return QuestionCollection.objects.filter(created_by=self.request.user, is_deleted=False)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        coll = self.get_object()
+        coll.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post'])
     def add_question(self, request, pk=None):
@@ -51,7 +56,12 @@ class QuestionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Question.objects.filter(creator=self.request.user)
+        return Question.objects.filter(creator=self.request.user, is_deleted=False)
+    
+    def destroy(self, request, *args, **kwargs):
+        q = self.get_object()
+        q.delete()  # soft-delete
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)

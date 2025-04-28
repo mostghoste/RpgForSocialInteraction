@@ -74,7 +74,7 @@ def join_room(request):
         )
         # On first join, if no question collections set, grab them all
         if created and session.question_collections.count() == 0:
-            all_cols = QuestionCollection.objects.all()
+            all_cols = QuestionCollection.objects.filter(is_deleted=False)
             session.question_collections.set(all_cols)
             session.save()
 
@@ -163,7 +163,7 @@ def join_room(request):
             'characterName': character_name,
         })
 
-    collections_list = list(session.question_collections.values('id', 'name'))
+    collections_list = list(session.question_collections.filter(is_deleted=False).values('id', 'name'))
 
     current_round = None
     if session.status == 'in_progress':
@@ -242,8 +242,7 @@ def update_settings(request):
     selected_ids = request.data.get('selectedCollections')
     if selected_ids is not None:
         # Assuming selected_ids is a list of collection ids.
-        from .models import QuestionCollection
-        valid_collections = QuestionCollection.objects.filter(id__in=selected_ids)
+        valid_collections = QuestionCollection.objects.filter(id__in=selected_ids, is_deleted=False)
         session.question_collections.set(valid_collections)
 
     session.save()
@@ -380,12 +379,11 @@ def update_question_collections(request):
         return Response({'error': 'Tik vedėjas gali keisti klausimų kolekcijas.'}, status=403)
 
     # Fetch valid collections from the provided IDs
-    valid_collections = QuestionCollection.objects.filter(id__in=collections_ids)
+    valid_collections = QuestionCollection.objects.filter(id__in=collections_ids, is_deleted=False)
     # Update the session's question collections.
     session.question_collections.set(valid_collections)
     session.save()
 
-    from .utils import broadcast_lobby_update
     broadcast_lobby_update(session)
 
     collections_list = list(session.question_collections.values('id', 'name'))
@@ -399,7 +397,8 @@ def update_question_collections(request):
 def available_collections(request):
     user = request.user if request.user.is_authenticated else None
     qs = QuestionCollection.objects.filter(
-        Q(created_by=user) | Q(created_by__isnull=True)
+        Q(created_by=user) | Q(created_by__isnull=True),
+        is_deleted=False
     ).values('id', 'name')
     return Response(list(qs))
 
@@ -539,7 +538,11 @@ def start_game(request):
     if session.participants.filter(assigned_character__isnull=True).exists():
          return Response({'error': 'Kiekvienas dalyvis privalo turėti personažą.'}, status=400)
     
-    total_questions = sum(collection.questions.count() for collection in session.question_collections.all())
+    live_cols = session.question_collections.filter(is_deleted=False)
+    total_questions = sum(
+        collection.questions.filter(is_deleted=False).count()
+        for collection in live_cols
+    )
     if total_questions <= session.round_count:
          return Response({'error': 'Klausimų kolekcijose nepakanka klausimų pagal nurodytą raundų skaičių.'}, status=400)
 
@@ -555,7 +558,9 @@ def start_game(request):
     # Choose a random question from a random collection
     question = None
     if session.question_collections.exists():
-        collections = list(session.question_collections.all())
+        live_cols = session.question_collections.filter(is_deleted=False)
+        if live_cols.exists():
+            collections = list(live_cols)
         collection = random.choice(collections)
         questions = list(collection.questions.all())
         if questions:

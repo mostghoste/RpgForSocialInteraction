@@ -2,6 +2,7 @@
 
 import uuid, os
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth.models import User
 
 def get_character_image_upload_path(instance, filename):
@@ -11,6 +12,27 @@ def get_character_image_upload_path(instance, filename):
     new_filename = f"{uuid.uuid4().hex}.{ext}"
     # Return the full path where the file will be stored
     return os.path.join("character_images", new_filename)
+
+class SoftDeleteManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+class SoftDeleteModel(models.Model):
+    is_deleted  = models.BooleanField(default=False)
+    deleted_at  = models.DateTimeField(null=True, blank=True)
+
+    # default manager hides deleted objects
+    objects     = SoftDeleteManager()
+    # keep a “complete” manager
+    all_objects = models.Manager()
+
+    class Meta:
+        abstract = True
+
+    def delete(self, using=None, keep_parents=False):
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save()
 
 class Character(models.Model):
     name = models.CharField(max_length=50)
@@ -104,7 +126,7 @@ class Participant(models.Model):
             username = "Guest"
         return f"{username} in session {self.game_session.code}"
 
-class Question(models.Model):
+class Question(SoftDeleteModel):
     text = models.TextField()
     creator = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_questions'
@@ -114,7 +136,7 @@ class Question(models.Model):
     def __str__(self):
         return self.text[:50]
 
-class QuestionCollection(models.Model):
+class QuestionCollection(SoftDeleteModel):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     questions = models.ManyToManyField(Question, blank=True, related_name='collections')
