@@ -159,13 +159,15 @@
 												<td>{i + 1}</td>
 												<td>{q.text}</td>
 												<td class="text-right">
-													<button
-														on:click={() => deleteQuestion(q.id)}
-														class="btn btn-sm"
-														title="Ištrinti klausimą"
-													>
-														<IconTrash size={16} />
-													</button>
+													{#if !col.is_standard}
+														<button
+															on:click={() => deleteQuestion(q.id)}
+															class="btn btn-sm"
+															title="Ištrinti klausimą"
+														>
+															<IconTrash size={16} />
+														</button>
+													{/if}
 												</td>
 											</tr>
 										{/each}
@@ -195,13 +197,15 @@
 						</div>
 
 						<div class="mb-2 flex">
-							<button
-								on:click={() => deleteCollection(col.id)}
-								class="btn btn-sm preset-filled-error-500"
-							>
-								<IconTrash size={16} />
-								Ištrinti kolekciją
-							</button>
+							{#if !col.is_standard}
+								<button
+									on:click={() => deleteCollection(col.id)}
+									class="btn btn-sm preset-filled-error-500"
+								>
+									<IconTrash size={16} />
+									Ištrinti kolekciją
+								</button>
+							{/if}
 						</div>
 					{/snippet}
 				</Accordion.Item>
