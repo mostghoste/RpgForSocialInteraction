@@ -10,6 +10,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 class QuestionCollectionSerializer(serializers.ModelSerializer):
     is_standard = serializers.SerializerMethodField()
     is_mine      = serializers.SerializerMethodField()
+    questions = QuestionSerializer(many=True, read_only=True)
 
     class Meta:
         model  = QuestionCollection

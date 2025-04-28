@@ -89,22 +89,27 @@
 </script>
 
 <div class="flex max-h-[60vh] flex-col gap-4 overflow-y-auto p-4">
-	<Segment
-		name="collection-filter"
-		value={filterType}
-		onValueChange={(e) => (filterType = e.value)}
-		class="mb-4"
-	>
-		<Segment.Item value="all">
-			<IconAll class="mr-1 inline-block" /> Visi klausimai
-		</Segment.Item>
-		<Segment.Item value="standard">
-			<IconStandard class="mr-1 inline-block" /> Standartiniai klausimai
-		</Segment.Item>
-		<Segment.Item value="mine">
-			<IconUser class="mr-1 inline-block" /> Mano klausimai
-		</Segment.Item>
-	</Segment>
+	<div>
+		<p class="text-surface-contrast-500 mb-1 ml-2 text-sm">Rodomos klausimų kolekcijos:</p>
+		<div class="flex flex-col">
+			<Segment
+				name="collection-filter"
+				value={filterType}
+				onValueChange={(e) => (filterType = e.value)}
+				class="mb-4"
+			>
+				<Segment.Item value="all">
+					<IconAll class="mr-1 inline-block" size={20} /> Visos
+				</Segment.Item>
+				<Segment.Item value="standard">
+					<IconStandard class="mr-1 inline-block" size={20} /> Standartinės
+				</Segment.Item>
+				<Segment.Item value="mine">
+					<IconUser class="mr-1 inline-block" size={20} /> Mano
+				</Segment.Item>
+			</Segment>
+		</div>
+	</div>
 
 	<div class="flex gap-2">
 		<input type="text" placeholder="Pavadinimas" bind:value={newName} class="input flex-1" />
