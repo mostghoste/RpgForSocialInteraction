@@ -4,6 +4,7 @@ import uuid, os
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 
 def get_character_image_upload_path(instance, filename):
     # Extract the file extension
@@ -61,12 +62,12 @@ class GameSession(models.Model):
     )
     code = models.CharField(max_length=20)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    round_length = models.IntegerField(default=60)  # Round duration in seconds.
-    round_count = models.IntegerField(default=3)    # Total number of rounds for the session.
-    guess_timer = models.IntegerField(default=60)  # Timer (in seconds) for guessing phase.
-    guess_deadline = models.DateTimeField(null=True, blank=True) # Deadline for submitting guesses.
+    round_length = models.IntegerField(default=60)  # Round duration in seconds
+    round_count = models.IntegerField(default=3)    # Total number of rounds for the session
+    guess_timer = models.IntegerField(default=60)  # Timer (in seconds) for guessing phase
+    guess_deadline = models.DateTimeField(null=True, blank=True) # Deadline for submitting guesses
 
-    # A session can reference one or several question collections.
+    # A session can reference several question collections
     question_collections = models.ManyToManyField(
         'QuestionCollection', blank=True, related_name='game_sessions'
     )
@@ -80,15 +81,15 @@ def generate_secret():
     return uuid.uuid4().hex
 
 class Participant(models.Model):
-    # if the user is deleted, keep their participant record.
+    # if the user is deleted, keep their participant record
     user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='participants', null=True, blank=True)
     guest_identifier = models.CharField(max_length=36, null=True, blank=True)
     guest_name = models.CharField(max_length=50, null=True, blank=True)
-    # if the session is deleted, remove all its participants.
+    # if the session is deleted, remove all its participants
     game_session = models.ForeignKey(
         GameSession, on_delete=models.CASCADE, related_name='participants'
     )
-    # if the character is deleted, set assigned_character to NULL.
+    # if the character is deleted, set assigned_character to NULL
     assigned_character = models.ForeignKey(
         Character, on_delete=models.SET_NULL, null=True, blank=True, related_name='participants'
     )
@@ -133,6 +134,45 @@ class Question(SoftDeleteModel):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def delete(self, using=None, keep_parents=False):
+        # 1) Has this question already been asked in an active session?
+        from .models import Round, QuestionCollection
+        in_active_round = Round.objects.filter(
+            question=self,
+            game_session__status__in=['in_progress','guessing']
+        ).exists()
+
+        # 2) Or does it live in any collection used by an active session?
+        in_active_collection = QuestionCollection.objects.filter(
+            questions=self,
+            game_sessions__status__in=['in_progress','guessing']
+        ).exists()
+
+        if in_active_round or in_active_collection:
+            raise ValidationError(
+                "Negalite ištrinti šio klausimo, jis naudojamas vykstančiame žaidime."
+            )
+        return super().delete(using=using, keep_parents=keep_parents)
+
+    def save(self, *args, **kwargs):
+        # Same two checks for edits (e.g. text changes)
+        from .models import Round, QuestionCollection
+        if self.pk:
+            in_active_round = Round.objects.filter(
+                question=self,
+                game_session__status__in=['in_progress','guessing']
+            ).exists()
+            in_active_collection = QuestionCollection.objects.filter(
+                questions=self,
+                game_sessions__status__in=['in_progress','guessing']
+            ).exists()
+
+            if in_active_round or in_active_collection:
+                raise ValidationError(
+                    "Negalite keisti šio klausimo, jis naudojamas vykstančiame žaidime."
+                )
+        return super().save(*args, **kwargs)
+    
     def __str__(self):
         return self.text[:50]
 
@@ -149,6 +189,21 @@ class QuestionCollection(SoftDeleteModel):
 
     def __str__(self):
         return self.name
+    
+    def delete(self, using=None, keep_parents=False):
+        if self.game_sessions.filter(status__in=['in_progress','guessing']).exists():
+            raise ValidationError(
+                "Negalite ištrinti klausimų kolekcijos, kuri naudojama vykstančiame žaidime."
+            )
+        return super().delete(using=using, keep_parents=keep_parents)
+
+    def save(self, *args, **kwargs):
+        # refuse any edits once in-use
+        if self.pk and self.game_sessions.filter(status__in=['in_progress','guessing']).exists():
+            raise ValidationError(
+                "Negalite keisti klausimų kolekcijos, kuri naudojama vykstančiame žaidime."
+            )
+        return super().save(*args, **kwargs)
 
 class Round(models.Model):
     game_session = models.ForeignKey(

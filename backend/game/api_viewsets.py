@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from .models import QuestionCollection, Question
 from .serializers import QuestionCollectionSerializer, QuestionSerializer
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 
 class QuestionCollectionViewSet(viewsets.ModelViewSet):
     serializer_class = QuestionCollectionSerializer
@@ -33,8 +34,18 @@ class QuestionCollectionViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         coll = self.get_object()
-        coll.delete()
+        try:
+            coll.delete()
+        except ValidationError as e:
+            return Response({'error': e.message}, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def update(self, request, *args, **kwargs):
+        coll = self.get_object()
+        try:
+            return super().update(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response({'error': e.message}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
     def add_question(self, request, pk=None):
@@ -60,8 +71,18 @@ class QuestionViewSet(viewsets.ModelViewSet):
     
     def destroy(self, request, *args, **kwargs):
         q = self.get_object()
-        q.delete()  # soft-delete
+        try:
+            q.delete()
+        except ValidationError as e:
+            return Response({'error': e.message}, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def update(self, request, *args, **kwargs):
+        q = self.get_object()
+        try:
+            return super().update(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response({'error': e.message}, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
