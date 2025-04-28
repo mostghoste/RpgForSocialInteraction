@@ -7,15 +7,25 @@ from django.db.models import Q
 
 class QuestionCollectionViewSet(viewsets.ModelViewSet):
     serializer_class = QuestionCollectionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+
+    def get_permissions(self):
+        # allow anonymous on list, but require auth everywhere else
+        if self.action == 'list':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
+        # list: public + (if logged in) your own
         if self.action == 'list':
-            # show global + mine
-            return QuestionCollection.objects.filter(
-                Q(created_by=self.request.user) | Q(created_by__isnull=True)
-            )
-        # for retrieve/update/destroy only my own
+            user = self.request.user
+            if user.is_authenticated:
+                return QuestionCollection.objects.filter(
+                    Q(created_by=user) | Q(created_by__isnull=True)
+                )
+            # anonymous only public
+            return QuestionCollection.objects.filter(created_by__isnull=True)
+
+        # retrieve/update/destroy: only your own
         return QuestionCollection.objects.filter(created_by=self.request.user)
 
     def perform_create(self, serializer):
