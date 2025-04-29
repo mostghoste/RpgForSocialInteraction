@@ -1,15 +1,19 @@
 # backend/game/tasks.py
 
-import os
 import random
-import requests
+from openai import OpenAI
 from celery import shared_task
 from django.utils import timezone
-from datetime import timedelta
 from django.conf import settings
 
 from .models import GameSession, Round, Participant, Message
 from .utils import check_and_advance_rounds, broadcast_lobby_update, broadcast_chat_message
+
+# instantiate once per worker
+_client = OpenAI(
+    api_key=settings.DEEPSEEK_API_KEY,
+    base_url=settings.DEEPSEEK_BASE_URL
+)
 
 @shared_task
 def run_round_check():
@@ -68,38 +72,41 @@ def generate_npc_response(round_id, participant_id):
         for m in existing_msgs
     )
 
-    prompt = (
+    # build prompt
+    system_message = (
         f"Tu esi AI dalyvis žaidime, kuriame visi žaidėjai vaidina veikėjus ir atsakinėja į klausimus.\n"
         f"Tavo veikėjo vardas: „{npc.assigned_character.name}“\n"
         f"Tavo veikėjo aprašymas: {npc.assigned_character.description}\n"
         f"Klausimas į kurį privalai atsakyti: {rnd.question.text}\n"
-        f"Štai kitų veikėjų, dalyvaujančių šiame žaidime, atsakymai į klausimą:"
-        f"{context}\n\n"
         f"Tau reikia lietuviškai atsakyti į pateiktą klausimą vaidinant paskirtą veikėją. Žaidimas veikia kaip turingo testas - gausi papildomų taškų, jei žaidėjai neatpažins, kad tu esi AI. Atsižvelk į kitų žaidėjų žinutes, kad tavo atsakymai per daug neišsišoktų."
     )
-
-    # call Deepseek
-    resp = requests.post(
-        "https://api.deepseek.ai/v1/generate",
-        headers={
-            "Authorization": f"Bearer {settings.DEEPSEEK_API_KEY}",
-            "Content-Type": "application/json"
-        },
-        json={"prompt": prompt}
+    user_message = (
+        f"Kitų veikėjų, dalyvaujančių šiame žaidime, atsakymai į klausimą:"
+        f"{context}\n\n"
     )
-    if resp.status_code != 200:
+
+    # call DeepSeek
+    try:
+        resp = _client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user",   "content": user_message},
+            ],
+            stream=False
+        )
+    except Exception as e:
+        print(f"[NPC {npc.id} | Round {rnd.id}] Error calling DeepSeek API:", e)
         return
 
-    data = resp.json()
-    text = data.get("text", "").strip() or "(🤖 NPC nerado atsakymo)"
+    # pull out the text
+    text = resp.choices[0].message.content.strip() or "(🤖 NPC nerado atsakymo)"
 
-    # save the message
+    # save & broadcast
     msg = Message.objects.create(
         participant=npc,
         round=rnd,
         text=text,
         message_type='chat'
     )
-
-    # broadcast it
     broadcast_chat_message(rnd.game_session.code, msg)
