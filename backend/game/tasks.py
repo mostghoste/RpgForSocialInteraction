@@ -65,12 +65,20 @@ def generate_npc_response(round_id, participant_id):
     except (Round.DoesNotExist, Participant.DoesNotExist):
         return
     
+    session = rnd.game_session
     now = timezone.now()
-    if now >= rnd.end_time:
-        print(f"[NPC {npc.id} | Round {rnd.id}] Round ended before generation; skipping response")
+
+    # just in case, round must still be live and be the latest one
+    if session.status != 'in_progress' or now >= rnd.end_time:
+        print(f"[NPC {npc.id} | Round {rnd.id}] Skipped early: status={session.status}, now={now}, end_time={rnd.end_time}")
         return
 
-    # use messages from other players for context
+    latest = Round.objects.filter(game_session=session).order_by('-round_number').first()
+    if not latest or latest.id != rnd.id:
+        print(f"[NPC {npc.id} | Round {rnd.id}] Skipped early: not latest round (latest={latest.id if latest else None})")
+        return
+
+    # build context from real players
     existing_msgs = Message.objects.filter(round=rnd, participant__is_npc=False)
     context = "\n".join(
         f"{m.participant.assigned_character.name}: {m.text}"
@@ -83,7 +91,7 @@ def generate_npc_response(round_id, participant_id):
         f"Tavo veikėjo vardas: „{npc.assigned_character.name}“\n"
         f"Tavo veikėjo aprašymas: {npc.assigned_character.description}\n"
         f"Klausimas į kurį privalai atsakyti: {rnd.question.text}\n"
-        f"Tau reikia lietuviškai atsakyti į pateiktą klausimą vaidinant paskirtą veikėją. Žaidimas veikia kaip turingo testas - gausi papildomų taškų, jei žaidėjai neatpažins, kad tu esi AI. Atsižvelk į kitų žaidėjų žinutes, kad tavo atsakymai per daug neišsišoktų."
+        f"Atsakyk į pateiktą klausimą vaidinant paskirtą veikėją. Žaidimas veikia kaip turingo testas - gausi papildomų taškų, jei žaidėjai neatpažins, kad tu esi AI. Atsižvelk į kitų žaidėjų žinutes, kad tavo atsakymai per daug neišsišoktų. Tavo atsakymai turėtų būti glausti, iki dviejų sakinių ilgio. Nedaryk lietuvių kalbos stiliaus ir gramatinių klaidų."
     )
     user_message = (
         f"Kitų veikėjų, dalyvaujančių šiame žaidime, atsakymai į klausimą:"
@@ -93,7 +101,7 @@ def generate_npc_response(round_id, participant_id):
     # call DeepSeek
     try:
         resp = _client.chat.completions.create(
-            model="deepseek-chat",
+            model="deepseek-reasoner",
             messages=[
                 {"role": "system", "content": system_message},
                 {"role": "user",   "content": user_message},
@@ -104,20 +112,24 @@ def generate_npc_response(round_id, participant_id):
         print(f"[NPC {npc.id} | Round {rnd.id}] Error calling DeepSeek API:", e)
         return
     
-    # Make sure round isn't over in case of long response time
+    # check for slow api call
     now = timezone.now()
-    if now >= rnd.end_time:
-        print(f"[NPC {npc.id} | Round {rnd.id}] Round ended during API call; dropping response")
+    session.refresh_from_db()
+    if session.status != 'in_progress' or now >= rnd.end_time:
+        print(f"[NPC {npc.id} | Round {rnd.id}] Dropped late: status={session.status}, now={now}, end_time={rnd.end_time}")
         return
 
-    # pull out the text
-    text = resp.choices[0].message.content.strip() or "(🤖 NPC nerado atsakymo)"
+    latest = Round.objects.filter(game_session=session).order_by('-round_number').first()
+    if not latest or latest.id != rnd.id:
+        print(f"[NPC {npc.id} | Round {rnd.id}] Dropped late: not latest round (latest={latest.id if latest else None})")
+        return
 
-    # save & broadcast
+    # save and broadcast
+    text = resp.choices[0].message.content.strip() or "(🤖 NPC nerado atsakymo)"
     msg = Message.objects.create(
         participant=npc,
         round=rnd,
         text=text,
         message_type='chat'
     )
-    broadcast_chat_message(rnd.game_session.code, msg)
+    broadcast_chat_message(session.code, msg)
