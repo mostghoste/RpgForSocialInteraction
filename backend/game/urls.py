@@ -18,7 +18,8 @@ from .api_views import (
     available_characters,
     send_chat_message,
     submit_guesses,
-    available_guess_options
+    available_guess_options,
+    add_npc
 )
 
 router = routers.DefaultRouter()
@@ -41,4 +42,5 @@ urlpatterns = router.urls + [
     path('send_chat_message/', send_chat_message, name='send_chat_message'),
     path('submit_guesses/', submit_guesses, name='submit_guesses'),
     path('available_guess_options/', available_guess_options, name='available_guess_options'),
+    path('add_npc/', add_npc, name='add_npc'),
 ]

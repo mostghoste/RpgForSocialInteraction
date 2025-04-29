@@ -797,3 +797,39 @@ def submit_guesses(request):
         'guesses_updated': updated_guesses
     })
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def add_npc(request):
+    code = request.data.get('code','').strip()
+    pid  = request.data.get('participant_id')
+    secret = request.data.get('secret','').strip()
+    if not (code and pid and secret):
+        return Response({'error':'Trūksta parametrų.'}, status=400)
+
+    try:
+        session = GameSession.objects.get(code=code)
+        host    = session.participants.get(id=pid, secret=secret)
+    except:
+        return Response({'error':'Neteisingi duomenys.'}, status=404)
+    if not host.is_host:
+        return Response({'error':'Tik vedėjas gali pridėti NPC.'}, status=403)
+
+    char = Character.objects.filter(is_public=True).order_by('?').first()
+    if not char:
+        return Response({'error':'Nepavyko rasti personažo AI žaidėjui.'}, status=400)
+
+    npc = Participant.objects.create(
+        guest_identifier=str(uuid.uuid4()),
+        guest_name=f"NPC {uuid.uuid4().hex[:4]}",
+        game_session=session,
+        assigned_character=char,
+        is_npc=True,
+        is_active=True
+    )
+
+    broadcast_lobby_update(session)
+    return Response({
+        'npc_id': npc.id,
+        'character': {'id':char.id,'name':char.name,'image':char.image.url if char.image else None}
+    })
+
