@@ -587,6 +587,9 @@ def start_game(request):
     # Update lobby state for everyone.
     broadcast_lobby_update(session)
     
+    from .tasks import schedule_npc_responses
+    schedule_npc_responses.delay(new_round.id)
+    
     return Response({
          'message': 'Žaidimas pradėtas.',
          'code': session.code,

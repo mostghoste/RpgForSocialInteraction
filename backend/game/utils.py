@@ -160,6 +160,9 @@ def check_and_advance_rounds():
             f"<p><strong>{new_round.round_number} raundas</strong></p><p>{new_round.question.text if new_round.question else 'Nėra klausimo.'}</p>"
         )
 
+        from .tasks import schedule_npc_responses
+        schedule_npc_responses.delay(new_round.id)
+
         # Broadcast round and lobby updates.
         broadcast_round_update(session.code, new_round)
         broadcast_lobby_update(session)
