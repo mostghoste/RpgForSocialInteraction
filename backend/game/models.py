@@ -99,6 +99,7 @@ class Participant(models.Model):
     is_active = models.BooleanField(default=True)
     secret = models.CharField(max_length=64, default=generate_secret)
     is_host = models.BooleanField(default=False)
+    is_npc = models.BooleanField(default=False)
 
     class Meta:
         constraints = [
@@ -125,6 +126,8 @@ class Participant(models.Model):
             username = f"Guest {self.guest_identifier[:8]}"
         else:
             username = "Guest"
+        if self.is_npc:
+            username += " 🤖"
         return f"{username} in session {self.game_session.code}"
 
 class Question(SoftDeleteModel):

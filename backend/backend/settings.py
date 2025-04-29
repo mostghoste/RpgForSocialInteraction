@@ -190,3 +190,5 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
