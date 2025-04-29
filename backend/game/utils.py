@@ -7,7 +7,7 @@ from channels.layers import get_channel_layer
 from django.utils import timezone
 from .models import GameSession, Round, Message, Guess
 
-def broadcast_lobby_update(session):
+def broadcast_lobby_update(session: GameSession):
     channel_layer = get_channel_layer()
     group_name = f'lobby_{session.code}'
 
@@ -17,32 +17,53 @@ def broadcast_lobby_update(session):
     for part in session.participants.all().order_by('joined_at'):
         if part.is_host:
             host_id = part.id
+
         player_data = {
             'id': part.id,
-            'username': part.user.username if part.user else (part.guest_name or f"Guest {part.guest_identifier[:8]}"),
+            'username': (
+                part.user.username
+                if part.user
+                else (part.guest_name or f"Guest {part.guest_identifier[:8]}")
+            ),
             'characterSelected': part.assigned_character is not None,
             'is_host': part.is_host,
         }
+
         if session.status == 'completed':
             player_data['points'] = part.points
+
             if part.assigned_character:
                 player_data['assigned_character'] = {
                     'name': part.assigned_character.name,
-                    'image': part.assigned_character.image.url if part.assigned_character.image else None,
+                    'image': (
+                        part.assigned_character.image.url
+                        if part.assigned_character.image else None
+                    ),
                 }
             else:
                 player_data['assigned_character'] = None
-            player_data['correctGuesses'] = Guess.objects.filter(guessed_participant=part, is_correct=True).count()
-            guesses_qs = Guess.objects.filter(guessed_participant=part)
-            guesses = []
-            for guess in guesses_qs:
-                guesses.append({
+
+            # how many times others guessed this participant correctly
+            player_data['correctGuesses'] = Guess.objects.filter(
+                guessed_participant=part, is_correct=True
+            ).count()
+
+            # all guesses about this participant
+            all_guesses = []
+            for guess in Guess.objects.filter(guessed_participant=part):
+                all_guesses.append({
                     'guesser_id': guess.guesser.id if guess.guesser else None,
                     'guessed_character_name': guess.guessed_character.name,
                     'is_correct': guess.is_correct,
                 })
-            player_data['guesses'] = guesses
+            player_data['guesses'] = all_guesses
+
+            from .scoring import compute_score_breakdown
+            breakdown, _ = compute_score_breakdown(part)
+            player_data['score_breakdown'] = breakdown
+
         else:
+            # no character details before completion
             player_data['assigned_character'] = None
 
         players.append(player_data)
@@ -56,10 +77,12 @@ def broadcast_lobby_update(session):
         'round_length': session.round_length,
         'round_count': session.round_count,
         'guess_timer': session.guess_timer,
-        'guess_deadline': session.guess_deadline.isoformat() if session.guess_deadline else None,
+        'guess_deadline': session.guess_deadline.isoformat()
+                         if session.guess_deadline else None,
         'question_collections': collections_list,
         'host_id': host_id,
     }
+
     async_to_sync(channel_layer.group_send)(
         group_name,
         {'type': 'lobby_update', 'data': data}

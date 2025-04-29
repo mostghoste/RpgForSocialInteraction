@@ -26,12 +26,11 @@ def run_game_end_check():
     sessions = GameSession.objects.filter(status='guessing', guess_deadline__lte=now)
     for session in sessions:
         print(f"Ending game for session {session.code}")
+        
+        from .scoring import compute_score_breakdown
         for participant in session.participants.all():
-            correct_guess_count = participant.guesses_made.filter(is_correct=True).count()
-            points_from_guesses = correct_guess_count * 50
-            rounds_with_messages = session.rounds.filter(messages__participant=participant).distinct().count()
-            points_from_messages = rounds_with_messages * 100
-            participant.points = points_from_guesses + points_from_messages
+            breakdown, total = compute_score_breakdown(participant)
+            participant.points = total
             participant.save()
         session.status = 'completed'
         session.save()

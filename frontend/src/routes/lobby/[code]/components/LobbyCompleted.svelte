@@ -186,6 +186,17 @@
 					<p class="text-md mt-1">
 						Spėjimai: {player.correctGuesses ?? 0}/{players.length - 1}
 					</p>
+					{#if player.score_breakdown?.length}
+						<details class="mt-2">
+							<summary class="text-sm font-semibold">Detalių suskirstymas</summary>
+							<ul class="ml-4 mt-1 list-disc text-sm">
+								{#each player.score_breakdown as line}
+									<li>{line.description} (<strong>+{line.points}</strong>)</li>
+								{/each}
+							</ul>
+						</details>
+					{/if}
+
 					{#if player.guesses}
 						{#if getMyGuess(player.guesses)}
 							<p class="text-md mt-1">
