@@ -4,7 +4,7 @@
 	import CharacterUploadModal from './CharacterUploadModal.svelte';
 	import Banner from '$lib/Banner.svelte';
 	import { Avatar, FileUpload } from '@skeletonlabs/skeleton-svelte';
-	import { Settings, UserRoundPlus, LogOut } from '@lucide/svelte';
+	import { Settings, UserRoundPlus, LogOut, Bot } from '@lucide/svelte';
 	import { toast } from '@zerodevx/svelte-toast';
 	import { toastOptions } from '$lib/toastConfig';
 
@@ -61,6 +61,10 @@
 		toast.push('Nepavyko įkelti failo.', toastOptions.error);
 	}
 
+	function handleAddNpc() {
+		dispatch('addNpc');
+	}
+
 	$: isCreateCharacterEnabled =
 		newCharacterName &&
 		newCharacterName.length >= 3 &&
@@ -87,7 +91,14 @@
 	class="flex h-full w-full max-w-3xl flex-col items-center justify-center gap-4 overflow-y-scroll p-2"
 >
 	<section class="flex w-full flex-col gap-4 md:flex-row">
-		<div class="bg-surface-100-900 flex w-full flex-1 flex-col rounded-2xl p-4">
+		<div class="bg-surface-100-900 relative flex w-full flex-1 flex-col rounded-2xl p-4">
+			<button
+				title="Pridėti AI žaidėją"
+				class="btn hover:preset-filled-surface-300-700 absolute right-2 top-2 p-2 hover:scale-105 active:scale-95"
+				on:click={handleAddNpc}
+			>
+				<Bot />
+			</button>
 			<h2 class="h6">Žaidėjai kambaryje:</h2>
 			<ul>
 				{#each players as player}

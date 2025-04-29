@@ -492,6 +492,29 @@
 			toast.push('Serverio klaida.', toastOptions.error);
 		}
 	}
+
+	async function addNpc() {
+		try {
+			const res = await apiFetch('/api/add_npc/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret: participantSecret
+				})
+			});
+			const data = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				toast.push(data.error ?? 'Nepavyko pridėti NPC.', toastOptions.error);
+			} else {
+				toast.push('AI žaidėjas pridėtas!', toastOptions.success);
+			}
+		} catch (e) {
+			console.error(e);
+			toast.push('Serverio klaida pridedant NPC.', toastOptions.error);
+		}
+	}
 </script>
 
 {#if needsUsernameLocal && !get(user)}
@@ -516,6 +539,7 @@
 		on:startGame={startGame}
 		on:selectCharacter={selectCharacter}
 		on:createCharacter={createCharacter}
+		on:addNpc={addNpc}
 		on:leaveLobby={leaveLobby}
 	/>
 {:else if lobbyState.status === 'in_progress'}
