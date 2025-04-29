@@ -64,6 +64,11 @@ def generate_npc_response(round_id, participant_id):
         npc = Participant.objects.get(id=participant_id)
     except (Round.DoesNotExist, Participant.DoesNotExist):
         return
+    
+    now = timezone.now()
+    if now >= rnd.end_time:
+        print(f"[NPC {npc.id} | Round {rnd.id}] Round ended before generation; skipping response")
+        return
 
     # use messages from other players for context
     existing_msgs = Message.objects.filter(round=rnd, participant__is_npc=False)
@@ -97,6 +102,12 @@ def generate_npc_response(round_id, participant_id):
         )
     except Exception as e:
         print(f"[NPC {npc.id} | Round {rnd.id}] Error calling DeepSeek API:", e)
+        return
+    
+    # Make sure round isn't over in case of long response time
+    now = timezone.now()
+    if now >= rnd.end_time:
+        print(f"[NPC {npc.id} | Round {rnd.id}] Round ended during API call; dropping response")
         return
 
     # pull out the text
