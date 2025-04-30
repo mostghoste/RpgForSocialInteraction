@@ -4,7 +4,16 @@
 	import CharacterUploadModal from './CharacterUploadModal.svelte';
 	import Banner from '$lib/Banner.svelte';
 	import { Avatar, FileUpload } from '@skeletonlabs/skeleton-svelte';
-	import { Settings, UserRoundPlus, LogOut, Bot } from '@lucide/svelte';
+	import {
+		Settings,
+		UserRoundPlus,
+		LogOut,
+		Bot,
+		Check,
+		Crown,
+		VenetianMask,
+		User
+	} from '@lucide/svelte';
 	import { toast } from '@zerodevx/svelte-toast';
 	import { toastOptions } from '$lib/toastConfig';
 
@@ -28,7 +37,6 @@
 	let showCharacterModal = false;
 
 	function handleModalUpdateSettings(detail) {
-		// Relay the updated settings event to the parent
 		dispatch('updateSettings', detail);
 	}
 
@@ -102,19 +110,40 @@
 				</button>
 			{/if}
 			<h2 class="h6">Žaidėjai kambaryje:</h2>
-			<ul>
+			<ul class="flex flex-col gap-1">
 				{#each players as player}
-					<li class="flex items-center gap-1">
+					<li class="flex items-center gap-2">
+						{#if player.is_host}
+							<span
+								class="{player.characterSelected
+									? 'bg-success-500 text-success-contrast-500'
+									: 'bg-surface-200-800 text-amber-500'} rounded-base p-1"
+								title={'Kambario vadas' +
+									(player.characterSelected ? ' | Išsirinko personažą' : '')}
+								><Crown size={18} /></span
+							>
+						{:else if player.is_npc}
+							<span
+								class="{player.characterSelected
+									? 'bg-success-500 text-success-contrast-500'
+									: 'bg-surface-200-800 text-tertiary-500'} rounded-base p-1"
+								title="NPC"><Bot size={18} /></span
+							>
+						{:else}
+							<span
+								class="{player.characterSelected
+									? 'bg-success-500 text-success-contrast-500'
+									: 'bg-surface-200-800 text-surface-300'} rounded-base p-1"
+								title={player.characterSelected
+									? 'Išsirinko personažą'
+									: 'Dar neišsirinko personažo'}><User size={18} /></span
+							>
+						{/if}
 						{#if String(player.id) === String(lobbyState.participant_id)}
 							<strong>{player.username}</strong>
 						{:else}
 							{player.username}
 						{/if}
-						{#if player.is_npc}
-							<span title="NPC"><Bot size={16} /></span>
-						{/if}
-						<span title="Kambario vadas">{player.is_host ? ' 👑' : ''}</span>
-						<span title="Išsirinko veikėją">{player.characterSelected ? ' ✅' : ''}</span>
 					</li>
 				{/each}
 			</ul>
