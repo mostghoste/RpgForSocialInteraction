@@ -87,11 +87,11 @@
 			title="Palikti kambarį"
 			on:click={handleLeaveLobby}
 		>
-			<LogOut size={20}></LogOut>
-			<span class="hidden sm:hidden md:block"> Palikti kambarį</span>
+			<LogOut size={18}></LogOut>
+			<span class="hidden sm:hidden md:block">Išeiti</span>
 		</button>
 		<h2 class="h3 w-full text-center">Kambario kodas: {code}</h2>
-		<span class="sm:w-16 md:w-48"></span>
+		<span class="md:w-30 w-4"></span>
 	</div>
 </Banner>
 
@@ -173,7 +173,6 @@
 				<span>{guessTimer}s</span>
 			</div>
 			{#if isHost}
-				<!-- Start game button added for host -->
 				<div class="mt-4 flex justify-center">
 					<button
 						class="btn preset-filled-success-400-600 hover:scale-105 active:scale-95"
