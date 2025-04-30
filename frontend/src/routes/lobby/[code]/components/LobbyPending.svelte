@@ -92,13 +92,15 @@
 >
 	<section class="flex w-full flex-col gap-4 md:flex-row">
 		<div class="bg-surface-100-900 relative flex w-full flex-1 flex-col rounded-2xl p-4">
-			<button
-				title="Pridėti AI žaidėją"
-				class="btn hover:preset-filled-surface-300-700 absolute right-2 top-2 p-2 hover:scale-105 active:scale-95"
-				on:click={handleAddNpc}
-			>
-				<Bot />
-			</button>
+			{#if isHost}
+				<button
+					title="Pridėti AI žaidėją"
+					class="btn hover:preset-filled-surface-300-700 absolute right-2 top-2 p-2 hover:scale-105 active:scale-95"
+					on:click={handleAddNpc}
+				>
+					<Bot />
+				</button>
+			{/if}
 			<h2 class="h6">Žaidėjai kambaryje:</h2>
 			<ul>
 				{#each players as player}
