@@ -104,11 +104,14 @@
 			<h2 class="h6">Žaidėjai kambaryje:</h2>
 			<ul>
 				{#each players as player}
-					<li>
+					<li class="flex items-center gap-1">
 						{#if String(player.id) === String(lobbyState.participant_id)}
 							<strong>{player.username}</strong>
 						{:else}
 							{player.username}
+						{/if}
+						{#if player.is_npc}
+							<span title="NPC"><Bot size={16} /></span>
 						{/if}
 						<span title="Kambario vadas">{player.is_host ? ' 👑' : ''}</span>
 						<span title="Išsirinko veikėją">{player.characterSelected ? ' ✅' : ''}</span>

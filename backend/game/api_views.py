@@ -142,6 +142,7 @@ def join_room(request):
             'username': p.user.username if p.user else p.guest_name,
             'characterSelected': p.assigned_character is not None,
             'is_host': p.is_host,
+            'is_npc': p.is_npc
         })
 
     messages = []
@@ -330,27 +331,36 @@ def lobby_state(request):
     code = request.query_params.get('code', '').strip()
     if not code:
         return Response({'error': 'Kambario kodas privalomas.'}, status=400)
+
     try:
         session = GameSession.objects.get(code=code)
     except GameSession.DoesNotExist:
         return Response({'error': 'Toks kambarys nebuvo rastas.'}, status=404)
-    
+
     players = []
-    for part in session.participants.all():
-        if part.user:
-            players.append(part.user.username)
-        else:
-            # Use guest_name if set, otherwise a default based on guest_identifier.
-            players.append(part.guest_name if part.guest_name else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest"))
-    
+    for part in session.participants.all().order_by('joined_at'):
+        players.append({
+            'id': part.id,
+            'username': (
+                part.user.username
+                if part.user
+                else (part.guest_name
+                      or f"Guest {part.guest_identifier[:8]}")
+            ),
+            'is_host': part.is_host,
+            'is_npc': part.is_npc,
+            'characterSelected': part.assigned_character is not None,
+        })
+
     data = {
-        'code': session.code,
-        'status': session.status,
+        'code':         session.code,
+        'status':       session.status,
         'round_length': session.round_length,
-        'round_count': session.round_count,
-        'players': players,
+        'round_count':  session.round_count,
+        'players':      players,
     }
     return Response(data)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -800,8 +810,8 @@ def submit_guesses(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def add_npc(request):
-    code = request.data.get('code','').strip()
-    pid  = request.data.get('participant_id')
+    code   = request.data.get('code','').strip()
+    pid    = request.data.get('participant_id')
     secret = request.data.get('secret','').strip()
     if not (code and pid and secret):
         return Response({'error':'Trūksta parametrų.'}, status=400)
@@ -809,18 +819,30 @@ def add_npc(request):
     try:
         session = GameSession.objects.get(code=code)
         host    = session.participants.get(id=pid, secret=secret)
-    except:
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
         return Response({'error':'Neteisingi duomenys.'}, status=404)
     if not host.is_host:
         return Response({'error':'Tik vedėjas gali pridėti NPC.'}, status=403)
 
-    char = Character.objects.filter(is_public=True).order_by('?').first()
+    # Assign robot name
+    existing_npcs = session.participants.filter(is_npc=True)
+    npc_number    = existing_npcs.count() + 1
+    guest_name    = f"Robotas #{npc_number}"
+
+    # Assign unique character
+    assigned_ids = session.participants.filter(
+        assigned_character__isnull=False
+    ).values_list('assigned_character_id', flat=True)
+    char = Character.objects.filter(is_public=True) \
+                            .exclude(id__in=assigned_ids) \
+                            .order_by('?') \
+                            .first()
     if not char:
-        return Response({'error':'Nepavyko rasti personažo AI žaidėjui.'}, status=400)
+        return Response({'error':'Nepavyko pridėti NPC, nes nėra laisvų personažų.'}, status=400)
 
     npc = Participant.objects.create(
         guest_identifier=str(uuid.uuid4()),
-        guest_name=f"NPC {uuid.uuid4().hex[:4]}",
+        guest_name=guest_name,
         game_session=session,
         assigned_character=char,
         is_npc=True,
@@ -830,6 +852,11 @@ def add_npc(request):
     broadcast_lobby_update(session)
     return Response({
         'npc_id': npc.id,
-        'character': {'id':char.id,'name':char.name,'image':char.image.url if char.image else None}
+        'character': {
+            'id': char.id,
+            'name': char.name,
+            'image': char.image.url if char.image else None
+        }
     })
+
 

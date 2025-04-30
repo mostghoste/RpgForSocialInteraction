@@ -30,23 +30,21 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         players = []
         host_id = None
         for part in participants:
-            if part.user:
-                username = part.user.username
-            else:
-                username = (
-                    part.guest_name
-                    if part.guest_name
-                    else (f"Guest {part.guest_identifier[:8]}" if part.guest_identifier else "Guest")
-                )
+            username = (
+                part.user.username
+                if part.user
+                else (part.guest_name or f"Guest {part.guest_identifier[:8]}")
+            )
+
             if part.is_host:
-                username += " 👑"
                 host_id = part.id
 
-            character_selected = part.assigned_character is not None
             players.append({
                 'id': part.id,
                 'username': username,
-                'characterSelected': character_selected
+                'characterSelected': part.assigned_character is not None,
+                'is_host': part.is_host,
+                'is_npc': part.is_npc,
             })
 
         collections = await sync_to_async(list)(
@@ -60,9 +58,12 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             'status': session.status,
             'round_length': session.round_length,
             'round_count': session.round_count,
-            'question_collections': collections
+            'guess_timer': session.guess_timer,
+            'guess_deadline': session.guess_deadline.isoformat() if session.guess_deadline else None,
+            'question_collections': collections,
         }
         await self.send(text_data=json.dumps(data))
+
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)

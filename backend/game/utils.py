@@ -27,6 +27,7 @@ def broadcast_lobby_update(session: GameSession):
             ),
             'characterSelected': part.assigned_character is not None,
             'is_host': part.is_host,
+            'is_npc': part.is_npc
         }
 
         if session.status == 'completed':
