@@ -22,12 +22,19 @@ def compute_score_breakdown(participant):
     # Points for each correct guess you made
     correct_guesses = Guess.objects.filter(guesser=participant, is_correct=True)
     for guess in correct_guesses:
-        target = guess.guessed_participant
-        target_name = target.user.username if target.user else target.guest_name
-        breakdown.append({
-            'description': f'+100 už teisingai atpažintą {target_name}',
-            'points': 100
-        })
+        if guess.guessed_participant and guess.guessed_participant.is_npc:
+            breakdown.append({
+                'description': '+50 už teisingai atpažintą robotą',
+                'points': 50
+            })
+        else:
+            target = guess.guessed_participant
+            target_name = target.user.username if target.user else target.guest_name
+            breakdown.append({
+                'description': f'+100 už teisingai atpažintą {target_name}',
+                'points': 100
+            })
+
 
     # Points for being guessed by others
         # If nobody guessed you - 0

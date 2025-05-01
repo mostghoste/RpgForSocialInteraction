@@ -779,7 +779,16 @@ def submit_guesses(request):
             return Response({'error': 'Šis personažas nepriklauso šiam kambariui.'}, status=400)
 
         # Determine if the guess is correct
-        is_correct = (guessed_participant.assigned_character_id == gc_id)
+        if guessed_participant.is_npc:
+            # correct if any NPC had that character
+            is_correct = session.participants.filter(
+                is_npc=True,
+                assigned_character_id=gc_id
+            ).exists()
+        else:
+            # human guesses need specific matchups
+            is_correct = (guessed_participant.assigned_character_id == gc_id)
+
 
         # Update existing guess only if the guessed character is different;
         # otherwise, if it doesn't exist, create it.
