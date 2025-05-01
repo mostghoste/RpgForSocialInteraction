@@ -98,6 +98,7 @@
 		}
 		// Otherwise: first‐time guest => show username form, wait until submitGuestUsername() calls rejoinRoom()
 
+		// Meanwhile we can still fetch these for the host later
 		fetchAvailableCollections();
 		fetchAvailableCharacters();
 		timerInterval = setInterval(updateTimeLeft, 1000);
@@ -142,12 +143,18 @@
 		}
 	}
 
+	// skip the initial lobby dump
+	let firstLobbyMessage = true;
+
 	function connectWebSocket() {
 		if (socket?.readyState === WebSocket.OPEN) return;
+
 		let base = import.meta.env.VITE_API_BASE_URL;
 		if (base.startsWith('https://')) base = base.replace('https://', 'wss://');
 		else if (base.startsWith('http://')) base = base.replace('http://', 'ws://');
+
 		socket = new WebSocket(`${base}/ws/lobby/${code}/`);
+
 		socket.onopen = () => {
 			heartbeatInterval = setInterval(() => {
 				if (socket.readyState === WebSocket.OPEN) {
@@ -155,27 +162,44 @@
 				}
 			}, 15000);
 		};
+
 		socket.onerror = () => {
 			toast.push('Nepavyko prisijungti prie WS.', toastOptions.error);
 		};
+
 		socket.onmessage = ({ data }) => {
 			const msg = JSON.parse(data);
-			if (msg.status) lobbyState.status = msg.status;
+
+			// 1) Full-lobby update (initial AND any later lobby state)
 			if (msg.players) {
+				// always update the list
 				players = msg.players;
-				// if user is no longer in the list, they have been kicked:
-				if (!players.some((p) => String(p.id) === String(participantId))) {
-					toast.push('Buvai išmestas iš kambario.', toastOptions.error);
-					goto('/');
-					return;
+
+				if (firstLobbyMessage) {
+					// skip kick-check on the very first lobby state
+					firstLobbyMessage = false;
+				} else {
+					// only check kicks on *subsequent* lobby updates
+					if (!players.some((p) => String(p.id) === String(participantId))) {
+						toast.push('Buvai išmestas iš kambario.', toastOptions.error);
+						goto('/');
+						return;
+					}
 				}
 			}
+
+			// 2) Game settings update
 			if (msg.round_length && msg.round_count) {
 				roundLength = msg.round_length;
 				roundCount = msg.round_count;
 			}
-			if (msg.guess_timer !== undefined) guessTimer = msg.guess_timer;
-			if (msg.guess_deadline !== undefined) lobbyState.guess_deadline = msg.guess_deadline;
+
+			if (msg.guess_timer !== undefined) {
+				guessTimer = msg.guess_timer;
+			}
+			if (msg.guess_deadline !== undefined) {
+				lobbyState.guess_deadline = msg.guess_deadline;
+			}
 			if (msg.question_collections) {
 				lobbyState.question_collections = msg.question_collections;
 				selectedCollections = msg.question_collections.map((q) => q.id);
@@ -184,6 +208,8 @@
 				isHost = +msg.host_id === +participantId;
 				if (isHost) fetchAvailableCollections();
 			}
+
+			// 3) Chat & round “sub-updates”
 			if (msg.type === 'chat_update' && msg.message) {
 				chatMessages = [...chatMessages, msg.message];
 			}
@@ -192,7 +218,10 @@
 				if (msg.status) lobbyState.status = msg.status;
 			}
 		};
-		socket.onclose = () => {};
+
+		socket.onclose = () => {
+			// you can optionally clear intervals here
+		};
 	}
 
 	async function rejoinRoom() {
