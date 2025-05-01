@@ -510,8 +510,17 @@ def available_characters(request):
     else:
         qs = Character.objects.filter(is_public=True)
 
-    characters = qs.values('id', 'name', 'description', 'image')
-    return Response(list(characters))
+    chars = []
+    for char in qs:
+        img_url = char.image.url if char.image else None
+        chars.append({
+            'id':          char.id,
+            'name':        char.name,
+            'description': char.description,
+            'image':       img_url,
+        })
+
+    return Response(chars)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
