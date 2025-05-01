@@ -12,7 +12,8 @@
 		Check,
 		Crown,
 		VenetianMask,
-		User
+		User,
+		UserX
 	} from '@lucide/svelte';
 	import { toast } from '@zerodevx/svelte-toast';
 	import { toastOptions } from '$lib/toastConfig';
@@ -144,6 +145,11 @@
 						{:else}
 							{player.username}
 						{/if}
+						<button
+							title="Išmesti žaidėją iš kambario"
+							class="text-error-500 bg-surface-200-800 rounded-base ml-1 p-1 hover:scale-105 active:scale-95"
+							><UserX size={18} />
+						</button>
 					</li>
 				{/each}
 			</ul>
