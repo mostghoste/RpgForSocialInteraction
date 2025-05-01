@@ -24,7 +24,7 @@ class Command(BaseCommand):
                     "Jei galėtum pasirinkti, kokį darbą norėtum dirbti?",
                     "Ką labiausiai norėtum pasiekti gyvenime?",
                     "Ko labiausiai gailiesi?",
-                    "Ką paprasčiausiai negali pakęsti?",
+                    "Ko paprasčiausiai negali pakęsti?",
                     "Kokį vieną dalyką pakeistum apie save?",
                     "Koks filmas ar serialas geriausiai apibūdina tavo gyvenimą?",
                     "Kas tavo didžiausias įkvėpimas?",
