@@ -505,17 +505,19 @@ def create_character(request):
     
     return Response({'message': 'Personažas sukurtas ir pasirinktas.', 'character_id': new_character.id})
 
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def available_characters(request):
-    user = request.user if request.user.is_authenticated else None
-    characters = Character.objects.filter(
-        Q(is_public=True)
-        | Q(creator=user)
-    ).values('id','name','description','image')
-    return Response(list(characters))
+    if request.user.is_authenticated:
+        qs = Character.objects.filter(
+            Q(is_public=True) |
+            Q(creator=request.user)
+        )
+    else:
+        qs = Character.objects.filter(is_public=True)
 
+    characters = qs.values('id', 'name', 'description', 'image')
+    return Response(list(characters))
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
