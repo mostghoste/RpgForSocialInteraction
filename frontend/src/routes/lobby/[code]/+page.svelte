@@ -90,15 +90,13 @@
 		const isLoggedIn = !!get(user);
 
 		if (isLoggedIn) {
-			// Authenticated user: auto‐join via token
+			// Authenticated user: auto‐join via token (which in turn calls connectWebSocket())
 			joinAsAuthenticated();
 		} else if (!needsUsernameLocal && participantId && participantSecret) {
-			// We already have a participantId/secret in sessionStorage
+			// We already have guest creds in sessionStorage: rejoin and open socket there
 			rejoinRoom();
-		} else {
-			// For guests, or first‐time visitors
-			connectWebSocket();
 		}
+		// Otherwise: first‐time guest => show username form, wait until submitGuestUsername() calls rejoinRoom()
 
 		fetchAvailableCollections();
 		fetchAvailableCharacters();
@@ -163,7 +161,15 @@
 		socket.onmessage = ({ data }) => {
 			const msg = JSON.parse(data);
 			if (msg.status) lobbyState.status = msg.status;
-			if (msg.players) players = msg.players;
+			if (msg.players) {
+				players = msg.players;
+				// if user is no longer in the list, they have been kicked:
+				if (!players.some((p) => String(p.id) === String(participantId))) {
+					toast.push('Buvai išmestas iš kambario.', toastOptions.error);
+					goto('/');
+					return;
+				}
+			}
 			if (msg.round_length && msg.round_count) {
 				roundLength = msg.round_length;
 				roundCount = msg.round_count;
@@ -515,6 +521,31 @@
 			toast.push('Serverio klaida pridedant NPC.', toastOptions.error);
 		}
 	}
+
+	async function kickPlayer(event) {
+		const { id, username } = event.detail;
+		try {
+			const res = await apiFetch('/api/kick_player/', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					code,
+					participant_id: participantId,
+					secret: participantSecret,
+					target_participant_id: id
+				})
+			});
+			const data = await res.json().catch(() => ({}));
+			if (!res.ok) {
+				toast.push(data.error || `Nepavyko išmesti ${username}`, toastOptions.error);
+			} else {
+				toast.push(`Žaidėjas ${username} buvo išmestas iš kambario`, toastOptions.success);
+			}
+		} catch (e) {
+			console.error(e);
+			toast.push(`Serverio klaida išmetant ${username}`, toastOptions.error);
+		}
+	}
 </script>
 
 {#if needsUsernameLocal && !get(user)}
@@ -540,6 +571,7 @@
 		on:selectCharacter={selectCharacter}
 		on:createCharacter={createCharacter}
 		on:addNpc={addNpc}
+		on:kickPlayer={kickPlayer}
 		on:leaveLobby={leaveLobby}
 	/>
 {:else if lobbyState.status === 'in_progress'}

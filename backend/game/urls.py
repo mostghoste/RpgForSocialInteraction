@@ -19,7 +19,8 @@ from .api_views import (
     send_chat_message,
     submit_guesses,
     available_guess_options,
-    add_npc
+    add_npc,
+    kick_player
 )
 
 router = routers.DefaultRouter()
@@ -43,4 +44,5 @@ urlpatterns = router.urls + [
     path('submit_guesses/', submit_guesses, name='submit_guesses'),
     path('available_guess_options/', available_guess_options, name='available_guess_options'),
     path('add_npc/', add_npc, name='add_npc'),
+    path('kick_player/', kick_player, name='kick_player'),
 ]

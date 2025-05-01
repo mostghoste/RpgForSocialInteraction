@@ -855,4 +855,42 @@ def add_npc(request):
         }
     })
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def kick_player(request):
+    code      = request.data.get('code', '').strip()
+    host_id   = request.data.get('participant_id')
+    secret    = request.data.get('secret', '').strip()
+    target_id = request.data.get('target_participant_id')
 
+    if not code or not host_id or not secret or not target_id:
+        return Response({'error': 'Trūksta privalomų parametrų.'}, status=400)
+    try:
+        session = GameSession.objects.get(code=code)
+        host    = session.participants.get(id=host_id)
+    except (GameSession.DoesNotExist, Participant.DoesNotExist):
+        return Response({'error': 'Neteisingas kambarys arba dalyvio ID.'}, status=404)
+
+    if host.secret != secret:
+        return Response({'error': 'Netinkamas slaptažodis.'}, status=403)
+    if not host.is_host:
+        return Response({'error': 'Tik vedėjas gali išmesti žaidėjus.'}, status=403)
+
+    try:
+        target = session.participants.get(id=target_id)
+    except Participant.DoesNotExist:
+        return Response({'error': 'Dalyvis nerastas.'}, status=404)
+
+    if target.id == host.id:
+        return Response({'error': 'Negalite išmesti savęs.'}, status=400)
+
+
+    if session.status == 'pending':
+        target.delete()
+    else:
+        target.is_active = False
+        target.save()
+
+    broadcast_lobby_update(session)
+
+    return Response({'message': 'Dalyvis pašalintas.'})
