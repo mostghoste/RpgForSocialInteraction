@@ -1,13 +1,13 @@
 # backend/game/scoring.py
 
-from django.db.models import Count, Q
+from django.db.models import Q
 from .models import Round, Guess
 
 def compute_score_breakdown(participant):
     session = participant.game_session
     breakdown = []
 
-    # 100 points per round where >=1 message is sent
+    # Points for sending a chat message in each round
     rounds_with_msgs = (
         Round.objects
              .filter(game_session=session, messages__participant=participant)
@@ -15,19 +15,55 @@ def compute_score_breakdown(participant):
     )
     for rnd in rounds_with_msgs:
         breakdown.append({
-            'description': f'+100 už atsakymą {rnd.round_number} raunde',
+            'description': f'+50 už atsakymą {rnd.round_number} raunde',
+            'points': 50
+        })
+
+    # Points for each correct guess you made
+    correct_guesses = Guess.objects.filter(guesser=participant, is_correct=True)
+    for guess in correct_guesses:
+        target = guess.guessed_participant
+        target_name = target.user.username if target.user else target.guest_name
+        breakdown.append({
+            'description': f'+100 už teisingai atpažintą {target_name}',
             'points': 100
         })
 
-    # 50 points per correct guess made
-    correct_guesses = Guess.objects.filter(guesser=participant, is_correct=True)
-    for guess in correct_guesses:
-        gp = guess.guessed_participant
-        guessed_name = gp.user.username if gp.user else gp.guest_name
+    # Points for being guessed by others
+        # If nobody guessed you - 0
+        # If everyone guessed you - 0
+        # Otherwise, +50 per person who guessed you correctly
+    human_guessers = session.participants.filter(
+        is_active=True, is_npc=False
+    ).exclude(id=participant.id)
+    total_humans = human_guessers.count()
+
+    correct_received = Guess.objects.filter(
+        guessed_participant=participant, is_correct=True
+    )
+    correct_count = correct_received.count()
+
+    if correct_count == 0:
+        # nobody guessed you
         breakdown.append({
-            'description': f'+50 už teisingai atpažintą {guessed_name}',
-            'points': 50
+            'description': '0 už tai, kad niekas neatspėjo tavo personažo',
+            'points': 0
         })
+    elif correct_count == total_humans and total_humans > 0:
+        # everyone guessed you
+        breakdown.append({
+            'description': '0 už tai, kad visi atspėjo tavo personažą',
+            'points': 0
+        })
+    else:
+        # some—but not all—guessed you
+        for guess in correct_received:
+            g = guess.guesser
+            g_name = g.user.username if g.user else g.guest_name
+            breakdown.append({
+                'description': f'+50 už tai, kad {g_name} atspėjo tavo personažą',
+                'points': 50
+            })
 
     total = sum(item['points'] for item in breakdown)
     return breakdown, total
