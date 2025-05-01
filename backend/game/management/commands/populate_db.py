@@ -1,3 +1,6 @@
+import os
+from django.core.files import File
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from game.models import QuestionCollection, Question, Character
 
@@ -110,20 +113,37 @@ class Command(BaseCommand):
 
         # Create characters
         characters = [
-            {"name": "Didysis Karys",     "description": "Nepašalinamas karys, turintis drąsos ir jėgos."},
-            {"name": "Magas Didysis",     "description": "Valdo senovines magijos paslaptis."},
-            {"name": "Nuotykių Meistras", "description": "Niekada nesustoji ieškoti naujų nuotykių."},
+            {"name": "Vilnietis", "description": "Kam gyventi kažkur kitur, kai gali gyventi sostinėje?"},
+            {"name": "Višta", "description": "Kažkada buvo kiaušinis. Dabar? Spalvingiausia plunksna vištidėje."},
+            {"name": "Vakar gavo teises", "description": "Atsargiai, kelyje naujas karalius, nebijantis subraižyti savo bolido."},
+            {"name": "Dzeusas", "description": "Dienos metu dangaus ir žemės valdovas, naktį - bičas, kuris pavargo nuo atsakomybės."},
+            {"name": "Konspiracininkas", "description": "Aliuminio kepurė skirta ne jo, o aplinkinių apsaugai. Visada ras naują būdą apkaltinti valdžią."},
+            {"name": "Profesorius Kirvis", "description": "Akinukai, portfelis ir du šimtai sukirstų studentų. Tikrina ne ataskaitos turinį, o teksto lygiavimą."},
+            {"name": "Vaikas prezidentas", "description": "Tautos mylimiausias politikas. Žaidimų, tada duonos, tada vėl žaidimų!"},
+            {"name": "Urvinis", "description": "Šiandien sumedžiojo mamutą. Rytoj eis uogauti, o vakare pieš ant urvo sienų."},
+            {"name": "Atsipūtęs", "description": "Visos problemos tavo galvoje, gal tiesiog atsipalaiduok?"},
+            {"name": "Soundcloudo reperis", "description": "Turi 100 išleistų muzikinių klipų ir 3 labai ištikimus fanus."},
+            {"name": "Kanibalas", "description": "Stenkis atsisakyti kvietimų į jo vakarienę. Geriau iš viso nesirodyk jo namuose."},
+            {"name": "Robotas Robotauskas", "description": "BEEP. Boop. Tai, ką tu sugalvojai ką tik, jis apskaičiavo vakar. Prižadėjo nekenkti žmonijai, jei ji nekenks jam."},
+            {"name": "Viduramžių daktaras", "description": "Sloguoji? Padės pelyno arbata ir dėlių terapija."}
         ]
+
         self.stdout.write("Creating Characters...")
-        for char in characters:
-            Character.objects.create(
-                name=char["name"],
-                description=char["description"],
-                creator=None,
-                is_public=True
-            )
-            self.stdout.write(
-                self.style.SUCCESS(f"Created character '{char['name']}'")
-            )
+        image_dir = os.path.join(settings.BASE_DIR, "media_seed", "characters")
+
+        for idx, char in enumerate(characters, start=1):
+            image_filename = f"{idx:02}.jpg"
+            image_path = os.path.join(image_dir, image_filename)
+            with open(image_path, "rb") as img_file:
+                character = Character.objects.create(
+                    name=char["name"],
+                    description=char["description"],
+                    creator=None,
+                    is_public=True,
+                )
+                character.image.save(image_filename, File(img_file), save=True)
+                self.stdout.write(
+                    self.style.SUCCESS(f"Created character '{char['name']}' with image '{image_filename}'")
+                )
 
         self.stdout.write(self.style.SUCCESS("Database populated successfully."))
