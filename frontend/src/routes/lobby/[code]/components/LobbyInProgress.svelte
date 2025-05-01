@@ -84,7 +84,7 @@
 						></Avatar>
 						<div class="flex-1">
 							<div
-								class="max-w-5/6 bg-surface-900-100 text-surface-contrast-900-100 w-fit break-all rounded-xl rounded-bl-md px-4 py-2"
+								class="max-w-5/6 bg-surface-900-100 text-surface-contrast-900-100 w-fit whitespace-normal break-words rounded-xl rounded-bl-md px-4 py-2"
 							>
 								<p><strong>{msg.characterName}</strong></p>
 								<p class="text-wrap" title={new Date(msg.sentAt).toLocaleTimeString()}>
