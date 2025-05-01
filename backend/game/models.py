@@ -66,6 +66,7 @@ class GameSession(models.Model):
     round_count = models.IntegerField(default=3)    # Total number of rounds for the session
     guess_timer = models.IntegerField(default=60)  # Timer (in seconds) for guessing phase
     guess_deadline = models.DateTimeField(null=True, blank=True) # Deadline for submitting guesses
+    npc_sequence = models.PositiveIntegerField(default=0) # NPC name id
 
     # A session can reference several question collections
     question_collections = models.ManyToManyField(

@@ -819,12 +819,6 @@ def add_npc(request):
         return Response({'error':'Neteisingi duomenys.'}, status=404)
     if not host.is_host:
         return Response({'error':'Tik vedėjas gali pridėti NPC.'}, status=403)
-
-    # Assign robot name
-    existing_npcs = session.participants.filter(is_npc=True)
-    npc_number    = existing_npcs.count() + 1
-    guest_name    = f"Robotas #{npc_number}"
-
     # Assign unique character
     assigned_ids = session.participants.filter(
         assigned_character__isnull=False
@@ -835,6 +829,12 @@ def add_npc(request):
                             .first()
     if not char:
         return Response({'error':'Nepavyko pridėti NPC, nes nėra laisvų personažų.'}, status=400)
+    
+    # Assign robot name
+    session.npc_sequence += 1
+    npc_number = session.npc_sequence
+    session.save(update_fields=['npc_sequence'])
+    guest_name = f"Robotas #{npc_number}"
 
     npc = Participant.objects.create(
         guest_identifier=str(uuid.uuid4()),
