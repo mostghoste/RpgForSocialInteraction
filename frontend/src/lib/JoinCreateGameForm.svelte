@@ -113,7 +113,20 @@
 			<p>Įvesk kambario kodą arba sukurk naują kambarį.</p>
 		</div>
 		<div class="flex w-96 flex-col gap-2">
-			<input class="input text-center" type="text" bind:value={code} placeholder="Kambario kodas" />
+			<input
+				class="input text-center"
+				type="text"
+				bind:value={code}
+				maxlength="6"
+				on:input={(e) => {
+					code = e.target.value
+						.replace(/[^A-Za-z]/g, '')
+						.toUpperCase()
+						.slice(0, 6);
+				}}
+				placeholder="Kambario kodas"
+			/>
+
 			<footer class="flex gap-2">
 				<button
 					class="btn preset-filled-primary-400-600 w-1/2"

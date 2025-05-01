@@ -325,6 +325,10 @@
 	}
 
 	async function leaveLobby() {
+		if (socket && socket.readyState === WebSocket.OPEN) {
+			socket.close();
+		}
+
 		try {
 			const res = await apiFetch('/api/leave_room/', {
 				method: 'POST',
