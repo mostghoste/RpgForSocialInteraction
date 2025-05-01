@@ -170,17 +170,22 @@
 		socket.onmessage = ({ data }) => {
 			const msg = JSON.parse(data);
 
-			// 1) Full-lobby update (initial AND any later lobby state)
+			if (msg.status) {
+				lobbyState.status = msg.status;
+			}
+
+			// Full lobby update
 			if (msg.players) {
-				// always update the list
 				players = msg.players;
 
 				if (firstLobbyMessage) {
 					// skip kick-check on the very first lobby state
 					firstLobbyMessage = false;
 				} else {
-					// only check kicks on *subsequent* lobby updates
 					if (!players.some((p) => String(p.id) === String(participantId))) {
+						sessionStorage.removeItem('participantId');
+						sessionStorage.removeItem('participantSecret');
+
 						toast.push('Buvai išmestas iš kambario.', toastOptions.error);
 						goto('/');
 						return;
@@ -188,7 +193,7 @@
 				}
 			}
 
-			// 2) Game settings update
+			// Game settings update
 			if (msg.round_length && msg.round_count) {
 				roundLength = msg.round_length;
 				roundCount = msg.round_count;
@@ -209,7 +214,7 @@
 				if (isHost) fetchAvailableCollections();
 			}
 
-			// 3) Chat & round “sub-updates”
+			// Chat & round updates
 			if (msg.type === 'chat_update' && msg.message) {
 				chatMessages = [...chatMessages, msg.message];
 			}
@@ -219,9 +224,7 @@
 			}
 		};
 
-		socket.onclose = () => {
-			// you can optionally clear intervals here
-		};
+		socket.onclose = () => {};
 	}
 
 	async function rejoinRoom() {
