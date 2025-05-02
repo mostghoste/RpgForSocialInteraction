@@ -47,6 +47,11 @@ class Character(models.Model):
         default=False,
         help_text="True for seeded/public characters, False for user-private ones"
     )
+    ai_context = models.TextField(
+        blank=True,
+        default='',
+        help_text="Additional context for AI participants"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
