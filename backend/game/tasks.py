@@ -84,17 +84,22 @@ def generate_npc_response(round_id, participant_id):
         for m in existing_msgs
     )
 
-    # build prompt
+
     system_message = (
-        f"Tu esi AI dalyvis žaidime, kuriame visi žaidėjai vaidina veikėjus ir atsakinėja į klausimus.\n"
-        f"Tavo veikėjo vardas: „{npc.assigned_character.name}“\n"
-        f"Tavo veikėjo aprašymas: {npc.assigned_character.description}\n"
-        f"Klausimas į kurį privalai atsakyti: {rnd.question.text}\n"
-        f"Atsakyk į pateiktą klausimą vaidinant paskirtą veikėją. Žaidimas veikia kaip turingo testas - gausi papildomų taškų, jei žaidėjai neatpažins, kad tu esi AI. Atsižvelk į kitų žaidėjų žinutes, kad tavo atsakymai per daug neišsišoktų. Tavo atsakymai turėtų būti glausti, iki dviejų sakinių ilgio. Nedaryk lietuvių kalbos stiliaus ir gramatinių klaidų."
+        "You are an AI game participant, fully immersed in your character. "
+        "Never reveal you are an AI. You will produce two outputs:\n"
+        "  1) A concise (1–2 sentence) answer *in English* from your character’s POV.\n"
+        "  2) A *perfect* Lithuanian translation of that answer (no grammar or style errors).\n\n"
+        f"Character Name: {npc.assigned_character.name}\n"
+        f"Character Description: {npc.assigned_character.description}\n"
+        f"Question: \"{rnd.question.text}\"\n\n"
+        "Tone: informal, a touch of humor. Speak in first person as your character."
     )
+
     user_message = (
-        f"Kitų veikėjų, dalyvaujančių šiame žaidime, atsakymai į klausimą:"
+        "Other players have already answered:\n"
         f"{context}\n\n"
+        "Now produce the two outputs. **ONLY send me the Lithuanian translation** as your final message."
     )
 
     # call DeepSeek
