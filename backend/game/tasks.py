@@ -104,6 +104,7 @@ def npc_generate_and_schedule(round_id, participant_id):
                 {"role": "system", "content": system_message},
                 {"role": "user",   "content": user_message},
             ],
+            temperature=1.3,
             stream=False
         )
         text = resp.choices[0].message.content.strip()
@@ -119,6 +120,10 @@ def npc_generate_and_schedule(round_id, participant_id):
     now = timezone.now()
     remaining = (rnd.end_time - now).total_seconds()
     if remaining <= 0:
+        print(
+            f"[NPC {participant_id} | Round {round_id}] Dropped: "
+            f"now={now.isoformat()}, end_time={rnd.end_time.isoformat()}"
+        )
         return
     delay = random.uniform(0.2 * remaining, 0.8 * remaining)
     broadcast_npc_response.apply_async(
