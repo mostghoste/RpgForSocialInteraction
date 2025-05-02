@@ -6,10 +6,10 @@ from celery import shared_task
 from django.utils import timezone
 from django.conf import settings
 
-from .models import GameSession, Round, Participant, Message
+from .models import Round, Participant, Message, GameSession
 from .utils import check_and_advance_rounds, broadcast_lobby_update, broadcast_chat_message
 
-# instantiate once per worker
+# instantiate the DeepSeek client once per worker
 _client = OpenAI(
     api_key=settings.DEEPSEEK_API_KEY,
     base_url=settings.DEEPSEEK_BASE_URL
@@ -26,7 +26,6 @@ def run_game_end_check():
     sessions = GameSession.objects.filter(status='guessing', guess_deadline__lte=now)
     for session in sessions:
         print(f"Ending game for session {session.code}")
-        
         from .scoring import compute_score_breakdown
         for participant in session.participants.all():
             breakdown, total = compute_score_breakdown(participant)
@@ -45,64 +44,59 @@ def schedule_npc_responses(round_id):
         return
 
     session = rnd.game_session
-    now = timezone.now()
-    time_left = (rnd.end_time - now).total_seconds()
-    if time_left <= 0:
-        return
-
-    npcs = session.participants.filter(is_npc=True, is_active=True, assigned_character__isnull=False)
+    npcs = session.participants.filter(
+        is_npc=True, is_active=True, assigned_character__isnull=False
+    )
     for npc in npcs:
-        # Pick a random delay between 20% and 80% of remaining round time
-        delay = random.uniform(0.2 * time_left, 0.8 * time_left)
-        generate_npc_response.apply_async((rnd.id, npc.id), countdown=delay)
+        # enqueue generation + scheduling immediately
+        npc_generate_and_schedule.delay(round_id, npc.id)
 
 @shared_task
-def generate_npc_response(round_id, participant_id):
+def npc_generate_and_schedule(round_id, participant_id):
     try:
         rnd = Round.objects.select_related('question','game_session').get(id=round_id)
         npc = Participant.objects.get(id=participant_id)
     except (Round.DoesNotExist, Participant.DoesNotExist):
         return
-    
-    session = rnd.game_session
-    now = timezone.now()
 
-    # just in case, round must still be live and be the latest one
-    if session.status != 'in_progress' or now >= rnd.end_time:
-        print(f"[NPC {npc.id} | Round {rnd.id}] Skipped early: status={session.status}, now={now}, end_time={rnd.end_time}")
-        return
+    # session = rnd.game_session
 
-    latest = Round.objects.filter(game_session=session).order_by('-round_number').first()
-    if not latest or latest.id != rnd.id:
-        print(f"[NPC {npc.id} | Round {rnd.id}] Skipped early: not latest round (latest={latest.id if latest else None})")
-        return
+    # prev_rounds = Round.objects.filter(
+    #     game_session=session,
+    #     round_number__lt=rnd.round_number
+    # ).order_by('round_number')
 
-    # build context from real players
-    existing_msgs = Message.objects.filter(round=rnd, participant__is_npc=False)
-    context = "\n".join(
-        f"{m.participant.assigned_character.name}: {m.text}"
-        for m in existing_msgs
-    )
+    # history_parts = []
+    # for pr in prev_rounds:
+    #     msgs = Message.objects.filter(round=pr, message_type='chat')
+    #     for m in msgs:
+    #         history_parts.append(
+    #             f"Round {pr.round_number} – {m.participant.assigned_character.name}: {m.text}"
+    #         )
+    # history_context = "\n".join(history_parts)
 
-
+    # Build prompt
     system_message = (
-        "You are an AI game participant, fully immersed in your character. "
-        "Never reveal you are an AI. You will produce two outputs:\n"
+        "You are an AI participant in a role-playing game, fully immersed in your character.\n"
+        "Never reveal you are an AI. You will produce three outputs:\n"
         "  1) A concise (1–2 sentence) answer *in English* from your character’s POV.\n"
         "  2) A *perfect* Lithuanian translation of that answer (no grammar or style errors).\n\n"
+        "  3) A proofread translation with all grammar and style errors fixed.\n\n"
         f"Character Name: {npc.assigned_character.name}\n"
-        f"Character Description: {npc.assigned_character.description}\n"
-        f"Question: \"{rnd.question.text}\"\n\n"
-        "Tone: informal, a touch of humor. Speak in first person as your character."
+        f"Character Description: {npc.assigned_character.description}\n\n"
+        "Tone: informal, a touch of humor. Speak in first person as your character.\n\n"
+        "Formatting rules:\n"
+        "- Your final output should ONLY be the fixed Lithuanian translation.\n"
+        "- Do not use language that does not translate well, e.g. puns."
+        "- Do NOT wrap your answers in quotes or add emojis.\n"
     )
 
     user_message = (
-        "Other players have already answered:\n"
-        f"{context}\n\n"
-        "Now produce the two outputs. **ONLY send me the Lithuanian translation** as your final message."
+        f"Current question: \"{rnd.question.text}\"\n\n"
+        "Answer the question in three parts (English, Lithuanian and proofread), but **only** return the final Lithuanian translation as your final output."
     )
 
-    # call DeepSeek
+    # Call DeepSeek
     try:
         resp = _client.chat.completions.create(
             model="deepseek-reasoner",
@@ -112,24 +106,44 @@ def generate_npc_response(round_id, participant_id):
             ],
             stream=False
         )
+        text = resp.choices[0].message.content.strip()
+        if not text:
+            print(f"[NPC {participant_id} | Round {round_id}] Empty response from DeepSeek, skipping.")
+            return
     except Exception as e:
-        print(f"[NPC {npc.id} | Round {rnd.id}] Error calling DeepSeek API:", e)
+        print(f"[NPC {participant_id} | Round {round_id}] Error calling DeepSeek API:", e)
         return
-    
-    # check for slow api call
+
+
+    # Schedule broadcast to stagger npc responses
     now = timezone.now()
-    session.refresh_from_db()
+    remaining = (rnd.end_time - now).total_seconds()
+    if remaining <= 0:
+        return
+    delay = random.uniform(0.2 * remaining, 0.8 * remaining)
+    broadcast_npc_response.apply_async(
+        args=(round_id, participant_id, text),
+        countdown=delay
+    )
+
+@shared_task
+def broadcast_npc_response(round_id, participant_id, text):
+    try:
+        rnd = Round.objects.select_related('game_session').get(id=round_id)
+        npc = Participant.objects.get(id=participant_id)
+    except (Round.DoesNotExist, Participant.DoesNotExist):
+        print(f"[NPC {participant_id} | Round {round_id}] Could not find round or NPC.")
+        return
+
+    session = rnd.game_session
+    now = timezone.now()
     if session.status != 'in_progress' or now >= rnd.end_time:
-        print(f"[NPC {npc.id} | Round {rnd.id}] Dropped late: status={session.status}, now={now}, end_time={rnd.end_time}")
+        print(
+            f"[NPC {participant_id} | Round {round_id}] Dropped: "
+            f"status={session.status}, now={now.isoformat()}, end_time={rnd.end_time.isoformat()}"
+        )
         return
 
-    latest = Round.objects.filter(game_session=session).order_by('-round_number').first()
-    if not latest or latest.id != rnd.id:
-        print(f"[NPC {npc.id} | Round {rnd.id}] Dropped late: not latest round (latest={latest.id if latest else None})")
-        return
-
-    # save and broadcast
-    text = resp.choices[0].message.content.strip() or "(🤖 NPC nerado atsakymo)"
     msg = Message.objects.create(
         participant=npc,
         round=rnd,
