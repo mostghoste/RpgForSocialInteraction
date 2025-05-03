@@ -25,6 +25,20 @@
 	// For identity reveal
 	let currentReveal = null; // player whose card is on‐screen
 	let showBack = false; // toggle front/back flip
+	let currentPlayerGuess = null;
+	let guessedPlayer = null;
+
+	$: {
+		if (currentReveal && currentReveal.id !== currentUserId && currentReveal.guesses?.length) {
+			currentPlayerGuess = getMyGuess(currentReveal.guesses);
+			guessedPlayer = players.find(
+				(p) => p.assigned_character?.name === currentPlayerGuess.guessed_character_name
+			);
+		} else {
+			currentPlayerGuess = null;
+			guessedPlayer = null;
+		}
+	}
 
 	const podiumDelay = 3000;
 	const podiumItemDelay = 3000;
@@ -132,6 +146,8 @@
 								</div>
 								<div class="flip-card-back text-center text-xl font-bold">
 									{currentReveal.username}
+									{#if currentReveal.is_npc}
+										🤖{/if}
 								</div>
 							</div>
 						</div>
@@ -148,23 +164,23 @@
 								žaidėjų
 							</p>
 
-							{#if currentReveal.id !== currentUserId && currentReveal.guesses}
-								{#if getMyGuess(currentReveal.guesses)}
-									<p>
-										Tu spėjai:
-										<span
-											class="{getMyGuess(currentReveal.guesses).is_correct
-												? 'text-success-500'
-												: 'text-error-500'} font-semibold"
-										>
-											{getMyGuess(currentReveal.guesses).guessed_character_name}
-										</span>
-									</p>
-								{:else}
-									<p>Tu spėjai: <span class="text-error-500">–</span></p>
-								{/if}
-							{:else}
-								<p>Tai tu!</p>
+							{#if currentReveal.id === currentUserId}
+								<p class="text-lg font-semibold">Tai tu!</p>
+							{:else if currentPlayerGuess}
+								<p>
+									Tu spėjai:
+									<span
+										class="{currentPlayerGuess.is_correct
+											? 'text-success-500'
+											: 'text-error-500'} font-semibold"
+									>
+										{#if guessedPlayer}
+											{guessedPlayer.is_npc ? 'Robotas' : guessedPlayer.username}
+										{:else}
+											{currentPlayerGuess.guessed_character_name}
+										{/if}
+									</span>
+								</p>
 							{/if}
 						</div>
 					</div>
