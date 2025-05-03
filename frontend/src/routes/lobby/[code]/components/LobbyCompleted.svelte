@@ -17,6 +17,7 @@
 
 	// Only keep human players for podium + final
 	$: humanPlayers = players.filter((p) => !p.is_npc);
+	$: sortedHumanPlayers = [...humanPlayers].sort((a, b) => b.points - a.points);
 
 	let revealedPlayers = [];
 	let revealedPodium = [];
@@ -167,79 +168,84 @@
 		</div>
 	{:else if phase === 'final'}
 		<div class="bg-surface-100-900 grid w-full max-w-xl gap-2 rounded-2xl p-4">
-			{#each humanPlayers as player (player.id)}
-				<div
-					class="bg-surface-200-800 rounded-2xl p-4 shadow {getMyGuess(player.guesses)?.is_correct
-						? 'border-green-500'
-						: 'border-gray-300'}"
-				>
-					<div class="flex items-center justify-between">
+			{#each sortedHumanPlayers as player, i (player.id)}
+				<div class="bg-surface-200-800 flex gap-2 rounded-2xl p-4 shadow">
+					<header class="flex w-14 flex-col justify-center gap-2 text-center">
+						<p title="Vieta" class="text-5xl font-bold">{i + 1}</p>
+						{#if player.score_breakdown?.length}
+							<Tooltip
+								positioning={{
+									placement: 'top',
+									offset: { mainAxis: 8 },
+									flip: true,
+									shift: true
+								}}
+								triggerBase="chip preset-filled-surface-300-700"
+								contentBase="card preset-filled-surface-500 p-4 text-start"
+								openDelay={100}
+							>
+								{#snippet trigger()}
+									<p>{player.points}</p>
+								{/snippet}
+								{#snippet content()}
+									<ul class="ml-4 mt-1 list-disc text-sm">
+										{#each player.score_breakdown as line}
+											<li>{line.description} (<strong>+{line.points}</strong>)</li>
+										{/each}
+									</ul>
+								{/snippet}
+							</Tooltip>
+						{/if}
+					</header>
+					<span class="vr border-surface-300-700 border-l-2"></span>
+					<div class="flex flex-1 flex-col justify-between">
 						<div class="flex flex-col">
 							<h4 class="text-xl font-bold">
-								{player.username}{player.is_host ? ' 👑' : ''}
+								{player.username}
 							</h4>
 							{#if player.assigned_character}
-								<p class="text-md">
-									Personažas: {player.assigned_character.name}
+								<p class="text-surface-700-300 italic">
+									{player.assigned_character.name}
 								</p>
 							{:else}
 								<p class="text-md italic">Nėra pasirinkto personažo</p>
 							{/if}
 						</div>
+						<div class="flex flex-1 flex-col justify-end">
+							<p class="text-sm">
+								Buvo atspėtas: {player.correctGuesses ?? 0}/{humanPlayers.length - 1}
+							</p>
+
+							{#if player.id !== currentUserId && player.guesses}
+								{#if getMyGuess(player.guesses)}
+									<p class="text-sm">
+										Tu spėjai:
+										<span
+											class={getMyGuess(player.guesses).is_correct
+												? 'text-success-500'
+												: 'text-error-500'}
+										>
+											{getMyGuess(player.guesses).guessed_character_name}
+										</span>
+									</p>
+								{:else}
+									<p class="text-sm">
+										Tu spėjai:
+										<span class="text-error-500"> - </span>
+									</p>
+								{/if}
+							{/if}
+						</div>
+					</div>
+					<footer class="flex flex-col justify-center">
 						{#if player.assigned_character?.image}
 							<img
 								src={player.assigned_character.image}
 								alt={player.assigned_character.name}
-								class="h-16 w-16 rounded-full object-cover"
+								class="h-16 w-16 rounded-full object-cover shadow"
 							/>
 						{/if}
-					</div>
-					<p class="text-md mt-2">Taškai: {player.points}</p>
-					<p class="text-md mt-1">
-						Spėjimai: {player.correctGuesses ?? 0}/{humanPlayers.length - 1}
-					</p>
-					{#if player.score_breakdown?.length}
-						<Tooltip
-							positioning={{
-								placement: 'top',
-								offset: { mainAxis: 8 },
-								flip: true,
-								shift: true
-							}}
-							triggerBase="transition-all hover:scale-105 cursor-default"
-							contentBase="card preset-filled-surface-500 p-4"
-							openDelay={100}
-						>
-							{#snippet trigger()}
-								<Info class="text-surface-300" size={24}></Info>
-							{/snippet}
-							{#snippet content()}
-								<ul class="ml-4 mt-1 list-disc text-sm">
-									{#each player.score_breakdown as line}
-										<li>{line.description} (<strong>+{line.points}</strong>)</li>
-									{/each}
-								</ul>
-							{/snippet}
-						</Tooltip>
-					{/if}
-
-					{#if player.guesses}
-						{#if getMyGuess(player.guesses)}
-							<p class="text-md mt-1">
-								Tavo spėjimas:
-								<span
-									class={getMyGuess(player.guesses).is_correct ? 'text-green-500' : 'text-red-500'}
-								>
-									{getMyGuess(player.guesses).guessed_character_name}
-								</span>
-							</p>
-						{:else}
-							<p class="text-md mt-1">
-								Tavo spėjimas:
-								<span class="text-red-500"> Neatlikai spėjimo šiam žaidėjui </span>
-							</p>
-						{/if}
-					{/if}
+					</footer>
 				</div>
 			{/each}
 		</div>
