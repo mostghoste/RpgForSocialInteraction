@@ -4,11 +4,6 @@
 	import Banner from '$lib/Banner.svelte';
 	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
 
-	// Expects "players" passed in with extra fields:
-	// - is_npc: boolean
-	// - assigned_character: { name, image? }
-	// - correctGuesses: number
-	// - guesses: an array of { guesser_id, guessed_character_name, is_correct }
 	export let players = [];
 	export let currentUserId;
 
@@ -18,7 +13,6 @@
 	$: sortedHumanPlayers = [...humanPlayers].sort((a, b) => b.points - a.points);
 
 	let revealedPlayers = [];
-	let revealedPodium = [];
 
 	let phase = 'identity'; // phases: 'identity', 'podium', 'final'
 
@@ -40,10 +34,6 @@
 		}
 	}
 
-	const podiumDelay = 3000;
-	const podiumItemDelay = 3000;
-	let podiumPlayers = [];
-
 	async function revealIdentities() {
 		for (let idx = 0; idx < players.length; idx++) {
 			// show front
@@ -60,35 +50,61 @@
 			// pause on back + stats
 			await new Promise((r) => setTimeout(r, 3000));
 		}
-		currentReveal = null;
+
 		await tick();
 		await new Promise((r) => setTimeout(r, 500));
-
+		currentReveal = null;
 		startPodiumReveal();
 	}
 
-	// Start the podium reveal (up to top 3 human players), always revealing lowest rank first
-	function startPodiumReveal() {
-		// sort descending and take top 3
-		podiumPlayers = [...humanPlayers].sort((a, b) => b.points - a.points).slice(0, 3);
+	let rectangleHeights = {};
+	let nameRevealed = {};
+	const podiumItemDelay = 2000;
+	let podiumPlayers = [];
+	$: layoutPlayers =
+		podiumPlayers.length === 3
+			? [podiumPlayers[1], podiumPlayers[0], podiumPlayers[2]]
+			: podiumPlayers;
 
-		// reverse so we reveal 3rd→1st (or 2nd→1st if only 2 players, or just 1st)
+	// rank to bar colour
+	function getPodiumColor(player) {
+		const rank = podiumPlayers.indexOf(player);
+		return rank === 0 ? 'bg-yellow-400' : rank === 1 ? 'bg-gray-300' : 'bg-amber-700';
+	}
+
+	// rank to bar height
+	function getPodiumHeight(player) {
+		const rank = podiumPlayers.indexOf(player);
+		return [230, 130, 100][rank] || 80;
+	}
+
+	function startPodiumReveal() {
+		// sort descending and take top 3 then reverse
+		podiumPlayers = [...humanPlayers].sort((a, b) => b.points - a.points).slice(0, 3);
 		const order = [...podiumPlayers].reverse();
 
-		// switch phase immediately so your {#if phase==='podium'} block shows up
 		phase = 'podium';
 
 		order.forEach((player, index) => {
+			// stagger each reveal by podiumItemDelay
 			setTimeout(
 				() => {
-					revealedPodium = [...revealedPodium, player];
+					// grow the bar after a tiny pause
+					setTimeout(() => {
+						rectangleHeights[player.id] = getPodiumHeight(player);
 
-					// once the last one is in, wait podiumItemDelay then go to final
-					if (index === order.length - 1) {
+						// reveal name after the bar animation
 						setTimeout(() => {
-							phase = 'final';
-						}, podiumItemDelay);
-					}
+							nameRevealed[player.id] = true;
+
+							// once the last name is shown wait then switch phase
+							if (index === order.length - 1) {
+								setTimeout(() => {
+									phase = 'final';
+								}, 5000);
+							}
+						}, 1000);
+					}, 200);
 				},
 				podiumItemDelay * (index + 1)
 			);
@@ -122,22 +138,24 @@
 <main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-auto p-4">
 	{#if phase === 'identity'}
 		<div class="h-120 relative flex w-full max-w-md items-center justify-center overflow-hidden">
-			<div class="absolute inset-0 flex items-center justify-center">
-				<div class="bg-surface-600 scale-y-20 w-100 h-64 translate-y-5 rounded-full blur-md"></div>
-			</div>
-			<div
-				class="pointer-events-none absolute inset-0 flex translate-y-6 rotate-45 items-center justify-center"
-			>
+			{#if currentReveal}
+				<div class="absolute inset-0 flex items-center justify-center">
+					<div
+						class="bg-surface-600 scale-y-20 w-100 h-64 translate-y-5 rounded-full blur-md"
+					></div>
+				</div>
 				<div
-					class="h-80 w-80"
-					style="background: linear-gradient(
+					class="pointer-events-none absolute inset-0 flex translate-y-6 rotate-45 items-center justify-center"
+				>
+					<div
+						class="h-80 w-80"
+						style="background: linear-gradient(
 					to bottom right,
 					rgba(245,158,11,0.4) 0%,
 					rgba(245,158,11,0)   50%
 				  );"
-				></div>
-			</div>
-			{#if currentReveal}
+					></div>
+				</div>
 				{#key currentReveal.id}
 					<div
 						class="absolute flex flex-col gap-3"
@@ -203,22 +221,44 @@
 			{/if}
 		</div>
 	{:else if phase === 'podium'}
-		<div class="flex flex-col items-center gap-4">
-			{#each revealedPodium as player, i (player.id)}
-				<div class="flex w-full max-w-md items-center gap-4 rounded-lg border p-4 shadow">
-					<div class="text-2xl font-bold">
-						{podiumPlayers.length === 3
-							? i === 0
-								? '3. vieta'
-								: i === 1
-									? '2. vieta'
-									: '1. vieta'
-							: `${i + 1}. vieta`}
+		<div class="relative flex h-[250px] w-full flex-row items-end justify-center gap-8">
+			<div class="absolute inset-x-0 bottom-0 flex items-end justify-center">
+				<div
+					class="bg-surface-600 scale-y-30 translate-y-45 h-100 w-100 z-10 rounded-full blur-sm"
+				></div>
+			</div>
+			{#each layoutPlayers as player, i (player.id)}
+				<div class="relative z-20 flex flex-col items-center">
+					<!-- name flies in above the bar -->
+					{#if nameRevealed[player.id]}
+						<p
+							class="{i === 1
+								? 'animate-bounce-from-bottom'
+								: ''} absolute -top-8 left-1/2 -translate-x-1/2 transform text-xl font-bold"
+							in:fly={{ y: -10, duration: 400 }}
+						>
+							{player.username}
+						</p>
+					{/if}
+
+					<!-- bar + points at top -->
+					<div class="w-24 overflow-hidden rounded-t-xl">
+						<div
+							class={`flex flex-col items-center justify-start transition-all duration-1000 ease-out ${getPodiumColor(player)}`}
+							style="height: {rectangleHeights[player.id] ?? 0}px"
+						>
+							{#if rectangleHeights[player.id]}
+								<span class="mt-1 text-lg font-bold">
+									{player.points}
+								</span>
+							{/if}
+						</div>
 					</div>
-					<div class="flex flex-col">
-						<h4 class="text-xl font-bold">{player.username}</h4>
-						<p class="text-md">Taškai: {player.points}</p>
-					</div>
+
+					<!-- place labels -->
+					<p class="mt-2 text-center text-sm font-semibold">
+						{i === 0 ? '2 vieta' : i === 1 ? '1 vieta' : '3 vieta'}
+					</p>
 				</div>
 			{/each}
 		</div>
@@ -361,5 +401,24 @@
 	.flip-card-back {
 		transform: rotateY(180deg);
 		z-index: 1;
+	}
+
+	@keyframes bounce-from-bottom {
+		0%,
+		100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-25%);
+		}
+	}
+
+	/* you can tweak duration (1s), easing, etc. */
+	.animate-bounce-from-bottom {
+		animation: bounce-from-bottom 1s ease-in-out infinite;
+		/* delay the first cycle until the fly-in (400ms) is done */
+		animation-delay: 0.4s;
+		/* keep the element at translateY(0) before the animation starts */
+		animation-fill-mode: both;
 	}
 </style>
