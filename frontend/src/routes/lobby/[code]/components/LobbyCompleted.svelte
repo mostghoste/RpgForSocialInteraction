@@ -22,7 +22,7 @@
 	let revealedPlayers = [];
 	let revealedPodium = [];
 
-	let phase = 'final'; // phases: 'identity', 'podium', 'final'
+	let phase = 'identity'; // phases: 'identity', 'podium', 'final'
 	const identityDelay = 3000;
 	const podiumDelay = 3000;
 	const podiumItemDelay = 3000;
@@ -79,7 +79,7 @@
 	}
 
 	onMount(() => {
-		//revealIdentities();
+		revealIdentities();
 	});
 
 	function handleLeaveLobby() {
@@ -89,11 +89,11 @@
 
 <Banner>
 	{#if phase === 'identity'}
-		<h2 class="h3">Tapatybių atskleidimas</h2>
+		<h1 class="h3">Tapatybių atskleidimas</h1>
 	{:else if phase === 'podium'}
-		<h2 class="h3">Podiumas</h2>
+		<h1 class="h3">Podiumas</h1>
 	{:else}
-		<h2 class="h3">Rezultatai</h2>
+		<h1 class="h3">Rezultatai</h1>
 	{/if}
 </Banner>
 
@@ -181,16 +181,17 @@
 									shift: true
 								}}
 								triggerBase="chip preset-filled-surface-300-700"
-								contentBase="card preset-filled-surface-500 p-4 text-start"
+								contentBase="card preset-filled-surface-200-800 border border-surface-400-600 shadow-lg p-4 text-start"
 								openDelay={100}
 							>
 								{#snippet trigger()}
 									<p>{player.points}</p>
 								{/snippet}
 								{#snippet content()}
-									<ul class="ml-4 mt-1 list-disc text-sm">
+									<h2 class="font-bold">Taškų suvestinė žaidėjui {player.username}</h2>
+									<ul class="text-sm">
 										{#each player.score_breakdown as line}
-											<li>{line.description} (<strong>+{line.points}</strong>)</li>
+											<li><span class="font-semibold">+{line.points}</span> {line.description}</li>
 										{/each}
 									</ul>
 								{/snippet}
@@ -251,7 +252,7 @@
 				</div>
 			{/each}
 		</div>
-		<button class="btn preset-filled-primary-500 mt-4" on:click={handleLeaveLobby}>
+		<button class="btn preset-filled-primary-500" on:click={handleLeaveLobby}>
 			Noriu žaisti vėl!
 		</button>
 	{/if}

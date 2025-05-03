@@ -15,7 +15,7 @@ def compute_score_breakdown(participant):
     )
     for rnd in rounds_with_msgs:
         breakdown.append({
-            'description': f'+50 už atsakymą {rnd.round_number} raunde',
+            'description': f'už atsakymą {rnd.round_number} raunde',
             'points': 50
         })
 
@@ -24,14 +24,14 @@ def compute_score_breakdown(participant):
     for guess in correct_guesses:
         if guess.guessed_participant and guess.guessed_participant.is_npc:
             breakdown.append({
-                'description': '+50 už teisingai atpažintą robotą',
+                'description': f'už teisingai atpažintą robotą „{guess.guessed_character.name}“',
                 'points': 50
             })
         else:
             target = guess.guessed_participant
             target_name = target.user.username if target.user else target.guest_name
             breakdown.append({
-                'description': f'+100 už teisingai atpažintą {target_name}',
+                'description': f'už teisingai atpažintą žaidėją {target_name}',
                 'points': 100
             })
 
@@ -53,13 +53,13 @@ def compute_score_breakdown(participant):
     if correct_count == 0:
         # nobody guessed you
         breakdown.append({
-            'description': '0 už tai, kad niekas neatspėjo tavo personažo',
+            'description': 'už tai, kad niekas neatspėjo tavo personažo',
             'points': 0
         })
     elif correct_count == total_humans and total_humans > 0:
         # everyone guessed you
         breakdown.append({
-            'description': '0 už tai, kad visi atspėjo tavo personažą',
+            'description': 'už tai, kad visi atspėjo tavo personažą',
             'points': 0
         })
     else:
@@ -68,7 +68,7 @@ def compute_score_breakdown(participant):
             g = guess.guesser
             g_name = g.user.username if g.user else g.guest_name
             breakdown.append({
-                'description': f'+50 už tai, kad {g_name} atspėjo tavo personažą',
+                'description': f'už tai, kad {g_name} atspėjo tavo personažą',
                 'points': 50
             })
 
