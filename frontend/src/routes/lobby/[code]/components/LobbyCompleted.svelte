@@ -4,15 +4,18 @@
 	import Banner from '$lib/Banner.svelte';
 
 	// Expects "players" passed in with extra fields:
+	// - is_npc: boolean
 	// - assigned_character: { name, image? }
 	// - correctGuesses: number
-	// - guesses: an array of objects with { guesser_id, guessed_character_name, is_correct }
+	// - guesses: an array of { guesser_id, guessed_character_name, is_correct }
 	export let players = [];
 	export let currentUserId;
 
 	const dispatch = createEventDispatcher();
 
-	// These arrays will be populated gradually:
+	// Only keep human players for podium + final
+	$: humanPlayers = players.filter((p) => !p.is_npc);
+
 	let revealedPlayers = [];
 	let revealedPodium = [];
 
@@ -22,7 +25,7 @@
 	const podiumItemDelay = 3000;
 	let podiumPlayers = [];
 
-	// Gradually reveal player identities.
+	// Gradually reveal **all** player identities (including NPCs)
 	function revealIdentities() {
 		players.forEach((player, index) => {
 			setTimeout(
@@ -39,10 +42,10 @@
 		});
 	}
 
-	// Start the podium reveal (top 3 players).
+	// Start the podium reveal (top 3 human players), from 3rd to 1st
 	function startPodiumReveal() {
-		podiumPlayers = [...players].sort((a, b) => b.points - a.points).slice(0, 3);
-		let order =
+		podiumPlayers = [...humanPlayers].sort((a, b) => b.points - a.points).slice(0, 3);
+		const order =
 			podiumPlayers.length === 3
 				? [podiumPlayers[2], podiumPlayers[1], podiumPlayers[0]]
 				: podiumPlayers;
@@ -62,10 +65,9 @@
 		phase = 'podium';
 	}
 
-	// Helper to return the guess from the current user from a list of guesses.
+	// Helper to return the current user's guess from a list of guesses.
 	function getMyGuess(guesses) {
-		if (!guesses) return null;
-		return guesses.find((g) => g.guesser_id === currentUserId);
+		return guesses?.find((g) => g.guesser_id === currentUserId) ?? null;
 	}
 
 	onMount(() => {
@@ -81,7 +83,7 @@
 	<h2 class="h3">Žaidimas baigėsi!</h2>
 </Banner>
 
-<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll">
+<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-auto p-4">
 	{#if phase === 'identity'}
 		<h3 class="mb-4 text-3xl font-bold">Identitetų atskleidimas...</h3>
 		<div class="grid w-full max-w-xl gap-4">
@@ -100,7 +102,7 @@
 								<p class="text-md italic">Nėra pasirinkto personažo</p>
 							{/if}
 						</div>
-						{#if player.assigned_character && player.assigned_character.image}
+						{#if player.assigned_character?.image}
 							<img
 								src={player.assigned_character.image}
 								alt={player.assigned_character.name}
@@ -109,7 +111,7 @@
 						{/if}
 					</div>
 					<p class="text-md mt-2">
-						{player.correctGuesses} iš {players.length - 1} žaidėjų atspėjo!
+						{player.correctGuesses} iš {humanPlayers.length - 1} žaidėjų atspėjo!
 					</p>
 					{#if player.guesses}
 						{#if getMyGuess(player.guesses)}
@@ -143,7 +145,7 @@
 								: i === 1
 									? '2. vieta'
 									: '1. vieta'
-							: i + 1 + '.'}
+							: `${i + 1}. vieta`}
 					</div>
 					<div class="flex flex-col">
 						<h4 class="text-xl font-bold">{player.username}</h4>
@@ -155,9 +157,9 @@
 	{:else if phase === 'final'}
 		<h3 class="mb-4 text-3xl font-bold">Pilni rezultatai</h3>
 		<div class="grid w-full max-w-xl gap-4">
-			{#each players as player (player.id)}
+			{#each humanPlayers as player (player.id)}
 				<div
-					class="rounded-lg border p-4 shadow {player.myGuessCorrect
+					class="rounded-lg border p-4 shadow {getMyGuess(player.guesses)?.is_correct
 						? 'border-green-500'
 						: 'border-gray-300'}"
 				>
@@ -174,7 +176,7 @@
 								<p class="text-md italic">Nėra pasirinkto personažo</p>
 							{/if}
 						</div>
-						{#if player.assigned_character && player.assigned_character.image}
+						{#if player.assigned_character?.image}
 							<img
 								src={player.assigned_character.image}
 								alt={player.assigned_character.name}
@@ -184,7 +186,7 @@
 					</div>
 					<p class="text-md mt-2">Taškai: {player.points}</p>
 					<p class="text-md mt-1">
-						Spėjimai: {player.correctGuesses ?? 0}/{players.length - 1}
+						Spėjimai: {player.correctGuesses ?? 0}/{humanPlayers.length - 1}
 					</p>
 					{#if player.score_breakdown?.length}
 						<details class="mt-2">
@@ -217,9 +219,8 @@
 				</div>
 			{/each}
 		</div>
+		<button class="btn preset-filled-primary-500 mt-4" on:click={handleLeaveLobby}>
+			Noriu žaisti vėl!
+		</button>
 	{/if}
-
-	<button class="btn preset-filled-primary-500 mt-4" on:click={handleLeaveLobby}>
-		Noriu žaisti vėl!
-	</button>
 </main>
