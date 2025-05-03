@@ -121,7 +121,22 @@
 
 <main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-auto p-4">
 	{#if phase === 'identity'}
-		<div class="relative flex h-80 w-full max-w-md items-center justify-center overflow-hidden">
+		<div class="h-120 relative flex w-full max-w-md items-center justify-center overflow-hidden">
+			<div class="absolute inset-0 flex items-center justify-center">
+				<div class="bg-surface-600 scale-y-20 w-100 h-64 translate-y-5 rounded-full blur-md"></div>
+			</div>
+			<div
+				class="pointer-events-none absolute inset-0 flex translate-y-6 rotate-45 items-center justify-center"
+			>
+				<div
+					class="h-80 w-80"
+					style="background: linear-gradient(
+					to bottom right,
+					rgba(245,158,11,0.4) 0%,
+					rgba(245,158,11,0)   50%
+				  );"
+				></div>
+			</div>
 			{#if currentReveal}
 				{#key currentReveal.id}
 					<div
@@ -134,7 +149,7 @@
 							<img
 								src={currentReveal.assigned_character.image}
 								alt={currentReveal.assigned_character.name}
-								class="mx-auto h-24 w-24 rounded-full object-cover"
+								class="mx-auto h-24 w-24 rounded-full object-cover shadow-lg"
 							/>
 						{/if}
 
@@ -153,7 +168,7 @@
 						</div>
 
 						<!-- Stats -->
-						<div class="mt-8 text-center text-sm">
+						<div class="mt-10 text-center text-sm">
 							<p class="text-xl">
 								Atpažino
 								<strong>
