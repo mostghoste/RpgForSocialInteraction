@@ -213,7 +213,9 @@
 						</div>
 						<div class="flex flex-1 flex-col justify-end">
 							<p class="text-sm">
-								Buvo atspėtas: {player.correctGuesses ?? 0}/{humanPlayers.length - 1}
+								Buvo atspėtas: <span class="font-semibold"
+									>{player.correctGuesses ?? 0}/{humanPlayers.length - 1}</span
+								>
 							</p>
 
 							{#if player.id !== currentUserId && player.guesses}
@@ -221,9 +223,9 @@
 									<p class="text-sm">
 										Tu spėjai:
 										<span
-											class={getMyGuess(player.guesses).is_correct
+											class="{getMyGuess(player.guesses).is_correct
 												? 'text-success-500'
-												: 'text-error-500'}
+												: 'text-error-500'} font-semibold"
 										>
 											{getMyGuess(player.guesses).guessed_character_name}
 										</span>
@@ -231,7 +233,7 @@
 								{:else}
 									<p class="text-sm">
 										Tu spėjai:
-										<span class="text-error-500"> - </span>
+										<span class="text-error-500 font-semibold"> - </span>
 									</p>
 								{/if}
 							{/if}
