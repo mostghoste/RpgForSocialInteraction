@@ -26,32 +26,28 @@
 	let currentReveal = null; // player whose card is on‐screen
 	let showBack = false; // toggle front/back flip
 
-	const identityDelay = 3000;
 	const podiumDelay = 3000;
 	const podiumItemDelay = 3000;
 	let podiumPlayers = [];
 
 	async function revealIdentities() {
 		for (let idx = 0; idx < players.length; idx++) {
-			// show front…
+			// show front
 			showBack = false;
 			currentReveal = players[idx];
 			await tick();
 
 			// pause on front
-			await new Promise((r) => setTimeout(r, identityDelay / 2));
+			await new Promise((r) => setTimeout(r, 2000));
 
 			// flip to back
 			showBack = true;
 
 			// pause on back + stats
-			await new Promise((r) => setTimeout(r, identityDelay / 2));
+			await new Promise((r) => setTimeout(r, 3000));
 		}
-
-		// once *all* cards have shown front→back, slide out the last one:
 		currentReveal = null;
 		await tick();
-		// give it its 500 ms fly-out
 		await new Promise((r) => setTimeout(r, 500));
 
 		startPodiumReveal();
@@ -85,7 +81,7 @@
 		});
 	}
 
-	// Helper to return the current user's guess from a list of guesses.
+	// return the current users guess from a list of guesses
 	function getMyGuess(guesses) {
 		return guesses?.find((g) => g.guesser_id === currentUserId) ?? null;
 	}
@@ -128,7 +124,7 @@
 							/>
 						{/if}
 
-						<!-- Flip-card name -->
+						<!-- Name flip card -->
 						<div class="flip-card">
 							<div class="flip-card-inner" class:flipped={showBack}>
 								<div class="flip-card-front text-center text-xl font-bold">
@@ -140,13 +136,16 @@
 							</div>
 						</div>
 
-						<!-- Stats (only on back) -->
-						<div class="mt-16 text-center text-sm">
-							<p>
-								Buvo atpažintas žaidėjų:
+						<!-- Stats -->
+						<div class="mt-8 text-center text-sm">
+							<p class="text-xl">
+								Atpažino
 								<strong>
-									{currentReveal.correctGuesses}/{humanPlayers.length - 1}
+									{currentReveal.correctGuesses}
 								</strong>
+								iš
+								<strong>{humanPlayers.length - 1}</strong>
+								žaidėjų
 							</p>
 
 							{#if currentReveal.id !== currentUserId && currentReveal.guesses}
@@ -154,9 +153,9 @@
 									<p>
 										Tu spėjai:
 										<span
-											class={getMyGuess(currentReveal.guesses).is_correct
+											class="{getMyGuess(currentReveal.guesses).is_correct
 												? 'text-success-500'
-												: 'text-error-500'}
+												: 'text-error-500'} font-semibold"
 										>
 											{getMyGuess(currentReveal.guesses).guessed_character_name}
 										</span>
