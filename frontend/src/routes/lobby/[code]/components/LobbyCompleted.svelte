@@ -286,19 +286,26 @@
 
 <style>
 	.flip-card {
-		display: block; /* take full width of parent */
+		/* give .flip-card a 3D perspective so children rotate correctly */
+		perspective: 1000px;
+		/* take full width of parent (you already had this) */
+		display: block;
 		width: 100%;
 	}
 
 	.flip-card-inner {
-		position: relative; /* so its children can absolutely fill it */
-		width: 100%;
-		transform-style: preserve-3d;
-		transition: transform 0.6s;
+		position: relative; /* establish containing block for abs. children */
+		width: 100%; /* fill the parent’s width */
+		transform-style: preserve-3d; /* keep children in 3D space */
+		transition: transform 0.6s; /* smooth flip */
+		/* vendor prefix if you need to support older WebKits */
+		-webkit-transform-style: preserve-3d;
 	}
 
+	/* when you add the “flipped” class, rotate 180° around the Y axis */
 	.flip-card-inner.flipped {
 		transform: rotateY(180deg);
+		-webkit-transform: rotateY(180deg);
 	}
 
 	.flip-card-front,
@@ -307,6 +314,7 @@
 		top: 0;
 		left: 0;
 		width: 100%;
+		/* hide the “back” of each face when it’s turned away */
 		backface-visibility: hidden;
 		-webkit-backface-visibility: hidden;
 		display: flex;
@@ -314,8 +322,10 @@
 		justify-content: center;
 	}
 
+	/* make it explicit (optional, but can help) */
 	.flip-card-front {
-		z-index: 2; /* front sits atop back until flipped */
+		transform: rotateY(0deg);
+		z-index: 2; /* keep front on top until flipped */
 	}
 
 	.flip-card-back {
