@@ -3,6 +3,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import Banner from '$lib/Banner.svelte';
 	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
+	import { Info } from '@lucide/svelte';
 
 	// Expects "players" passed in with extra fields:
 	// - is_npc: boolean
@@ -86,12 +87,17 @@
 </script>
 
 <Banner>
-	<h2 class="h3">Žaidimas baigėsi!</h2>
+	{#if phase === 'identity'}
+		<h2 class="h3">Tapatybių atskleidimas</h2>
+	{:else if phase === 'podium'}
+		<h2 class="h3">Podiumas</h2>
+	{:else}
+		<h2 class="h3">Rezultatai</h2>
+	{/if}
 </Banner>
 
 <main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-auto p-4">
 	{#if phase === 'identity'}
-		<h3 class="mb-4 text-3xl font-bold">Identitetų atskleidimas...</h3>
 		<div class="grid w-full max-w-xl gap-4">
 			{#each revealedPlayers as player (player.id)}
 				<div class="rounded-lg border p-4 shadow">
@@ -140,7 +146,6 @@
 			{/each}
 		</div>
 	{:else if phase === 'podium'}
-		<h3 class="mb-4 text-3xl font-bold">Podiumas</h3>
 		<div class="flex flex-col items-center gap-4">
 			{#each revealedPodium as player, i (player.id)}
 				<div class="flex w-full max-w-md items-center gap-4 rounded-lg border p-4 shadow">
@@ -161,11 +166,10 @@
 			{/each}
 		</div>
 	{:else if phase === 'final'}
-		<h3 class="mb-4 text-3xl font-bold">Pilni rezultatai</h3>
-		<div class="grid w-full max-w-xl gap-4">
+		<div class="bg-surface-100-900 grid w-full max-w-xl gap-2 rounded-2xl p-4">
 			{#each humanPlayers as player (player.id)}
 				<div
-					class="rounded-lg border p-4 shadow {getMyGuess(player.guesses)?.is_correct
+					class="bg-surface-200-800 rounded-2xl p-4 shadow {getMyGuess(player.guesses)?.is_correct
 						? 'border-green-500'
 						: 'border-gray-300'}"
 				>
@@ -202,12 +206,12 @@
 								flip: true,
 								shift: true
 							}}
-							triggerBase="btn text-sm font-semibold"
+							triggerBase="transition-all hover:scale-105 cursor-default"
 							contentBase="card preset-filled-surface-500 p-4"
 							openDelay={100}
 						>
 							{#snippet trigger()}
-								Detalių suskirstymas
+								<Info class="text-surface-300" size={24}></Info>
 							{/snippet}
 							{#snippet content()}
 								<ul class="ml-4 mt-1 list-disc text-sm">

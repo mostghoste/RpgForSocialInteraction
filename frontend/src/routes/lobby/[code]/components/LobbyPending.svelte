@@ -118,7 +118,7 @@
 							<span
 								class="{player.characterSelected
 									? 'bg-success-500 text-success-contrast-500'
-									: 'bg-surface-200-800 text-amber-500'} rounded-base p-1"
+									: 'bg-surface-200-800 text-amber-500'} rounded-base p-1 shadow"
 								title={'Kambario vadas' +
 									(player.characterSelected ? ' | Išsirinko personažą' : '')}
 								><Crown size={18} /></span
@@ -127,14 +127,14 @@
 							<span
 								class="{player.characterSelected
 									? 'bg-success-500 text-success-contrast-500'
-									: 'bg-surface-200-800 text-tertiary-500'} rounded-base p-1"
+									: 'bg-surface-200-800 text-tertiary-500'} rounded-base p-1 shadow"
 								title="NPC"><Bot size={18} /></span
 							>
 						{:else}
 							<span
 								class="{player.characterSelected
 									? 'bg-success-500 text-success-contrast-500'
-									: 'bg-surface-200-800 text-surface-300'} rounded-base p-1"
+									: 'bg-surface-200-800 text-surface-300'} rounded-base p-1 shadow"
 								title={player.characterSelected
 									? 'Išsirinko personažą'
 									: 'Dar neišsirinko personažo'}><User size={18} /></span
@@ -148,7 +148,7 @@
 						{#if isHost && String(player.id) !== String(lobbyState.participant_id)}
 							<button
 								title="Išmesti žaidėją iš kambario"
-								class="text-error-500 bg-surface-200-800 rounded-base ml-1 p-1 hover:scale-105 active:scale-95"
+								class="text-error-500 bg-surface-200-800 rounded-base ml-1 p-1 shadow hover:scale-105 active:scale-95"
 								on:click={() =>
 									dispatch('kickPlayer', { id: player.id, username: player.username })}
 							>
@@ -221,7 +221,7 @@
 			{#each availableCharacters as char}
 				<button
 					on:click={() => handleSelectCharacter(char.id)}
-					class="bg-surface-200-800 flex gap-4 rounded-2xl p-2"
+					class="bg-surface-200-800 flex gap-4 rounded-2xl p-2 shadow"
 				>
 					<Avatar src={char.image ? char.image : '/fallback_character.jpg'} name={char.name}
 					></Avatar>
