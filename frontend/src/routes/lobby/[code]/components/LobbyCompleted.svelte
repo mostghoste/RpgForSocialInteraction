@@ -42,17 +42,23 @@
 		});
 	}
 
-	// Start the podium reveal (top 3 human players), from 3rd to 1st
+	// Start the podium reveal (up to top 3 human players), always revealing lowest rank first
 	function startPodiumReveal() {
+		// sort descending and take top 3
 		podiumPlayers = [...humanPlayers].sort((a, b) => b.points - a.points).slice(0, 3);
-		const order =
-			podiumPlayers.length === 3
-				? [podiumPlayers[2], podiumPlayers[1], podiumPlayers[0]]
-				: podiumPlayers;
+
+		// reverse so we reveal 3rd→1st (or 2nd→1st if only 2 players, or just 1st)
+		const order = [...podiumPlayers].reverse();
+
+		// switch phase immediately so your {#if phase==='podium'} block shows up
+		phase = 'podium';
+
 		order.forEach((player, index) => {
 			setTimeout(
 				() => {
 					revealedPodium = [...revealedPodium, player];
+
+					// once the last one is in, wait podiumItemDelay then go to final
 					if (index === order.length - 1) {
 						setTimeout(() => {
 							phase = 'final';
@@ -62,7 +68,6 @@
 				podiumItemDelay * (index + 1)
 			);
 		});
-		phase = 'podium';
 	}
 
 	// Helper to return the current user's guess from a list of guesses.
