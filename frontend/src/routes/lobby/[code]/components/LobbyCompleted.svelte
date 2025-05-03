@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import Banner from '$lib/Banner.svelte';
+	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
 
 	// Expects "players" passed in with extra fields:
 	// - is_npc: boolean
@@ -19,7 +20,7 @@
 	let revealedPlayers = [];
 	let revealedPodium = [];
 
-	let phase = 'identity'; // phases: 'identity', 'podium', 'final'
+	let phase = 'final'; // phases: 'identity', 'podium', 'final'
 	const identityDelay = 3000;
 	const podiumDelay = 3000;
 	const podiumItemDelay = 3000;
@@ -76,7 +77,7 @@
 	}
 
 	onMount(() => {
-		revealIdentities();
+		//revealIdentities();
 	});
 
 	function handleLeaveLobby() {
@@ -194,14 +195,28 @@
 						Spėjimai: {player.correctGuesses ?? 0}/{humanPlayers.length - 1}
 					</p>
 					{#if player.score_breakdown?.length}
-						<details class="mt-2">
-							<summary class="text-sm font-semibold">Detalių suskirstymas</summary>
-							<ul class="ml-4 mt-1 list-disc text-sm">
-								{#each player.score_breakdown as line}
-									<li>{line.description} (<strong>+{line.points}</strong>)</li>
-								{/each}
-							</ul>
-						</details>
+						<Tooltip
+							positioning={{
+								placement: 'top',
+								offset: { mainAxis: 8 },
+								flip: true,
+								shift: true
+							}}
+							triggerBase="btn text-sm font-semibold"
+							contentBase="card preset-filled-surface-500 p-4"
+							openDelay={100}
+						>
+							{#snippet trigger()}
+								Detalių suskirstymas
+							{/snippet}
+							{#snippet content()}
+								<ul class="ml-4 mt-1 list-disc text-sm">
+									{#each player.score_breakdown as line}
+										<li>{line.description} (<strong>+{line.points}</strong>)</li>
+									{/each}
+								</ul>
+							{/snippet}
+						</Tooltip>
 					{/if}
 
 					{#if player.guesses}
