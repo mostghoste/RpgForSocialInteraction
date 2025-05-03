@@ -1,9 +1,8 @@
 <script>
-	import { onMount } from 'svelte';
-	import { createEventDispatcher } from 'svelte';
+	import { onMount, tick, createEventDispatcher } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import Banner from '$lib/Banner.svelte';
 	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
-	import { Info } from '@lucide/svelte';
 
 	// Expects "players" passed in with extra fields:
 	// - is_npc: boolean
@@ -15,7 +14,6 @@
 
 	const dispatch = createEventDispatcher();
 
-	// Only keep human players for podium + final
 	$: humanPlayers = players.filter((p) => !p.is_npc);
 	$: sortedHumanPlayers = [...humanPlayers].sort((a, b) => b.points - a.points);
 
@@ -23,26 +21,40 @@
 	let revealedPodium = [];
 
 	let phase = 'identity'; // phases: 'identity', 'podium', 'final'
+
+	// For identity reveal
+	let currentReveal = null; // player whose card is on‐screen
+	let showBack = false; // toggle front/back flip
+
 	const identityDelay = 3000;
 	const podiumDelay = 3000;
 	const podiumItemDelay = 3000;
 	let podiumPlayers = [];
 
-	// Gradually reveal **all** player identities (including NPCs)
-	function revealIdentities() {
-		players.forEach((player, index) => {
-			setTimeout(
-				() => {
-					revealedPlayers = [...revealedPlayers, player];
-					if (index === players.length - 1) {
-						setTimeout(() => {
-							startPodiumReveal();
-						}, podiumDelay);
-					}
-				},
-				identityDelay * (index + 1)
-			);
-		});
+	async function revealIdentities() {
+		for (let idx = 0; idx < players.length; idx++) {
+			// show front…
+			showBack = false;
+			currentReveal = players[idx];
+			await tick();
+
+			// pause on front
+			await new Promise((r) => setTimeout(r, identityDelay / 2));
+
+			// flip to back
+			showBack = true;
+
+			// pause on back + stats
+			await new Promise((r) => setTimeout(r, identityDelay / 2));
+		}
+
+		// once *all* cards have shown front→back, slide out the last one:
+		currentReveal = null;
+		await tick();
+		// give it its 500 ms fly-out
+		await new Promise((r) => setTimeout(r, 500));
+
+		startPodiumReveal();
 	}
 
 	// Start the podium reveal (up to top 3 human players), always revealing lowest rank first
@@ -99,52 +111,66 @@
 
 <main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-auto p-4">
 	{#if phase === 'identity'}
-		<div class="grid w-full max-w-xl gap-4">
-			{#each revealedPlayers as player (player.id)}
-				<div class="rounded-lg border p-4 shadow">
-					<div class="flex items-center justify-between">
-						<div class="flex flex-col">
-							<h4 class="text-xl font-bold">
-								{player.username}{player.is_host ? ' 👑' : ''}
-							</h4>
-							{#if player.assigned_character}
-								<p class="text-md">
-									Personažas: {player.assigned_character.name}
-								</p>
-							{:else}
-								<p class="text-md italic">Nėra pasirinkto personažo</p>
-							{/if}
-						</div>
-						{#if player.assigned_character?.image}
+		<div class="relative flex h-80 w-full max-w-md items-center justify-center overflow-hidden">
+			{#if currentReveal}
+				{#key currentReveal.id}
+					<div
+						class="absolute flex flex-col gap-3"
+						in:fly={{ x: 300, duration: 500 }}
+						out:fly={{ x: -300, duration: 500 }}
+					>
+						<!-- Avatar -->
+						{#if currentReveal.assigned_character?.image}
 							<img
-								src={player.assigned_character.image}
-								alt={player.assigned_character.name}
-								class="h-16 w-16 rounded-full object-cover"
+								src={currentReveal.assigned_character.image}
+								alt={currentReveal.assigned_character.name}
+								class="mx-auto h-24 w-24 rounded-full object-cover"
 							/>
 						{/if}
+
+						<!-- Flip-card name -->
+						<div class="flip-card">
+							<div class="flip-card-inner" class:flipped={showBack}>
+								<div class="flip-card-front text-center text-xl font-bold">
+									{currentReveal.assigned_character?.name}
+								</div>
+								<div class="flip-card-back text-center text-xl font-bold">
+									{currentReveal.username}
+								</div>
+							</div>
+						</div>
+
+						<!-- Stats (only on back) -->
+						<div class="mt-16 text-center text-sm">
+							<p>
+								Buvo atpažintas žaidėjų:
+								<strong>
+									{currentReveal.correctGuesses}/{humanPlayers.length - 1}
+								</strong>
+							</p>
+
+							{#if currentReveal.id !== currentUserId && currentReveal.guesses}
+								{#if getMyGuess(currentReveal.guesses)}
+									<p>
+										Tu spėjai:
+										<span
+											class={getMyGuess(currentReveal.guesses).is_correct
+												? 'text-success-500'
+												: 'text-error-500'}
+										>
+											{getMyGuess(currentReveal.guesses).guessed_character_name}
+										</span>
+									</p>
+								{:else}
+									<p>Tu spėjai: <span class="text-error-500">–</span></p>
+								{/if}
+							{:else}
+								<p>Tai tu!</p>
+							{/if}
+						</div>
 					</div>
-					<p class="text-md mt-2">
-						{player.correctGuesses} iš {humanPlayers.length - 1} žaidėjų atspėjo!
-					</p>
-					{#if player.guesses}
-						{#if getMyGuess(player.guesses)}
-							<p class="text-md mt-1">
-								Tavo spėjimas:
-								<span
-									class={getMyGuess(player.guesses).is_correct ? 'text-green-500' : 'text-red-500'}
-								>
-									{getMyGuess(player.guesses).guessed_character_name}
-								</span>
-							</p>
-						{:else}
-							<p class="text-md mt-1">
-								Tavo spėjimas:
-								<span class="text-red-500"> Neatlikai spėjimo šiam žaidėjui </span>
-							</p>
-						{/if}
-					{/if}
-				</div>
-			{/each}
+				{/key}
+			{/if}
 		</div>
 	{:else if phase === 'podium'}
 		<div class="flex flex-col items-center gap-4">
@@ -257,3 +283,43 @@
 		</button>
 	{/if}
 </main>
+
+<style>
+	.flip-card {
+		display: block; /* take full width of parent */
+		width: 100%;
+	}
+
+	.flip-card-inner {
+		position: relative; /* so its children can absolutely fill it */
+		width: 100%;
+		transform-style: preserve-3d;
+		transition: transform 0.6s;
+	}
+
+	.flip-card-inner.flipped {
+		transform: rotateY(180deg);
+	}
+
+	.flip-card-front,
+	.flip-card-back {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		backface-visibility: hidden;
+		-webkit-backface-visibility: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.flip-card-front {
+		z-index: 2; /* front sits atop back until flipped */
+	}
+
+	.flip-card-back {
+		transform: rotateY(180deg);
+		z-index: 1;
+	}
+</style>
