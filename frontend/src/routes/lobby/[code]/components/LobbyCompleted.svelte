@@ -119,8 +119,8 @@
 	}
 
 	onMount(() => {
-		// revealIdentities();
-		startPodiumReveal();
+		revealIdentities();
+		// startPodiumReveal();
 	});
 
 	function handleLeaveLobby() {
