@@ -64,7 +64,9 @@
 	$: layoutPlayers =
 		podiumPlayers.length === 3
 			? [podiumPlayers[1], podiumPlayers[0], podiumPlayers[2]]
-			: podiumPlayers;
+			: podiumPlayers.length === 2
+				? [podiumPlayers[1], podiumPlayers[0]]
+				: podiumPlayers;
 
 	// rank to bar colour
 	function getPodiumColor(player) {
@@ -117,7 +119,8 @@
 	}
 
 	onMount(() => {
-		revealIdentities();
+		// revealIdentities();
+		startPodiumReveal();
 	});
 
 	function handleLeaveLobby() {
@@ -232,9 +235,13 @@
 					<!-- name flies in above the bar -->
 					{#if nameRevealed[player.id]}
 						<p
-							class="{i === 1
+							class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-center font-bold {i ===
+							1
 								? 'animate-bounce-from-bottom'
-								: ''} absolute -top-8 left-1/2 -translate-x-1/2 transform text-xl font-bold"
+								: ''}"
+							class:text-xl={player.username.length <= 12}
+							class:text-lg={player.username.length > 12 && player.username.length <= 16}
+							class:text-md={player.username.length > 16}
 							in:fly={{ y: -10, duration: 400 }}
 						>
 							{player.username}
