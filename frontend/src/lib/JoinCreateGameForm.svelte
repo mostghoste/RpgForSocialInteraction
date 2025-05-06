@@ -109,7 +109,7 @@
 		class="bg-surface-100-900 mx-auto flex w-fit flex-col items-center gap-4 rounded-2xl p-4 lg:max-w-3xl"
 	>
 		<div class="flex flex-col gap-2">
-			<h1 class="h2">Sveikas atvykęs!</h1>
+			<h1 class="h3">Sveikas atvykęs!</h1>
 			<p>Įvesk kambario kodą arba sukurk naują kambarį.</p>
 		</div>
 		<div class="flex w-96 flex-col gap-2">

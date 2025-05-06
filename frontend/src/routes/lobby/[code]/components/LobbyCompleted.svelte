@@ -174,10 +174,10 @@
 						<!-- Name flip card -->
 						<div class="flip-card">
 							<div class="flip-card-inner" class:flipped={showBack}>
-								<div class="flip-card-front text-center text-xl font-bold">
+								<div class="flip-card-front whitespace-nowrap text-center text-xl font-bold">
 									{currentReveal.assigned_character?.name}
 								</div>
-								<div class="flip-card-back text-center text-xl font-bold">
+								<div class="flip-card-back whitespace-nowrap text-center text-xl font-bold">
 									{currentReveal.username}
 									{#if currentReveal.is_npc}
 										🤖{/if}
