@@ -8,6 +8,7 @@
 	import { apiFetch } from '$lib/api';
 	import { user } from '$lib/stores/auth';
 	import { get } from 'svelte/store';
+	import { ProgressRing } from '@skeletonlabs/skeleton-svelte';
 
 	// Child components
 	import GuestUsernameForm from './components/GuestUsernameForm.svelte';
@@ -86,7 +87,9 @@
 	let socket;
 	let heartbeatInterval;
 
+	let isLoading = true;
 	onMount(() => {
+		isLoading = false;
 		const isLoggedIn = !!get(user);
 
 		if (isLoggedIn) {
@@ -584,7 +587,14 @@
 	}
 </script>
 
-{#if needsUsernameLocal && !get(user)}
+{#if isLoading}
+	<ProgressRing
+		value={null}
+		size="size-14"
+		meterStroke="stroke-primary-600-400"
+		trackStroke="stroke-surface-200-800"
+	/>
+{:else if needsUsernameLocal && !get(user)}
 	<GuestUsernameForm {code} on:submitGuestUsername={submitGuestUsername} />
 {:else if lobbyState.status === 'pending'}
 	<LobbyPending
