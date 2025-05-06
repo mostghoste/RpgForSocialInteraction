@@ -67,6 +67,14 @@ def join_room(request):
 
     # Authenticated user auto-join
     if request.user and request.user.is_authenticated and not participant_id:
+        # Enforce max players
+        active_count = session.participants.filter(is_active=True).count()
+        if not session.participants.filter(user=request.user).exists() and active_count >= 8:
+            return Response(
+                {'error': 'Kambarys jau pilnas.'},
+                status=400
+            )
+
         participant, created = Participant.objects.get_or_create(
             user=request.user,
             game_session=session,
@@ -93,6 +101,13 @@ def join_room(request):
 
     # New guest join
     if not participant:
+        # Enforce max players
+        if session.participants.filter(is_active=True).count() >= 8:
+            return Response(
+                {'error': 'Kambarys jau pilnas.'},
+                status=400
+            )
+
         if session.status != 'pending':
             return Response({'error': 'Žaidimas jau prasidėjo arba baigėsi.'}, status=400)
 
@@ -837,6 +852,14 @@ def add_npc(request):
         return Response({'error':'Neteisingi duomenys.'}, status=404)
     if not host.is_host:
         return Response({'error':'Tik vedėjas gali pridėti NPC.'}, status=403)
+    
+    # Enforce max players
+    if session.participants.filter(is_active=True).count() >= 8:
+        return Response(
+            {'error': 'Kambarys jau pilnas.'},
+            status=400
+        )
+
     # Assign unique character
     assigned_ids = session.participants.filter(
         assigned_character__isnull=False
