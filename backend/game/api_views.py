@@ -564,7 +564,10 @@ def start_game(request):
 
     if session.participants.count() < 3:
          return Response({'error': 'Žaidimui reikia bent 3 dalyvių.'}, status=400)
-    
+
+    if session.participants.filter(is_npc=False, is_active=True).count() < 2:
+        return Response({'error': 'Žaidimui reikia bent 2 žmonių.'}, status=400)
+
     if session.participants.filter(assigned_character__isnull=True).exists():
          return Response({'error': 'Kiekvienas dalyvis privalo turėti personažą.'}, status=400)
     
