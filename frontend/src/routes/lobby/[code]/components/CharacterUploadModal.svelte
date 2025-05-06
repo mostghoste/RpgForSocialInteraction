@@ -71,7 +71,7 @@
 		</div>
 
 		<div class="flex justify-end gap-1">
-			<button class="btn preset-filled-error-400-600" on:click={closeModal}>Atšaukti</button>
+			<button class="btn preset-filled-error-400-600 flex-1" on:click={closeModal}>Atšaukti</button>
 			<button
 				on:click={createCharacter}
 				class="btn preset-filled-success-400-600"
