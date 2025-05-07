@@ -171,17 +171,19 @@
 				</button>
 			{/if}
 			<h3 class="h6 {isHost ? 'pr-12' : ''}">Žaidimo nustatymai</h3>
-			<div class="flex justify-between">
-				<p>Raundo ilgis:</p>
-				<span>{roundLength}s</span>
-			</div>
-			<div class="flex justify-between">
-				<p>Raundų kiekis:</p>
-				<span>{roundCount}</span>
-			</div>
-			<div class="flex justify-between">
-				<p>Laikas spėjimams:</p>
-				<span>{guessTimer}s</span>
+			<div class="h-full">
+				<div class="flex justify-between">
+					<p>Raundo ilgis:</p>
+					<span>{roundLength}s</span>
+				</div>
+				<div class="flex justify-between">
+					<p>Raundų kiekis:</p>
+					<span>{roundCount}</span>
+				</div>
+				<div class="flex justify-between">
+					<p>Laikas spėjimams:</p>
+					<span>{guessTimer}s</span>
+				</div>
 			</div>
 			{#if isHost}
 				<div class="mt-4 flex justify-center">
