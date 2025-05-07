@@ -307,26 +307,26 @@ def leave_room(request):
          participant.save()
 
     remaining = session.participants.filter(is_active=True)
-    if remaining.exists():
-         # If the leaving participant was the host, assign host privileges to the oldest active participant.
-         if was_host:
-             oldest = remaining.order_by('joined_at').first()
-             oldest.is_host = True
-             oldest.save()
-         from .utils import broadcast_lobby_update
-         broadcast_lobby_update(session)
-         return Response({'message': 'Išėjote iš kambario.'})
+    human_remaining = remaining.filter(is_npc=False)
+
+    if human_remaining.exists():
+        # If host left, give host to the oldest human
+        if was_host:
+            new_host = human_remaining.order_by('joined_at').first()
+            new_host.is_host = True
+            new_host.save()
+        from .utils import broadcast_lobby_update
+        broadcast_lobby_update(session)
+        return Response({'message': 'Išėjote iš kambario.'})
     else:
-         # If no active participants remain and the session is pending, delete the session.
-         # For non-pending sessions (i.e. ongoing or completed), you may prefer to keep the session
-         # so that the game results remain visible.
-         if session.status == 'pending':
-             session.delete()
-             return Response({'message': 'Išėjote iš kambario.'})
-         else:
-             from .utils import broadcast_lobby_update
-             broadcast_lobby_update(session)
-             return Response({'message': 'Išėjote iš kambario.'})
+        if session.status == 'pending':
+            session.delete()
+            return Response({'message': 'Išėjote iš kambario.'})
+        else:
+            from .utils import broadcast_lobby_update
+            broadcast_lobby_update(session)
+            return Response({'message': 'Išėjote iš kambario.'})
+
 
 
 @api_view(['GET'])
