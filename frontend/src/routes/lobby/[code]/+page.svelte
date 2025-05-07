@@ -25,6 +25,7 @@
 	let code = needsUsernameLocal ? roomCode : initialState.code;
 	let lobbyState = needsUsernameLocal ? {} : { ...initialState };
 	let players = !needsUsernameLocal ? lobbyState.players || [] : [];
+	let myCharacter = null;
 
 	// participant creds
 	let participantId = lobbyState.participant_id;
@@ -49,6 +50,11 @@
 		} else if (!get(user) && initialState.status === 'pending') {
 			// first‐time guest in a pending room needs to pick a name
 			needsUsernameLocal = true;
+		}
+		const storedName = sessionStorage.getItem('myCharacterName');
+		const storedImage = sessionStorage.getItem('myCharacterImage');
+		if (storedName) {
+			myCharacter = { name: storedName, image: storedImage || null };
 		}
 	}
 
@@ -440,6 +446,14 @@
 				const err = await res.json().catch(() => ({}));
 				toast.push(err.error ?? 'Nepavyko pasirinkti personažo.', toastOptions.error);
 			} else {
+				const char = availableCharacters.find((c) => c.id === characterId);
+				if (char) {
+					myCharacter = { name: char.name, image: char.image || null };
+					if (browser) {
+						sessionStorage.setItem('myCharacterName', char.name);
+						sessionStorage.setItem('myCharacterImage', char.image || '');
+					}
+				}
 				toast.push('Personažas pasirinktas!', toastOptions.success);
 			}
 		} catch (e) {
@@ -464,6 +478,11 @@
 				const err = await res.json().catch(() => ({}));
 				toast.push(err.error ?? 'Nepavyko sukurti personažo.', toastOptions.error);
 			} else {
+				myCharacter = { name, image: image ? URL.createObjectURL(image) : null };
+				if (browser) {
+					sessionStorage.setItem('myCharacterName', name);
+					sessionStorage.setItem('myCharacterImage', myCharacter.image || '');
+				}
 				toast.push('Personažas sukurtas!', toastOptions.success);
 			}
 		} catch (e) {
@@ -625,6 +644,7 @@
 		{currentRound}
 		{timeLeft}
 		{chatMessages}
+		{myCharacter}
 		bind:chatInput
 		on:sendChatMessage={sendChatMessage}
 		on:leaveLobby={leaveLobby}

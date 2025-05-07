@@ -9,6 +9,7 @@
 	export let timeLeft;
 	export let chatMessages;
 	export let chatInput;
+	export let myCharacter = null;
 
 	let hasSubmittedMessage = false;
 	let prevRoundNumber = null;
@@ -56,6 +57,17 @@
 	{:else if currentRound?.round_number}
 		<h3 class="h6">{currentRound.round_number} raundas baigsis už {timeLeft}s</h3>
 		<p class="h3 text-center">{currentRound.question}</p>
+		{#if myCharacter}
+			<p class="mt-1 text-xs">Tu esi:</p>
+			<div class="mb-1 flex items-center justify-center gap-2">
+				<Avatar
+					size="w-6"
+					src={myCharacter.image || '/fallback_character.jpg'}
+					name={myCharacter.name}
+				/>
+				<p class="text-sm font-semibold">{myCharacter.name}</p>
+			</div>
+		{/if}
 	{:else}
 		<p>Šiuo metu nėra aktyvaus raundo.</p>
 	{/if}
