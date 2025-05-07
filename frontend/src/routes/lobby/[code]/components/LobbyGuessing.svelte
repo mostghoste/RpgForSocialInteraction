@@ -58,8 +58,8 @@
 	<h3 class="h4">{guessTimeLeft}s</h3>
 </Banner>
 
-<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-scroll p-2">
-	<div class="flex flex-col gap-4 md:flex-row">
+<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-hidden p-2">
+	<div class="md:min-w-3xl flex w-full flex-col gap-4 overflow-y-scroll md:w-fit md:flex-row">
 		<!-- Players -->
 		<div class="bg-surface-100-900 flex flex-1 flex-col gap-2 rounded-2xl p-4">
 			<h3 class="h3 mb-2 text-xl">Žaidėjai</h3>
@@ -88,7 +88,7 @@
 		<!-- Characters -->
 		<div class="bg-surface-100-900 flex-1 gap-2 rounded-2xl p-4">
 			<h3 class="mb-2 text-xl font-bold">Personažai</h3>
-			<div class="grid grid-cols-2 gap-4 md:grid-cols-3">
+			<div class="grid grid-cols-2 gap-4">
 				{#each guessOptions as character (character.character_id)}
 					<button
 						class="bg-surface-200-800 border-primary-900-100 box-border flex flex-col items-center justify-start rounded-xl p-2 transition-all hover:scale-105 {activeCharacter &&
