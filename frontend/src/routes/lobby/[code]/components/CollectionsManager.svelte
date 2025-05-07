@@ -17,6 +17,7 @@
 
 	let collections = [];
 	let newName = '';
+	$: isValidName = newName.trim().length >= 3 && newName.trim().length <= 100;
 	let newDescription = '';
 	let value = [];
 
@@ -266,7 +267,7 @@
 				<input class="input" placeholder="Aprašymas" bind:value={newDescription} />
 				<button
 					class="btn preset-filled-primary-500"
-					disabled={!newName.trim()}
+					disabled={!isValidName}
 					on:click={createCollection}
 				>
 					<IconAdd size={16} /> Sukurti
