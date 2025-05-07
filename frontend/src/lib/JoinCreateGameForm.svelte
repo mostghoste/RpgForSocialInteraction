@@ -4,7 +4,7 @@
 	import { toastOptions } from '$lib/toastConfig';
 	import Banner from '$lib/Banner.svelte';
 	import { user, clearTokens } from '$lib/stores/auth';
-	import { User } from '@lucide/svelte';
+	import { User, VenetianMask } from '@lucide/svelte';
 	import { apiFetch } from '$lib/api';
 
 	let code = '';
@@ -73,7 +73,9 @@
 <Banner>
 	<div class="relative flex w-full items-center justify-between">
 		<span class="w-20 lg:w-32"></span>
-		<h1 class="h3 text-center">Role playing game for social interaction</h1>
+		<h1 class="h3 flex items-center gap-2 text-center">
+			<span><VenetianMask size={36} /></span> Meidvainis
+		</h1>
 
 		{#if $user}
 			<div class="user-menu-container">

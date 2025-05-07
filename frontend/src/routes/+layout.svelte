@@ -10,9 +10,9 @@
 {#if browser}
 	<SvelteToast {options} />
 {/if}
+<svelte:head>
+	<title>Meidvainis</title>
+</svelte:head>
 <div class="bg-surface-300-700 flex h-screen w-screen flex-col items-center justify-center">
-	<!-- <main class="flex h-full flex-col items-center justify-center">
-
-	</main> -->
 	<slot />
 </div>
