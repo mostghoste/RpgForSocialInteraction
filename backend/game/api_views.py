@@ -26,7 +26,7 @@ def create_room(request):
             return Response({'error': 'Serverio klaida: Nepavyko sukurti kambario.'}, status=500)
 
     session = GameSession.objects.create(code=code)
-    
+
     if request.user and request.user.is_authenticated:
         participant = Participant.objects.create(
             user=request.user,
@@ -34,20 +34,32 @@ def create_room(request):
             is_host=True
         )
 
+        cols = QuestionCollection.objects.filter(
+            is_deleted=False
+        ).filter(
+            Q(created_by__isnull=True) | Q(created_by=request.user)
+        )
+        session.question_collections.set(cols)
+        session.save()
+
     resp = {
-         'code': session.code,
-         'status': session.status,
-         'round_length': session.round_length,
-         'round_count': session.round_count,
-         }
-    
+        'code': session.code,
+        'status': session.status,
+        'round_length': session.round_length,
+        'round_count': session.round_count,
+    }
+
     if request.user and request.user.is_authenticated:
         resp.update({
             'participant_id': participant.id,
             'secret': participant.secret,
             'is_host': participant.is_host,
+            'question_collections': list(
+                session.question_collections.filter(is_deleted=False)
+                .values('id', 'name')
+            )
         })
-        
+
     return Response(resp)
 
 @api_view(['POST'])

@@ -1,7 +1,7 @@
 <script>
 	import { Tabs, Slider } from '@skeletonlabs/skeleton-svelte';
 	import CollectionsManager from './CollectionsManager.svelte';
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
 	import { X, Settings, CircleHelp } from '@lucide/svelte';
 
 	let {
@@ -11,15 +11,6 @@
 		availableCollections,
 		selectedCollections
 	} = $props();
-
-	onMount(() => {
-		if (
-			(!selectedCollections || selectedCollections.length === 0) &&
-			availableCollections?.length > 0
-		) {
-			selectedCollections = availableCollections.map((c) => c.id);
-		}
-	});
 
 	const dispatch = createEventDispatcher();
 
