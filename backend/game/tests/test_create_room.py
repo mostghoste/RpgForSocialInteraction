@@ -17,10 +17,6 @@ class CreateRoomTests(TestCase):
         QuestionCollection.objects.create(name='user_collection', created_by=self.user)
 
     def test_anonymous_create_room(self):
-        """
-        An anonymous POST to create_room should return a new code and status,
-        but no participant details.
-        """
         url = reverse('create_room')
         response = self.client.post(url)
         self.assertEqual(response.status_code, 200)
@@ -39,10 +35,6 @@ class CreateRoomTests(TestCase):
         self.assertTrue(GameSession.objects.filter(code=code, status='pending').exists())
 
     def test_authenticated_create_room(self):
-        """
-        An authenticated POST should create the room and auto join the user as host,
-        returning participant_id, secret, is_host and question collections.
-        """
         self.client.force_authenticate(user=self.user)
         url = reverse('create_room')
         response = self.client.post(url)
