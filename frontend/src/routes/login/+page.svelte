@@ -92,7 +92,6 @@
 		</button>
 	</div>
 
-	<!-- wrap in form -->
 	<form
 		class="flex w-96 flex-col gap-2"
 		on:submit|preventDefault={() => (activeTab === 'login' ? login() : register())}
@@ -114,7 +113,6 @@
 			{/if}
 		{/if}
 
-		<!-- now Enter anywhere submits -->
 		<button
 			type="submit"
 			class="btn preset-filled-primary-400-600 mt-4 w-full"
