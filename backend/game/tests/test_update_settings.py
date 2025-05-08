@@ -167,3 +167,35 @@ class UpdateSettingsTests(TestCase):
         # DB should remain unchanged
         self.session.refresh_from_db()
         assert list(self.session.question_collections.all()) == [self.coll1]
+
+    def test_guest_host_cannot_add_user_owned_collection(self):
+        # Create a fresh session with a guest host
+        session2 = GameSession.objects.create(code='GUEST1')
+        guest_host = Participant.objects.create(
+            guest_identifier='guest1234',
+            guest_name='GuestHost',
+            game_session=session2,
+            is_host=True
+        )
+
+        public = QuestionCollection.objects.create(name='PublicColl', created_by=None)
+        private = QuestionCollection.objects.create(name='PrivateColl', created_by=self.host)
+
+        url = reverse('update_settings')
+        payload = {
+            'code': session2.code,
+            'participant_id': guest_host.id,
+            'secret': guest_host.secret,
+            'round_length': 45,
+            'round_count': 3,
+            'selectedCollections': [public.id, private.id],
+        }
+
+        resp = self.client.post(url, data=payload, format='json')
+        assert resp.status_code == 400
+        err = resp.json()['error'].lower()
+        assert 'kolekcij' in err
+
+        # session2 should still have no collections
+        session2.refresh_from_db()
+        assert list(session2.question_collections.all()) == []
