@@ -34,6 +34,12 @@
 		}
 	}
 
+	$: totalGuessers = currentReveal
+		? currentReveal.is_npc
+			? humanPlayers.length
+			: humanPlayers.length - 1
+		: 0;
+
 	async function revealIdentities() {
 		for (let idx = 0; idx < players.length; idx++) {
 			// show front
@@ -196,7 +202,7 @@
 									{currentReveal.correctGuesses}
 								</strong>
 								iš
-								<strong>{humanPlayers.length - 1}</strong>
+								<strong>{totalGuessers}</strong>
 								žaidėjų
 							</p>
 
