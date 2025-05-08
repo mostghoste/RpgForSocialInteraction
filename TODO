@@ -1,2 +1,0 @@
-- Make sure guest users can be host (Store participant as host instead of user)
-- Make sure guest users are removed as participants from the session when they leave
