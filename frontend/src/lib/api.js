@@ -1,21 +1,21 @@
+// frontend/src/lib/api.js
 import { get } from 'svelte/store';
-import { access, refresh, setTokens, clearTokens } from './stores/auth';
+import { access, refresh } from '$lib/stores/auth';
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
 export async function apiFetch(path, opts = {}) {
-  // Prepare headers with current access token
-  let token = get(access);
+  const token = get(access);
   const headers = {
     ...(opts.headers || {}),
     ...(token && { Authorization: `Bearer ${token}` })
   };
 
-  // First attempt
   let res = await fetch(`${API_URL}${path}`, { ...opts, headers });
 
-  // If expired, try refreshing
   if (res.status === 401 && get(refresh)) {
+    const { setTokens, clearTokens } = await import('$lib/stores/auth');
+
     const refreshRes = await fetch(`${API_URL}/api/token/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -24,20 +24,17 @@ export async function apiFetch(path, opts = {}) {
 
     if (refreshRes.ok) {
       const data = await refreshRes.json();
-      // update both tokens in your store
       setTokens(data);
-      token = data.access;
 
-      // retry original request once with new token
+      const newToken = data.access;
       const retryHeaders = {
         ...(opts.headers || {}),
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${newToken}`
       };
       res = await fetch(`${API_URL}${path}`, { ...opts, headers: retryHeaders });
     } else {
-      // refresh also failed, force logout
       clearTokens();
-      throw new Error('Sesija pasibaigė. Prašome prisijungti iš naujo.');
+      throw new Error('Session expired');
     }
   }
 
