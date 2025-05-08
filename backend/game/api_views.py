@@ -263,7 +263,27 @@ def update_settings(request):
 
     selected_ids = request.data.get('selectedCollections')
     if selected_ids is not None:
-        valid_collections = QuestionCollection.objects.filter(id__in=selected_ids, is_deleted=False)
+        # only public and hosts collections
+        if participant.user:
+            allowed = QuestionCollection.objects.filter(
+                is_deleted=False
+            ).filter(
+                Q(created_by__isnull=True) | Q(created_by=participant.user)
+            )
+        else:
+            allowed = QuestionCollection.objects.filter(
+                is_deleted=False, created_by__isnull=True
+            )
+
+        valid_collections = allowed.filter(id__in=selected_ids)
+
+        # if any requested ID was not in the allowed set, reject
+        if valid_collections.count() != len(selected_ids):
+            return Response(
+                {'error': 'Pasirinktos neteisingos klausimų kolekcijos.'},
+                status=400
+            )
+
         session.question_collections.set(valid_collections)
 
     session.save()

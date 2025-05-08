@@ -160,12 +160,10 @@ class UpdateSettingsTests(TestCase):
             selectedCollections=[self.coll1.id, external.id]
         )
         resp = self.client.post(url, data=payload, format='json')
-        # Expect the request to be rejected
         assert resp.status_code == 400
-        # And an error mentioning invalid collections
         err = resp.json().get('error', '').lower()
         assert 'kolekcij' in err
 
-        # DB should remain unchanged: only the original coll1
+        # DB should remain unchanged
         self.session.refresh_from_db()
         assert list(self.session.question_collections.all()) == [self.coll1]
