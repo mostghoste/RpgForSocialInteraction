@@ -22,6 +22,7 @@
 
 	// local reactive copies
 	let needsUsernameLocal = false;
+	let hasJoinedRoom = false;
 	let code = needsUsernameLocal ? roomCode : initialState.code;
 	let lobbyState = needsUsernameLocal ? {} : { ...initialState };
 	let players = !needsUsernameLocal ? lobbyState.players || [] : [];
@@ -95,18 +96,32 @@
 	let isLoading = true;
 	onMount(() => {
 		isLoading = false;
-		const isLoggedIn = !!get(user);
 
-		if (isLoggedIn) {
+		// if user is already loaded, join immediately
+		if (get(user)) {
+			hasJoinedRoom = true;
 			joinAsAuthenticated();
-		} else if (!needsUsernameLocal && participantId && participantSecret) {
-			rejoinRoom();
 		}
+
+		// subscribe to `user` store; once it becomes non-null, join
+		const unsubscribe = user.subscribe((u) => {
+			if (u && !hasJoinedRoom) {
+				hasJoinedRoom = true;
+				joinAsAuthenticated();
+			}
+		});
 
 		fetchAvailableCollections();
 		fetchAvailableCharacters();
+
 		timerInterval = setInterval(updateTimeLeft, 1000);
 		guessTimerInterval = setInterval(updateGuessTimeLeft, 1000);
+
+		return () => {
+			clearInterval(timerInterval);
+			clearInterval(guessTimerInterval);
+			unsubscribe();
+		};
 	});
 
 	onDestroy(() => {
