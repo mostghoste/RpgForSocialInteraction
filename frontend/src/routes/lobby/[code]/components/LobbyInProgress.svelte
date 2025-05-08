@@ -14,7 +14,6 @@
 	let hasSubmittedMessage = false;
 	let prevRoundNumber = null;
 	$: if (currentRound && currentRound.round_number !== prevRoundNumber) {
-		// Reset when new round starts
 		hasSubmittedMessage = false;
 		prevRoundNumber = currentRound.round_number;
 	}
@@ -34,7 +33,7 @@
 		dispatch('leaveLobby');
 	}
 
-	// Auto-scroll to the bottom of chat when new message is sent
+	// Autoscroll to the bottom of chat when new message is sent
 	let previousMessageCount = 0;
 	afterUpdate(() => {
 		if (chatContainer && chatMessages && chatMessages.length !== previousMessageCount) {

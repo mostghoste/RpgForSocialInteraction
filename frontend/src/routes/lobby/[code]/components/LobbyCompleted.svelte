@@ -47,7 +47,7 @@
 			// flip to back
 			showBack = true;
 
-			// pause on back + stats
+			// pause on back
 			await new Promise((r) => setTimeout(r, 3000));
 		}
 
@@ -363,23 +363,19 @@
 
 <style>
 	.flip-card {
-		/* give .flip-card a 3D perspective so children rotate correctly */
 		perspective: 1000px;
-		/* take full width of parent (you already had this) */
 		display: block;
 		width: 100%;
 	}
 
 	.flip-card-inner {
-		position: relative; /* establish containing block for abs. children */
-		width: 100%; /* fill the parent’s width */
-		transform-style: preserve-3d; /* keep children in 3D space */
-		transition: transform 0.6s; /* smooth flip */
-		/* vendor prefix if you need to support older WebKits */
+		position: relative;
+		width: 100%;
+		transform-style: preserve-3d;
+		transition: transform 0.6s;
 		-webkit-transform-style: preserve-3d;
 	}
 
-	/* when you add the “flipped” class, rotate 180° around the Y axis */
 	.flip-card-inner.flipped {
 		transform: rotateY(180deg);
 		-webkit-transform: rotateY(180deg);
@@ -391,7 +387,6 @@
 		top: 0;
 		left: 0;
 		width: 100%;
-		/* hide the “back” of each face when it’s turned away */
 		backface-visibility: hidden;
 		-webkit-backface-visibility: hidden;
 		display: flex;
@@ -399,10 +394,9 @@
 		justify-content: center;
 	}
 
-	/* make it explicit (optional, but can help) */
 	.flip-card-front {
 		transform: rotateY(0deg);
-		z-index: 2; /* keep front on top until flipped */
+		z-index: 2;
 	}
 
 	.flip-card-back {
@@ -420,12 +414,9 @@
 		}
 	}
 
-	/* you can tweak duration (1s), easing, etc. */
 	.animate-bounce-from-bottom {
 		animation: bounce-from-bottom 1s ease-in-out infinite;
-		/* delay the first cycle until the fly-in (400ms) is done */
 		animation-delay: 0.4s;
-		/* keep the element at translateY(0) before the animation starts */
 		animation-fill-mode: both;
 	}
 </style>

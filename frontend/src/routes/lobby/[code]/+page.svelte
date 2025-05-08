@@ -46,9 +46,8 @@
 		if (storedId && storedSecret) {
 			participantId = storedId;
 			participantSecret = storedSecret;
-			needsUsernameLocal = false; // we already have a guest identity
+			needsUsernameLocal = false;
 		} else if (!get(user) && initialState.status === 'pending') {
-			// first‐time guest in a pending room needs to pick a name
 			needsUsernameLocal = true;
 		}
 		const storedName = sessionStorage.getItem('myCharacterName');
@@ -99,15 +98,11 @@
 		const isLoggedIn = !!get(user);
 
 		if (isLoggedIn) {
-			// Authenticated user: auto‐join via token (which in turn calls connectWebSocket())
 			joinAsAuthenticated();
 		} else if (!needsUsernameLocal && participantId && participantSecret) {
-			// We already have guest creds in sessionStorage: rejoin and open socket there
 			rejoinRoom();
 		}
-		// Otherwise: first‐time guest => show username form, wait until submitGuestUsername() calls rejoinRoom()
 
-		// Meanwhile we can still fetch these for the host later
 		fetchAvailableCollections();
 		fetchAvailableCharacters();
 		timerInterval = setInterval(updateTimeLeft, 1000);
@@ -188,7 +183,6 @@
 				players = msg.players;
 
 				if (firstLobbyMessage) {
-					// skip kick-check on the very first lobby state
 					firstLobbyMessage = false;
 				} else {
 					if (!players.some((p) => String(p.id) === String(participantId))) {
@@ -223,7 +217,7 @@
 				if (isHost) fetchAvailableCollections();
 			}
 
-			// Chat & round updates
+			// Chat and round updates
 			if (msg.type === 'chat_update' && msg.message) {
 				chatMessages = [...chatMessages, msg.message];
 			}

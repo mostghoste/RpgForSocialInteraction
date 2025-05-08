@@ -7,7 +7,7 @@
 	export let code;
 	let guestUsername = '';
 	let usernameInput;
-	// On component mount, focus the input field
+
 	onMount(() => {
 		usernameInput && usernameInput.focus();
 	});

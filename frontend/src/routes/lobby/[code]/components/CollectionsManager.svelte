@@ -26,7 +26,6 @@
 	// Filter state: 'all', 'standard', 'mine'
 	let filterType = 'all';
 
-	// Load all collections
 	onMount(async () => {
 		const res = await apiFetch('/api/question_collections/');
 		if (res.ok) {
@@ -34,7 +33,6 @@
 		}
 	});
 
-	// Create a new collection
 	async function createCollection() {
 		if (!newName.trim()) return;
 		try {
@@ -54,13 +52,11 @@
 		}
 	}
 
-	// Delete a collection
 	async function deleteCollection(id) {
 		if (!confirm('Ar tikrai nori ištrinti šią klausimų kolekciją?')) return;
 
 		try {
 			const res = await apiFetch(`/api/question_collections/${id}/`, { method: 'DELETE' });
-			// attempt to parse error body (if any)
 			const errData = await res.json().catch(() => ({}));
 
 			if (!res.ok) {
@@ -69,7 +65,6 @@
 				return;
 			}
 
-			// on success, remove locally
 			collections = collections.filter((c) => c.id !== id);
 			value = value.filter((v) => v !== id.toString());
 			selectedCollections = selectedCollections.filter((c) => c !== id);
@@ -79,7 +74,6 @@
 		}
 	}
 
-	// Add a new question to a collection
 	async function addQuestion(collectionId, text) {
 		if (!text.trim()) return;
 		try {
@@ -101,7 +95,6 @@
 		}
 	}
 
-	// Delete a question
 	async function deleteQuestion(questionId) {
 		try {
 			const res = await apiFetch(`/api/questions/${questionId}/`, {
@@ -114,7 +107,6 @@
 				return;
 			}
 
-			// rebuild the entire collections array so Svelte re-renders
 			collections = collections.map((c) => ({
 				...c,
 				questions: c.questions.filter((q) => q.id !== questionId)
@@ -126,7 +118,6 @@
 		}
 	}
 
-	// Derive collections based on filterType
 	$: filteredCollections = collections.filter((col) => {
 		if (filterType === 'all') return true;
 		if (filterType === 'standard') return col.is_standard;
