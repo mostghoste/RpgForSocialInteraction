@@ -103,7 +103,7 @@
 			joinAsAuthenticated();
 		}
 
-		// subscribe to `user` store; once it becomes non-null, join
+		// subscribe to user store, once it becomes non-null, join
 		const unsubscribe = user.subscribe((u) => {
 			if (u && !hasJoinedRoom) {
 				hasJoinedRoom = true;
