@@ -346,8 +346,6 @@ def leave_room(request):
             broadcast_lobby_update(session)
             return Response({'message': 'Išėjote iš kambario.'})
 
-
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def verify_room(request):
