@@ -17,7 +17,6 @@ class QuestionCollectionAdmin(admin.ModelAdmin):
     actions = ['restore_collections']
 
     def get_queryset(self, request):
-        # include soft‐deleted ones
         return QuestionCollection.all_objects.all()
 
     @admin.action(description="Restore selected collections")
@@ -30,7 +29,6 @@ class QuestionAdmin(admin.ModelAdmin):
     actions = ['restore_questions']
 
     def get_queryset(self, request):
-        # include soft‐deleted ones
         return Question.all_objects.all()
 
     @admin.action(description="Restore selected questions")

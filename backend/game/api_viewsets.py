@@ -16,7 +16,7 @@ class QuestionCollectionViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
-        # list: public + (if logged in) your own
+        # list public and your own if logged in
         if self.action == 'list':
             user = self.request.user
             if user.is_authenticated:
@@ -49,10 +49,6 @@ class QuestionCollectionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def add_question(self, request, pk=None):
-        """
-        POST /api/question_collections/{pk}/add_question/
-        { "text": "What is your quest?" }
-        """
         collection = self.get_object()
         text = request.data.get('text', '').strip()
         if not text:

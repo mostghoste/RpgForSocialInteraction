@@ -27,7 +27,6 @@ class QuestionCollectionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id','created_at','updated_at','is_standard','is_mine']
 
     def get_is_standard(self, obj):
-        # “standard” = no one created it
         return obj.created_by is None
 
     def get_is_mine(self, obj):

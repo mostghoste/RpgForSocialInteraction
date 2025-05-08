@@ -7,11 +7,9 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
 def get_character_image_upload_path(instance, filename):
-    # Extract the file extension
     ext = filename.split('.')[-1]
-    # Generate a unique filename using uuid4
+    # Generate unique filename using uuid4
     new_filename = f"{uuid.uuid4().hex}.{ext}"
-    # Return the full path where the file will be stored
     return os.path.join("character_images", new_filename)
 
 class SoftDeleteManager(models.Manager):
@@ -22,9 +20,7 @@ class SoftDeleteModel(models.Model):
     is_deleted  = models.BooleanField(default=False)
     deleted_at  = models.DateTimeField(null=True, blank=True)
 
-    # default manager hides deleted objects
     objects     = SoftDeleteManager()
-    # keep a “complete” manager
     all_objects = models.Manager()
 
     class Meta:
@@ -39,7 +35,7 @@ class Character(models.Model):
     name = models.CharField(max_length=50)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to=get_character_image_upload_path, null=True, blank=True)
-    # When a creator (User) is deleted, set field to NULL (Don't delete the character).
+    # When a creator is deleted dont delete character
     creator = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_characters'
     )
@@ -72,8 +68,6 @@ class GameSession(models.Model):
     guess_timer = models.IntegerField(default=60)  # Timer (in seconds) for guessing phase
     guess_deadline = models.DateTimeField(null=True, blank=True) # Deadline for submitting guesses
     npc_sequence = models.PositiveIntegerField(default=0) # NPC name id
-
-    # A session can reference several question collections
     question_collections = models.ManyToManyField(
         'QuestionCollection', blank=True, related_name='game_sessions'
     )
@@ -87,7 +81,7 @@ def generate_secret():
     return uuid.uuid4().hex
 
 class Participant(models.Model):
-    # if the user is deleted, keep their participant record
+    # if user is deleted keep their participant
     user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='participants', null=True, blank=True)
     guest_identifier = models.CharField(max_length=36, null=True, blank=True)
     guest_name = models.CharField(max_length=50, null=True, blank=True)
@@ -109,13 +103,11 @@ class Participant(models.Model):
 
     class Meta:
         constraints = [
-            # For authenticated users, ensure a user can join a session only once.
             models.UniqueConstraint(
                 fields=['user', 'game_session'],
                 condition=models.Q(user__isnull=False),
                 name='unique_user_session'
             ),
-            # For guest users, use guest_identifier to ensure uniqueness within a session.
             models.UniqueConstraint(
                 fields=['guest_identifier', 'game_session'],
                 condition=models.Q(user__isnull=True),
@@ -144,14 +136,14 @@ class Question(SoftDeleteModel):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def delete(self, using=None, keep_parents=False):
-        # 1) Has this question already been asked in an active session?
+        # Has this question been asked in an active session?
         from .models import Round, QuestionCollection
         in_active_round = Round.objects.filter(
             question=self,
             game_session__status__in=['in_progress','guessing']
         ).exists()
 
-        # 2) Or does it live in any collection used by an active session?
+        # Does it live in any collection used by an active session?
         in_active_collection = QuestionCollection.objects.filter(
             questions=self,
             game_sessions__status__in=['in_progress','guessing']
@@ -164,7 +156,7 @@ class Question(SoftDeleteModel):
         return super().delete(using=using, keep_parents=keep_parents)
 
     def save(self, *args, **kwargs):
-        # Same two checks for edits (e.g. text changes)
+        # Same checks for edits
         from .models import Round, QuestionCollection
         if self.pk:
             in_active_round = Round.objects.filter(
@@ -189,7 +181,7 @@ class QuestionCollection(SoftDeleteModel):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     questions = models.ManyToManyField(Question, blank=True, related_name='collections')
-    # When a user who created the collection is deleted, set this to NULL.
+    # When user who created the collection is deleted, set to NULL
     created_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name='question_collections'
     )
@@ -207,7 +199,6 @@ class QuestionCollection(SoftDeleteModel):
         return super().delete(using=using, keep_parents=keep_parents)
 
     def save(self, *args, **kwargs):
-        # refuse any edits once in-use
         if self.pk and self.game_sessions.filter(status__in=['in_progress','guessing']).exists():
             raise ValidationError(
                 "Negalite keisti klausimų kolekcijos, kuri naudojama vykstančiame žaidime."
@@ -218,7 +209,7 @@ class Round(models.Model):
     game_session = models.ForeignKey(
         GameSession, on_delete=models.CASCADE, related_name='rounds'
     )
-    # prevent deletion of a question if it’s used in a round.
+    # prevent deletion of a question if its used in a round
     question = models.ForeignKey(Question, on_delete=models.PROTECT)
     round_number = models.PositiveIntegerField()
     start_time = models.DateTimeField(auto_now_add=True)
@@ -265,15 +256,15 @@ class Message(models.Model):
 
 
 class Guess(models.Model):
-    # The participant making the guess.
+    # Participant making the guess (spėjikas)
     guesser = models.ForeignKey(
         Participant, on_delete=models.CASCADE, related_name='guesses_made'
     )
-    # The participant who is being guessed (matched to the role).
+    # Participant who is being guessed (spėjamasis)
     guessed_participant = models.ForeignKey(
         Participant, on_delete=models.CASCADE, related_name='guesses_received'
     )
-    # The character (role) being guessed.
+    # The character being guessed
     guessed_character = models.ForeignKey(
         Character, on_delete=models.CASCADE, related_name='guesses'
     )
@@ -281,7 +272,6 @@ class Guess(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        # Determine guesser name
         if self.guesser:
             if self.guesser.user:
                 guesser_name = self.guesser.user.username
@@ -294,7 +284,6 @@ class Guess(models.Model):
         else:
             guesser_name = "Unknown"
 
-        # Determine guessed participant name
         if self.guessed_participant:
             if self.guessed_participant.user:
                 guessed_participant_name = self.guessed_participant.user.username

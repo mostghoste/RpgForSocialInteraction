@@ -92,7 +92,7 @@ def join_room(request):
             game_session=session,
             defaults={'is_host': session.participants.count() == 0}
         )
-        # On first join, assign only public + own question collections
+        # On first join, assign only public and own question collections
         if created and session.question_collections.count() == 0:
             cols = QuestionCollection.objects.filter(
                 is_deleted=False
@@ -261,7 +261,6 @@ def update_settings(request):
     session.round_length = round_length
     session.round_count = round_count
 
-    # If selected collections were sent in the request, update them. 
     selected_ids = request.data.get('selectedCollections')
     if selected_ids is not None:
         valid_collections = QuestionCollection.objects.filter(id__in=selected_ids, is_deleted=False)
@@ -409,9 +408,7 @@ def update_question_collections(request):
     if not participant.is_host:
         return Response({'error': 'Tik vedėjas gali keisti klausimų kolekcijas.'}, status=403)
 
-    # Fetch valid collections from the provided IDs
     valid_collections = QuestionCollection.objects.filter(id__in=collections_ids, is_deleted=False)
-    # Update the session's question collections.
     session.question_collections.set(valid_collections)
     session.save()
 
@@ -501,13 +498,11 @@ def create_character(request):
     from .models import Character
     user = request.user if request.user.is_authenticated else None
 
-    # Handle image upload, if provided.
+    # Handle image upload
     image = request.FILES.get('image')
     if image:
-        # Validate that the file is an image.
         if not image.content_type.startswith('image/'):
             return Response({'error': 'Neteisingas failo tipas. Tinka .jpg, .png.'}, status=400)
-        # Check file size (limit example: 5 MB)
         if image.size > 5 * 1024 * 1024:
             return Response({'error': 'Paveikslėlis per didelis. Didžiausias leidžiamas dydis yra 5MB.'}, status=400)
     
@@ -591,11 +586,10 @@ def start_game(request):
     if total_questions < session.round_count:
          return Response({'error': 'Klausimų kolekcijose nepakanka klausimų pagal nurodytą raundų skaičių.'}, status=400)
 
-    # All checks passed; change game status.
     session.status = 'in_progress'
     session.save()
 
-    # Create the first round.
+    # Create first round
     round_number = 1
     start_time = timezone.now()
     end_time = start_time + timedelta(seconds=session.round_length)
@@ -625,11 +619,7 @@ def start_game(request):
             f"<p><strong>{new_round.round_number} raundas</strong></p><p>{new_round.question.text if new_round.question else 'Nėra klausimo.'}</p>"
         )
 
-
-    # Broadcast round update so clients can display the question, round number, and time left.
     broadcast_round_update(session.code, new_round)
-    
-    # Update lobby state for everyone.
     broadcast_lobby_update(session)
     
     from .tasks import schedule_npc_responses
@@ -659,17 +649,14 @@ def send_chat_message(request):
     if not code or not participant_id or not secret or not text:
         return Response({'error': 'Trūksta reikiamų laukų.'}, status=400)
 
-    # Retrieve the game session
     try:
         session = GameSession.objects.get(code=code)
     except GameSession.DoesNotExist:
         return Response({'error': 'Nerasta žaidimo sesija.'}, status=404)
 
-    # Only allow chat in "pending" or "in_progress" (example logic)
-    if session.status not in ['pending', 'in_progress']:
+    if session.status not in ['in_progress']:
         return Response({'error': 'Šios žaidimo stadijos metu žinučių siųsti negalima.'}, status=400)
 
-    # Retrieve the participant
     try:
         participant = Participant.objects.get(id=participant_id, game_session=session)
     except Participant.DoesNotExist:
@@ -682,14 +669,12 @@ def send_chat_message(request):
     if not current_round:
         return Response({'error': 'Palaukite sekančio raundo.'}, status=400)
     
-    # Create the message in DB
     msg = Message.objects.create(
         participant=participant,
         round=current_round,
         text=text
     )
 
-    # Broadcast the new message to the WebSocket group
     broadcast_chat_message(session.code, msg)
 
     return Response({'message': 'Žinutė išsiųsta.'})
@@ -750,7 +735,7 @@ def available_guess_options(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def submit_guesses(request):
-    from .models import GameSession, Participant, Guess, Character
+    from .models import GameSession, Participant, Guess
 
     code = request.data.get('code', '').strip()
     participant_id = request.data.get('participant_id')
@@ -773,7 +758,7 @@ def submit_guesses(request):
     if session.guess_deadline and timezone.now() > session.guess_deadline:
         return Response({'error': 'Laikas spėjimams pasibaigė.'}, status=400)
     
-    # Limit total guesses to (number_of_participants - 1)
+    # Limit total guesses
     max_guesses = session.participants.count() - 1
     if len(guesses_data) > max_guesses:
         return Response({'error': 'Per daug spėjimų.'}, status=400)
@@ -790,7 +775,7 @@ def submit_guesses(request):
             return Response({'error': 'Negalite spėti to paties dalyvio daugiau nei vieną kartą.'}, status=400)
         guessed_participant_ids.add(gp_id)
 
-    # Get all character IDs that are valid in this session
+    # Get all session character IDs
     assigned_char_ids = set(
         session.participants
                .exclude(assigned_character=None)
@@ -813,11 +798,11 @@ def submit_guesses(request):
         if not guessed_participant.assigned_character:
             return Response({'error': 'Šis dalyvis neturi priskirto personažo.'}, status=400)
 
-        # Ensure the character belongs to this session
+        # Ensure character belongs to this session
         if gc_id not in assigned_char_ids:
             return Response({'error': 'Šis personažas nepriklauso šiam kambariui.'}, status=400)
 
-        # Determine if the guess is correct
+        # Determine if guess is correct
         if guessed_participant.is_npc:
             # correct if any NPC had that character
             is_correct = session.participants.filter(
@@ -829,8 +814,7 @@ def submit_guesses(request):
             is_correct = (guessed_participant.assigned_character_id == gc_id)
 
 
-        # Update existing guess only if the guessed character is different;
-        # otherwise, if it doesn't exist, create it.
+        # Update existing guess if the guessed character is differents
         try:
             guess = Guess.objects.get(guesser=participant, guessed_participant=guessed_participant)
             if guess.guessed_character_id != gc_id:

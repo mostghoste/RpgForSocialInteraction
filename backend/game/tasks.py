@@ -48,7 +48,6 @@ def schedule_npc_responses(round_id):
         is_npc=True, is_active=True, assigned_character__isnull=False
     )
     for npc in npcs:
-        # enqueue generation + scheduling immediately
         npc_generate_and_schedule.delay(round_id, npc.id)
 
 @shared_task
@@ -58,22 +57,6 @@ def npc_generate_and_schedule(round_id, participant_id):
         npc = Participant.objects.get(id=participant_id)
     except (Round.DoesNotExist, Participant.DoesNotExist):
         return
-
-    # session = rnd.game_session
-
-    # prev_rounds = Round.objects.filter(
-    #     game_session=session,
-    #     round_number__lt=rnd.round_number
-    # ).order_by('round_number')
-
-    # history_parts = []
-    # for pr in prev_rounds:
-    #     msgs = Message.objects.filter(round=pr, message_type='chat')
-    #     for m in msgs:
-    #         history_parts.append(
-    #             f"Round {pr.round_number} – {m.participant.assigned_character.name}: {m.text}"
-    #         )
-    # history_context = "\n".join(history_parts)
 
     # Build prompt
     system_message = (
@@ -115,7 +98,6 @@ def npc_generate_and_schedule(round_id, participant_id):
     except Exception as e:
         print(f"[NPC {participant_id} | Round {round_id}] Error calling DeepSeek API:", e)
         return
-
 
     # Schedule broadcast to stagger npc responses
     now = timezone.now()

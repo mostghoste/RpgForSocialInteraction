@@ -64,7 +64,7 @@ def broadcast_lobby_update(session: GameSession):
             player_data['score_breakdown'] = breakdown
 
         else:
-            # no character details before completion
+            # no character details before game ends
             player_data['assigned_character'] = None
 
         players.append(player_data)
@@ -130,7 +130,6 @@ def broadcast_round_update(room_code, round_obj):
     )
 
 def check_and_advance_rounds():
-    print("⏰ Checking in-progress sessions...")
     now = timezone.now()
     sessions = GameSession.objects.filter(status='in_progress')
 
@@ -141,20 +140,18 @@ def check_and_advance_rounds():
             .order_by('-round_number')
             .first()
         )
-        # If there is a round and its end_time has passed, mark it as ended.
+        # If there is a round and its end_time has passed, mark it as ended
         if latest_round:
             if latest_round.end_time <= now:
-                # Send a round-end system message.
+                # Send a round-end system message
                 # send_system_message(latest_round, f"Raundas {latest_round.round_number} pasibaigė.")
                 pass
             else:
-                # The current round is still ongoing.
+                # The current round is still ongoing
                 print(f"⏳ Round {latest_round.round_number} in session {session.code} is still ongoing.")
                 continue
-        # Compute the next round number.
-        next_round_number = (latest_round.round_number + 1) if latest_round else 1
 
-        # Check if all rounds have been played.
+        next_round_number = (latest_round.round_number + 1) if latest_round else 1
         if next_round_number > session.round_count:
             print(f"✅ Session {session.code} finished all rounds. Moving to 'guessing'.")
             session.status = 'guessing'
@@ -179,7 +176,6 @@ def check_and_advance_rounds():
         )
         print(f"🌀 Created round {new_round.round_number} in session {session.code}")
 
-        # Send a system message for round start.
         send_system_message(new_round,
             f"<p><strong>{new_round.round_number} raundas</strong></p><p>{new_round.question.text if new_round.question else 'Nėra klausimo.'}</p>"
         )
@@ -187,12 +183,9 @@ def check_and_advance_rounds():
         from .tasks import schedule_npc_responses
         schedule_npc_responses.delay(new_round.id)
 
-        # Broadcast round and lobby updates.
         broadcast_round_update(session.code, new_round)
         broadcast_lobby_update(session)
 
-
-# Used to send system messages in chat, like the beginning and end of a round
 def send_system_message(round_obj, text):
     message = Message.objects.create(
         participant=None,

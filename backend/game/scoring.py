@@ -63,7 +63,7 @@ def compute_score_breakdown(participant):
             'points': 0
         })
     else:
-        # some—but not all—guessed you
+        # some, but not all guessed you
         for guess in correct_received:
             g = guess.guesser
             g_name = g.user.username if g.user else g.guest_name
