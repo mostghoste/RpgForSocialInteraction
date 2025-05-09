@@ -363,43 +363,6 @@ def verify_room(request):
         'round_count': session.round_count,
     })
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def lobby_state(request):
-    code = request.query_params.get('code', '').strip()
-    if not code:
-        return Response({'error': 'Kambario kodas privalomas.'}, status=400)
-
-    try:
-        session = GameSession.objects.get(code=code)
-    except GameSession.DoesNotExist:
-        return Response({'error': 'Toks kambarys nebuvo rastas.'}, status=404)
-
-    players = []
-    for part in session.participants.all().order_by('joined_at'):
-        players.append({
-            'id': part.id,
-            'username': (
-                part.user.username
-                if part.user
-                else (part.guest_name
-                      or f"Guest {part.guest_identifier[:8]}")
-            ),
-            'is_host': part.is_host,
-            'is_npc': part.is_npc,
-            'characterSelected': part.assigned_character is not None,
-        })
-
-    data = {
-        'code':         session.code,
-        'status':       session.status,
-        'round_length': session.round_length,
-        'round_count':  session.round_count,
-        'players':      players,
-    }
-    return Response(data)
-
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def update_question_collections(request):

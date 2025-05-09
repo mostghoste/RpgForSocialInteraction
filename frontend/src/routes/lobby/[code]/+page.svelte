@@ -97,13 +97,14 @@
 	onMount(() => {
 		isLoading = false;
 
-		// if user is already loaded, join immediately
 		if (get(user)) {
 			hasJoinedRoom = true;
 			joinAsAuthenticated();
+		} else if (participantId && participantSecret) {
+			hasJoinedRoom = true;
+			rejoinRoom();
 		}
 
-		// subscribe to user store, once it becomes non-null, join
 		const unsubscribe = user.subscribe((u) => {
 			if (u && !hasJoinedRoom) {
 				hasJoinedRoom = true;
