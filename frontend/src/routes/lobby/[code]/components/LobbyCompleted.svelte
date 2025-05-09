@@ -144,9 +144,21 @@
 	{/if}
 </Banner>
 
-<main class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-auto p-4">
+<main
+	class="flex h-full w-full flex-col items-center justify-center gap-4 overflow-y-auto {[
+		'identity',
+		'podium'
+	].includes(phase)
+		? 'bg-surface-900'
+		: 'p-4'}"
+>
 	{#if phase === 'identity'}
-		<div class="h-120 relative flex w-full max-w-md items-center justify-center overflow-hidden">
+		<div
+			class="bg-surface-700 w-md absolute z-0 aspect-square -translate-y-8 rounded-full opacity-70 blur-2xl"
+		></div>
+		<div
+			class="h-120 relative z-10 flex w-full max-w-md items-center justify-center overflow-hidden"
+		>
 			{#if currentReveal}
 				<div class="absolute inset-0 flex items-center justify-center">
 					<div
@@ -154,7 +166,7 @@
 					></div>
 				</div>
 				<div
-					class="pointer-events-none absolute inset-0 flex translate-y-6 rotate-45 items-center justify-center"
+					class="blur-xs pointer-events-none absolute inset-0 flex translate-y-6 rotate-45 items-center justify-center opacity-70"
 				>
 					<div
 						class="h-80 w-80"
@@ -230,6 +242,9 @@
 			{/if}
 		</div>
 	{:else if phase === 'podium'}
+		<div
+			class="bg-surface-700 w-md absolute z-0 aspect-square -translate-y-8 rounded-full opacity-70 blur-2xl"
+		></div>
 		<div class="relative flex h-[250px] w-full flex-row items-end justify-center gap-8">
 			<div class="absolute inset-x-0 bottom-0 flex items-end justify-center">
 				<div
