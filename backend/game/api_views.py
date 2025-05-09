@@ -389,10 +389,28 @@ def update_question_collections(request):
     if not participant.is_host:
         return Response({'error': 'Tik vedėjas gali keisti klausimų kolekcijas.'}, status=403)
 
-    valid_collections = QuestionCollection.objects.filter(id__in=collections_ids, is_deleted=False)
+    # Only public or own collections allowed
+    if participant.user:
+        allowed = QuestionCollection.objects.filter(
+            is_deleted=False
+        ).filter(
+            Q(created_by__isnull=True) | Q(created_by=participant.user)
+        )
+    else:
+        allowed = QuestionCollection.objects.filter(
+            is_deleted=False, created_by__isnull=True
+        )
+
+    valid_collections = allowed.filter(id__in=collections_ids)
+
+    if valid_collections.count() != len(collections_ids):
+        return Response(
+            {'error': 'Pasirinktos neteisingos klausimų kolekcijos.'},
+            status=400
+        )
+
     session.question_collections.set(valid_collections)
     session.save()
-
     broadcast_lobby_update(session)
 
     collections_list = list(session.question_collections.values('id', 'name'))
