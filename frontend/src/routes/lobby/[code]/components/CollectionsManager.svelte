@@ -136,19 +136,22 @@
 			class="mb-4"
 		>
 			<Segment.Item value="all">
-				<IconAll class="mr-1 inline-block" size={20} /> Visos
+				<IconAll class="mr-1 inline-block" size={20} />
+				<span class="text-xs sm:text-lg">Visos</span>
 			</Segment.Item>
 			<Segment.Item value="standard">
-				<IconStandard class="mr-1 inline-block" size={20} /> Standartinės
+				<IconStandard class="mr-1 inline-block" size={20} />
+				<span class="text-xs sm:text-lg">Viešos</span>
 			</Segment.Item>
 			<Segment.Item value="mine" disabled={!$user}>
-				<IconUser class="mr-1 inline-block" size={20} /> Mano
+				<IconUser class="mr-1 inline-block" size={20} />
+				<span class="text-xs sm:text-lg">Mano</span>
 			</Segment.Item>
 		</Segment>
 	</div>
 </div>
 
-<div class="flex max-h-[60vh] min-h-[60vh] flex-col justify-between gap-4 overflow-y-auto p-4">
+<div class="flex max-h-[60vh] min-h-[60vh] flex-col justify-between gap-4 overflow-y-auto py-2">
 	{#if filteredCollections.length === 0}
 		<p class="text-surface-500 text-center italic">
 			Pagal pasirinktus kriterijus klausimų kolekcijų nerasta

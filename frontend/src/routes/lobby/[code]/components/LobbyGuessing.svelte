@@ -50,7 +50,7 @@
 <Banner>
 	{#if remainingGuesses > 0}
 		<h2 class="h4">Metas spėjimams!</h2>
-		<p class="h3">
+		<p class="h3 text-center">
 			Tau dar reikia atlikti {remainingGuesses}
 			{remainingGuesses === 1 ? 'spėjimą' : 'spėjimus'}
 		</p>

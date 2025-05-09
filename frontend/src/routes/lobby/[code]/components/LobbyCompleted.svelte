@@ -241,7 +241,7 @@
 					<!-- name flies in above the bar -->
 					{#if nameRevealed[player.id]}
 						<p
-							class="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-center font-bold {i ===
+							class="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-center font-bold {i ===
 							1
 								? 'animate-bounce-from-bottom'
 								: ''}"

@@ -18,21 +18,21 @@
 </script>
 
 <Banner>
-	<h2 class="h3 text-center">Kambario {code} laukiamasis</h2>
+	<h2 class="sm:h3 h4 text-center">Kambario {code} laukiamasis</h2>
 </Banner>
 
-<main class="flex h-full flex-col items-center justify-center">
+<main class="flex h-full flex-col items-center justify-center p-4">
 	<section class="bg-surface-100-900 flex flex-col gap-4 rounded-2xl p-4">
 		<div class="flex flex-col gap-2">
 			<h1 class="h3">Kas tu?</h1>
-			<p class="text-center">Įvesk savo vardą, kad prisijungtum prie kambario.</p>
+			<p class="text-left">Įvesk savo vardą, kad prisijungtum prie kambario.</p>
 		</div>
 		<div class="flex flex-col gap-2">
 			<input
 				class="input text-center"
 				type="text"
 				bind:value={guestUsername}
-				placeholder="Vartotojo vardas"
+				placeholder="Naudotojo vardas"
 				bind:this={usernameInput}
 				on:keydown={(e) => {
 					if (

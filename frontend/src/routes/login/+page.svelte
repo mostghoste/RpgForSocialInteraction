@@ -93,10 +93,10 @@
 	</div>
 
 	<form
-		class="flex w-96 flex-col gap-2"
+		class="flex w-full flex-col gap-2"
 		on:submit|preventDefault={() => (activeTab === 'login' ? login() : register())}
 	>
-		<input type="text" bind:value={username} placeholder="Vartotojo vardas" class="input" />
+		<input type="text" bind:value={username} placeholder="Naudotojo vardas" class="input" />
 		{#if username && !validUsername}
 			<p class="text-sm text-red-500">4–30 simbolių: raidės, skaičiai arba @ . + - _</p>
 		{/if}

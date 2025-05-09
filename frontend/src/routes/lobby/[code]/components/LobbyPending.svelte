@@ -91,8 +91,8 @@
 			<LogOut size={18}></LogOut>
 			<span class="hidden sm:hidden md:block">Išeiti</span>
 		</button>
-		<h2 class="h3 w-full text-center">Kambario kodas: {code}</h2>
-		<span class="md:w-30 w-4"></span>
+		<h2 class="sm:h3 h4 w-full text-center">Kambario kodas: {code}</h2>
+		<span class="w-4 sm:w-12"></span>
 	</div>
 </Banner>
 

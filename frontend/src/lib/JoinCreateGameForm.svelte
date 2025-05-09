@@ -4,7 +4,7 @@
 	import { toastOptions } from '$lib/toastConfig';
 	import Banner from '$lib/Banner.svelte';
 	import { user, clearTokens } from '$lib/stores/auth';
-	import { User, VenetianMask } from '@lucide/svelte';
+	import { LogInIcon, User, VenetianMask } from '@lucide/svelte';
 	import { apiFetch } from '$lib/api';
 
 	let code = '';
@@ -72,7 +72,7 @@
 
 <Banner>
 	<div class="relative flex w-full items-center justify-between">
-		<span class="w-20 lg:w-32"></span>
+		<span class="w-16 sm:w-32"></span>
 		<h1 class="h3 flex items-center gap-2 text-center">
 			<span><VenetianMask size={36} /></span> Meidvainis
 		</h1>
@@ -80,10 +80,10 @@
 		{#if $user}
 			<div class="user-menu-container">
 				<button
-					class="btn preset-filled-primary-500 flex items-center gap-1 text-sm"
+					class="btn preset-filled-primary-400-600 flex items-center gap-1 text-sm"
 					on:click={() => (showMenu = !showMenu)}
 				>
-					<User size={20} />
+					<User size={18} />
 					<span class="hidden lg:block">{$user.username}</span>
 				</button>
 				{#if showMenu}
@@ -92,7 +92,7 @@
 					>
 						<p class="text-center text-sm">Sveikas, <strong>{$user.username}</strong>!</p>
 						<hr />
-						<button class="btn preset-filled-error-400-600 text-sm" on:click={logout}>
+						<button class="btn preset-filled-error-400-600 w-full text-sm" on:click={logout}>
 							Atsijungti
 						</button>
 					</div>
@@ -100,7 +100,8 @@
 			</div>
 		{:else}
 			<button class="btn preset-filled-primary-400-600" on:click={() => goto('/login')}>
-				Prisijungti
+				<LogInIcon size={18} />
+				<span class="hidden sm:block">Prisijungti</span>
 			</button>
 		{/if}
 	</div>
@@ -114,7 +115,7 @@
 			<h1 class="h3">Sveikas atvykęs!</h1>
 			<p>Įvesk kambario kodą arba sukurk naują kambarį.</p>
 		</div>
-		<div class="flex w-96 flex-col gap-2">
+		<div class="flex w-full flex-col gap-2">
 			<input
 				class="input text-center"
 				type="text"

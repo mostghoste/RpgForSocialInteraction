@@ -37,7 +37,7 @@
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-	<div class="bg-surface-100-900 max-w-[80vw] rounded-lg p-6 shadow">
+	<div class="bg-surface-100-900 w-fit max-w-[95vw] rounded-lg p-6 shadow">
 		<Tabs value={activeTab} onValueChange={(e) => (activeTab = e.value)} fluid>
 			{#snippet list()}
 				<Tabs.Control
@@ -71,6 +71,7 @@
 							meterBg="bg-primary-400"
 							thumbRingColor="ring-primary-400"
 							trackBg="bg-surface-300-700"
+							markersBase="mt-2"
 						/>
 					</div>
 
@@ -90,6 +91,7 @@
 							meterBg="bg-primary-400"
 							thumbRingColor="ring-primary-400"
 							trackBg="bg-surface-300-700"
+							markersBase="mt-2"
 						/>
 					</div>
 
@@ -109,6 +111,7 @@
 							meterBg="bg-primary-400"
 							thumbRingColor="ring-primary-400"
 							trackBg="bg-surface-300-700"
+							markersBase="mt-2"
 						/>
 					</div>
 
@@ -122,7 +125,7 @@
 				</Tabs.Panel>
 
 				<Tabs.Panel value="questions">
-					<div class="mb-4 overflow-y-auto">
+					<div class="w-full overflow-y-auto">
 						<CollectionsManager bind:selectedCollections />
 					</div>
 
