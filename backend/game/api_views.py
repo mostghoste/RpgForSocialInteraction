@@ -458,6 +458,14 @@ def select_character(request):
         character = Character.objects.get(id=character_id)
     except Character.DoesNotExist:
         return Response({'error': 'Personažas nerastas.'}, status=404)
+    
+    # Only public characters or ones the user created may be selected
+    if not character.is_public:
+        if not participant.user or character.creator_id != participant.user.id:
+            return Response(
+                {'error': 'Negalima pasirinkti kito vartotojo personažo.'},
+                status=403
+            )
 
     if session.participants.filter(assigned_character=character).exists():
         return Response({'error': 'Šis personažas jau pasirinktas.'}, status=400)
