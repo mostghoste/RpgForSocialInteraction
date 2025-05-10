@@ -2,7 +2,7 @@
 	import { onMount, tick, createEventDispatcher } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import Banner from '$lib/Banner.svelte';
-	import { Tooltip } from '@skeletonlabs/skeleton-svelte';
+	import { Popover, Tooltip } from '@skeletonlabs/skeleton-svelte';
 
 	export let players = [];
 	export let currentUserId;
@@ -297,7 +297,7 @@
 					<header class="flex w-14 flex-col justify-center gap-2 text-center">
 						<p title="Vieta" class="text-5xl font-bold">{i + 1}</p>
 						{#if player.score_breakdown?.length}
-							<Tooltip
+							<Popover
 								positioning={{
 									placement: 'top',
 									offset: { mainAxis: 8 },
@@ -319,7 +319,7 @@
 										{/each}
 									</ul>
 								{/snippet}
-							</Tooltip>
+							</Popover>
 						{/if}
 					</header>
 					<span class="vr border-surface-300-700 border-l-2"></span>
