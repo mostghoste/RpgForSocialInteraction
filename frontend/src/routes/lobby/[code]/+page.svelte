@@ -617,12 +617,14 @@
 </script>
 
 {#if isLoading}
-	<ProgressRing
-		value={null}
-		size="size-14"
-		meterStroke="stroke-primary-600-400"
-		trackStroke="stroke-surface-200-800"
-	/>
+	<div class="flex h-full w-full items-center justify-center">
+		<ProgressRing
+			value={null}
+			size="size-14"
+			meterStroke="stroke-primary-600-400"
+			trackStroke="stroke-surface-200-800"
+		/>
+	</div>
 {:else if needsUsernameLocal && !get(user)}
 	<GuestUsernameForm {code} on:submitGuestUsername={submitGuestUsername} />
 {:else if lobbyState.status === 'pending'}

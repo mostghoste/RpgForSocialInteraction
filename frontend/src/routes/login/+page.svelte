@@ -68,57 +68,59 @@
 	}
 </script>
 
-<section
-	class="bg-surface-100-900 mx-auto mt-12 flex w-fit flex-col items-center gap-4 rounded-2xl p-4 lg:max-w-3xl"
->
-	<div class="flex w-full gap-4">
-		<button
-			class="text-md border-b-2 pb-2 focus:outline-none"
-			class:border-primary-500={activeTab === 'login'}
-			class:border-transparent={activeTab !== 'login'}
-			class:font-semibold={activeTab === 'login'}
-			on:click={() => (activeTab = 'login')}
-		>
-			Prisijungti
-		</button>
-		<button
-			class="text-md border-b-2 pb-2 focus:outline-none"
-			class:border-primary-500={activeTab === 'register'}
-			class:border-transparent={activeTab !== 'register'}
-			class:font-semibold={activeTab === 'register'}
-			on:click={() => (activeTab = 'register')}
-		>
-			Registruotis
-		</button>
-	</div>
-
-	<form
-		class="flex w-full flex-col gap-2"
-		on:submit|preventDefault={() => (activeTab === 'login' ? login() : register())}
+<div class="flex h-full items-center">
+	<section
+		class="bg-surface-100-900 mx-auto flex w-fit flex-col items-center gap-4 rounded-2xl p-4 lg:max-w-3xl"
 	>
-		<input type="text" bind:value={username} placeholder="Naudotojo vardas" class="input" />
-		{#if username && !validUsername}
-			<p class="text-sm text-red-500">4–30 simbolių: raidės, skaičiai arba @ . + - _</p>
-		{/if}
+		<div class="flex w-full gap-4">
+			<button
+				class="text-md border-b-2 pb-2 focus:outline-none"
+				class:border-primary-500={activeTab === 'login'}
+				class:border-transparent={activeTab !== 'login'}
+				class:font-semibold={activeTab === 'login'}
+				on:click={() => (activeTab = 'login')}
+			>
+				Prisijungti
+			</button>
+			<button
+				class="text-md border-b-2 pb-2 focus:outline-none"
+				class:border-primary-500={activeTab === 'register'}
+				class:border-transparent={activeTab !== 'register'}
+				class:font-semibold={activeTab === 'register'}
+				on:click={() => (activeTab = 'register')}
+			>
+				Registruotis
+			</button>
+		</div>
 
-		<input type="password" bind:value={password} placeholder="Slaptažodis" class="input" />
-		{#if password && !validPassword}
-			<p class="text-sm text-red-500">Slaptažodis turi būti bent 8 simbolių ilgio</p>
-		{/if}
-
-		{#if activeTab === 'register'}
-			<input type="email" bind:value={email} placeholder="El. paštas" class="input" />
-			{#if email && !validEmail}
-				<p class="text-sm text-red-500">Neteisingo formato el. paštas</p>
-			{/if}
-		{/if}
-
-		<button
-			type="submit"
-			class="btn preset-filled-primary-400-600 mt-4 w-full"
-			disabled={!canSubmit}
+		<form
+			class="flex w-full flex-col gap-2"
+			on:submit|preventDefault={() => (activeTab === 'login' ? login() : register())}
 		>
-			{activeTab === 'login' ? 'Prisijungti' : 'Registruotis'}
-		</button>
-	</form>
-</section>
+			<input type="text" bind:value={username} placeholder="Naudotojo vardas" class="input" />
+			{#if username && !validUsername}
+				<p class="text-sm text-red-500">4–30 simbolių: raidės, skaičiai arba @ . + - _</p>
+			{/if}
+
+			<input type="password" bind:value={password} placeholder="Slaptažodis" class="input" />
+			{#if password && !validPassword}
+				<p class="text-sm text-red-500">Slaptažodis turi būti bent 8 simbolių ilgio</p>
+			{/if}
+
+			{#if activeTab === 'register'}
+				<input type="email" bind:value={email} placeholder="El. paštas" class="input" />
+				{#if email && !validEmail}
+					<p class="text-sm text-red-500">Neteisingo formato el. paštas</p>
+				{/if}
+			{/if}
+
+			<button
+				type="submit"
+				class="btn preset-filled-primary-400-600 mt-4 w-full"
+				disabled={!canSubmit}
+			>
+				{activeTab === 'login' ? 'Prisijungti' : 'Registruotis'}
+			</button>
+		</form>
+	</section>
+</div>

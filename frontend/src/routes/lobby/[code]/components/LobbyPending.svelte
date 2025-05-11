@@ -97,7 +97,7 @@
 </Banner>
 
 <main
-	class="flex h-full w-full max-w-3xl flex-col items-center justify-center gap-4 overflow-y-scroll p-2"
+	class="mx-auto flex h-full max-w-3xl flex-col items-center gap-4 overflow-y-scroll p-2 pt-4 md:justify-center"
 >
 	<section class="flex w-full flex-col gap-4 md:flex-row">
 		<div class="bg-surface-100-900 relative flex w-full flex-1 flex-col rounded-2xl p-4">
@@ -210,7 +210,7 @@
 		/>
 	{/if}
 
-	<div class="bg-surface-100-900 relative flex max-h-96 w-full flex-col gap-2 rounded-2xl p-4">
+	<div class="bg-surface-100-900 relative flex w-full flex-col gap-2 rounded-2xl p-4 md:max-h-96">
 		<h4 class="h6">Išsirink personažą:</h4>
 		<button
 			title="Sukurti naują veikėją"
@@ -219,7 +219,7 @@
 		>
 			<UserRoundPlus></UserRoundPlus>
 		</button>
-		<div class="flex h-full w-full flex-col gap-1 overflow-scroll">
+		<div class="flex w-full flex-1 flex-col gap-1 overflow-scroll">
 			{#each availableCharacters as char}
 				<button
 					on:click={() => handleSelectCharacter(char.id)}

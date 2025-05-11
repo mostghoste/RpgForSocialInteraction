@@ -13,6 +13,7 @@
 <svelte:head>
 	<title>Meidvainis</title>
 </svelte:head>
-<div class="bg-surface-300-700 flex h-screen w-screen flex-col items-center justify-center">
+
+<div class="bg-surface-300-700 flex h-screen w-screen flex-col">
 	<slot />
 </div>
