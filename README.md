@@ -1,19 +1,6 @@
 # Meidvainis
 A fun web-based role-playing & social-deduction game, developed as part of a bachelor’s thesis. Players pick or create characters, answer prompts, chat, and then anonymously guess who is who.
 
-## 📸 Screenshots
-### Lobby - pending
-![Lobby Pending](docs/screenshots/pending.png)
-
-### In-Game Chat
-![In-Game Chat](docs/screenshots/in_progress.png)
-
-### Guessing phase
-![Guessing phase](docs/screenshots/guessing.png)
-
-### Final results
-![Final results](docs/screenshots/results.png)
-
 ## Features
 
 - **Real-time rounds & chat** via Django Channels & WebSockets  
@@ -21,9 +8,22 @@ A fun web-based role-playing & social-deduction game, developed as part of a bac
 - **Custom character creation** (with image upload)  
 - **Social deduction**: answer, guess, scoring, and reveal phases  
 - **REST API** with JWT auth (Simple JWT)  
-- **Containerized** with Docker, Compose, Redis, Postgres, Celery & Celery-Beat  
+- **Containerized** with Docker, Compose, Redis, Postgres, Celery & Celery-Beat 
 
-# How do i run this?
+## 📸 Screenshots
+### Lobby - pending
+<img src="docs/screenshots/pending.png" alt="Lobby Pending" width="300"/>
+
+### In-Game Chat
+<img src="docs/screenshots/in_progress.png.png" alt="In-Game Chat" width="300"/>
+
+### Guessing phase
+<img src="docs/screenshots/guessing.png" alt="Guessing phase" width="300"/>
+
+### Final results
+<img src="docs/screenshots/results.png" alt="Final results" width="300"/>
+
+## How do i run this?
 - `git clone https://github.com/mostghoste/RpgForSocialInteraction`
 - `cp .env.example .env`
 - In `.env`, configure `DJANGO_SECRET_KEY` to a secure string and add `DEEPSEEK_API_KEY` (optional)
@@ -33,7 +33,7 @@ A fun web-based role-playing & social-deduction game, developed as part of a bac
 
 `docker compose up` might not fully work on the first run, try again if it fails.
 
-# Project Structure
+## Project Structure
 ```
 /
 ├── backend/                # Django + Channels + Celery
@@ -51,5 +51,5 @@ A fun web-based role-playing & social-deduction game, developed as part of a bac
 └── README.md
 ```
 
-# Testing
+## Testing
 Run tests with `docker compose exec backend pytest --disable-warnings --cov=game --cov-report=term-missing   --cov-report=html -vv`
