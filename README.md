@@ -1,6 +1,19 @@
 # Meidvainis
 A fun web-based role-playing & social-deduction game, developed as part of a bachelor’s thesis. Players pick or create characters, answer prompts, chat, and then anonymously guess who is who.
 
+## 📸 Screenshots
+### Lobby - pending
+![Lobby Pending](docs/screenshots/pending.png)
+
+### In-Game Chat
+![In-Game Chat](docs/screenshots/in_progress.png)
+
+### Guessing phase
+![Guessing phase](docs/screenshots/guessing.png)
+
+### Final results
+![Final results](docs/screenshots/results.png)
+
 ## Features
 
 - **Real-time rounds & chat** via Django Channels & WebSockets  
