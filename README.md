@@ -15,7 +15,7 @@ A fun web-based role-playing & social-deduction game, developed as part of a bac
 <img src="docs/screenshots/pending.png" alt="Lobby Pending" width="300"/>
 
 ### In-Game Chat
-<img src="docs/screenshots/in_progress.png.png" alt="In-Game Chat" width="300"/>
+<img src="docs/screenshots/in_progress.png" alt="In-Game Chat" width="300"/>
 
 ### Guessing phase
 <img src="docs/screenshots/guessing.png" alt="Guessing phase" width="300"/>
