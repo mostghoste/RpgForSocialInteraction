@@ -3,7 +3,10 @@ This is "RpgForSocialInteraction", a webapp developed as part of my bachelor's t
 
 # How do i run this?
 - `git clone https://github.com/mostghoste/RpgForSocialInteraction`
-- `docker compose up`
+- `cp .env.example .env`
+- In `.env`, configure `DJANGO_SECRET_KEY` to a secure string and add `DEEPSEEK_API_KEY` (optional)
+- `docker compose up --build`
+- Populate the DB with default characters and questions with `docker compose exec backend python manage.py populate_db` (optional)
 
 # Short Description of the Stack:
 ## Backend
