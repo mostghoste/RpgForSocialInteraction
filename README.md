@@ -1,5 +1,14 @@
-# What is this?
-This is "RpgForSocialInteraction", a webapp developed as part of my bachelor's thesis. In essence, it is a fun role-playing game with a bit of social deduction meant to bring people closer together.
+# Meidvainis
+A fun web-based role-playing & social-deduction game, developed as part of a bachelor’s thesis. Players pick or create characters, answer prompts, chat, and then anonymously guess who is who.
+
+## Features
+
+- **Real-time rounds & chat** via Django Channels & WebSockets  
+- **AI “bot” players** powered by DeepSeek (OpenAI-compatible)  
+- **Custom character creation** (with image upload)  
+- **Social deduction**: answer, guess, scoring, and reveal phases  
+- **REST API** with JWT auth (Simple JWT)  
+- **Containerized** with Docker, Compose, Redis, Postgres, Celery & Celery-Beat  
 
 # How do i run this?
 - `git clone https://github.com/mostghoste/RpgForSocialInteraction`
@@ -7,11 +16,27 @@ This is "RpgForSocialInteraction", a webapp developed as part of my bachelor's t
 - In `.env`, configure `DJANGO_SECRET_KEY` to a secure string and add `DEEPSEEK_API_KEY` (optional)
 - `docker compose up --build`
 - Populate the DB with default characters and questions with `docker compose exec backend python manage.py populate_db` (optional)
+- Visit the frontend at http://localhost:3000 and the admin at http://localhost:8000/admin.
 
-# Short Description of the Stack:
-## Backend
-Django. Python (from python:3), dependencies installed via requirements.txt. Runs on :8000.
-## Frontend
-Svelte/SvelteKit app built with Node (from node:18-alpine). Frontend implemented with tailwindcss based on original figma designs. The built frontend is served by an Nginx (from nginx:stable-alpine) container. Runs on :3000.
-## Orchestration
-Docker Compose is used to spin up and manage all of the containers.
+`docker compose up` might not fully work on the first run, try again if it fails.
+
+# Project Structure
+```
+/
+├── backend/                # Django + Channels + Celery
+│   ├── backend/            # Django project
+│   ├── game/               # Game app (models, consumers, tasks…)
+│   ├── users/              # Authentication  
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/               # SvelteKit + Skeleton UI
+│   ├── src/
+│   ├── Dockerfile
+│   └── package.json
+├── docker-compose.yml
+├── .env.example
+└── README.md
+```
+
+# Testing
+Run tests with `docker compose exec backend pytest --disable-warnings --cov=game --cov-report=term-missing   --cov-report=html -vv`
